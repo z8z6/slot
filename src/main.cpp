@@ -3,8 +3,11 @@
 
 using namespace z8;
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine,
-                   int showCmd) {
-  Window w(hInstance);
-  return w.Run();
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR, int) {
+  Window::Instance = hInstance;
+  Window w1;
+  Window w2;
+  w1.Open();
+  w2.Open();
+  return Window::Run();
 }

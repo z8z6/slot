@@ -12,15 +12,25 @@ namespace z8 {
 class Window {
   HINSTANCE Inst;
   HWND Wnd;
+  WNDCLASS* WndClass;
 
   int Width = 1000;
   int Height = 800;
   std::wstring Caption = L"window";
 
 public:
-  explicit Window(HINSTANCE hInst);
-  int Run();
+  Window();
+  void Open() const;
 
+public:
+  inline static HINSTANCE Instance;
+  static int Run();
+
+private:
+  static bool Init();
+  inline static bool IsInit = Init();
+  inline static int AliveCount;
+  inline static WNDCLASS DefaultWndClass;
   static LRESULT CALLBACK DefaultMsgHandler(HWND, UINT, WPARAM, LPARAM);
 };
 } // namespace z8

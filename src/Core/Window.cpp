@@ -8,37 +8,29 @@
 
 using namespace z8;
 
-z8::Window::Window(HINSTANCE hInst) : Inst(hInst) {
-  WNDCLASS wc;
-  wc.style = CS_HREDRAW | CS_VREDRAW;
-  wc.lpfnWndProc = DefaultMsgHandler;
-  wc.cbClsExtra = 0;
-  wc.cbWndExtra = 0;
-  wc.hInstance = Inst;
-  wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
-  wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-  wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(NULL_BRUSH));
-  wc.lpszMenuName = nullptr;
-  wc.lpszClassName = reinterpret_cast<LPCSTR>(L"MainWnd");
-
-  assert(RegisterClass(&wc));
+z8::Window::Window() {
+  Inst = Window::Instance;
+  WndClass = &DefaultWndClass;
 
   RECT R = {0, 0, Width, Height};
   AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
   int width = R.right - R.left;
   int height = R.bottom - R.top;
 
-  Wnd = CreateWindow(reinterpret_cast<LPCSTR>(L"MainWnd"),
+  Wnd = CreateWindow(WndClass->lpszClassName,
                      reinterpret_cast<LPCSTR>(Caption.c_str()),
                      WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width,
                      height, nullptr, nullptr, Inst, nullptr);
   assert(Wnd);
+  ++AliveCount;
+}
+
+void Window::Open() const {
+  ShowWindow(Wnd, SW_SHOW);
+  UpdateWindow(Wnd);
 }
 
 int Window::Run() {
-  ShowWindow(Wnd, SW_SHOW);
-  UpdateWindow(Wnd);
-
   MSG msg = {nullptr};
 
   while (msg.message != WM_QUIT) {
@@ -52,37 +44,38 @@ int Window::Run() {
   return static_cast<int>(msg.wParam);
 }
 
-LRESULT Window::DefaultMsgHandler(HWND hwnd, UINT msg, WPARAM wParam,
+LRESULT Window::DefaultMsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
                                   LPARAM lParam) {
-  switch (msg) {
+  switch (Msg) {
   // WM_ACTIVATE is sent when the window is activated or deactivated.
-  // We pause the game when the window is deactivated and unpause it
-  // when it becomes active.
+    // We pause the game when the window is deactivated and unpause it
+    // when it becomes active.
   case WM_ACTIVATE:
 
     return 0;
 
-  // WM_SIZE is sent when the user resizes the window.
+    // WM_SIZE is sent when the user resizes the window.
   case WM_SIZE:
 
     return 0;
 
-  // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+    // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
   case WM_ENTERSIZEMOVE:
 
     return 0;
 
-  // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-  // Here we reset everything based on the new window dimensions.
+    // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
+    // Here we reset everything based on the new window dimensions.
   case WM_EXITSIZEMOVE:
 
     return 0;
 
-  // WM_DESTROY is sent when the window is being destroyed.
-  case WM_DESTROY:
-    PostQuitMessage(0);
+  // 关闭窗口
+  case WM_DESTROY: {
+    if (!--AliveCount)
+      PostQuitMessage(0);
     return 0;
-
+  }
   // The WM_MENUCHAR message is sent when a menu is active and the user presses
   // a key that does not correspond to any mnemonic or accelerator key.
   case WM_MENUCHAR:
@@ -111,6 +104,22 @@ LRESULT Window::DefaultMsgHandler(HWND hwnd, UINT msg, WPARAM wParam,
 
     return 0;
   default:
-    return DefWindowProc(hwnd, msg, wParam, lParam);
+    return DefWindowProc(Wnd, Msg, wParam, lParam);
   }
+}
+
+bool Window::Init() {
+  DefaultWndClass.style = CS_HREDRAW | CS_VREDRAW;
+  DefaultWndClass.lpfnWndProc = DefaultMsgHandler;
+  DefaultWndClass.cbClsExtra = 0;
+  DefaultWndClass.cbWndExtra = 0;
+  DefaultWndClass.hInstance = Window::Instance;
+  DefaultWndClass.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+  DefaultWndClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
+  DefaultWndClass.hbrBackground = static_cast<HBRUSH>(GetStockObject(NULL_BRUSH));
+  DefaultWndClass.lpszMenuName = nullptr;
+  DefaultWndClass.lpszClassName = reinterpret_cast<LPCSTR>(L"DefaultWindowClass");
+
+  assert(RegisterClass(&DefaultWndClass));
+  return true;
 }
