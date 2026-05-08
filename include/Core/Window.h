@@ -10,6 +10,7 @@
 namespace z8 {
 
 class Window {
+public:
   HINSTANCE Inst;
   HWND Wnd;
   WNDCLASS* WndClass;
