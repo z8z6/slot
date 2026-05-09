@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.31)
 project(slot)
-
 set(CMAKE_CXX_STANDARD 17)
 
-file(GLOB_RECURSE SOURCE_FILES src/*.cpp include/*.h)
+add_compile_options("/utf-8")
+
+file(GLOB_RECURSE SOURCE_FILES src/*.cpp include/*.h third/*.h)
 
 add_executable(slot ${SOURCE_FILES})
 
-target_include_directories(slot PUBLIC include)
+target_include_directories(slot PUBLIC include third)
 
 target_link_libraries(
         slot
@@ -15,6 +16,10 @@ target_link_libraries(
         d3d12.lib
         dxguid.lib
         d3dcompiler.lib
+)
+
+set_target_properties(slot PROPERTIES
+        WIN32_EXECUTABLE TRUE
 )
 
 # cmake .. -G "Visual Studio 17 2022"

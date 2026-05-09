@@ -25,13 +25,11 @@ public:
 
 public:
   inline static HINSTANCE Instance;
-  static int Run();
+  inline static int AliveCount;
 
 private:
   static bool Init();
   inline static bool IsInit = Init();
-  inline static int AliveCount;
   inline static WNDCLASS DefaultWndClass;
-  static LRESULT CALLBACK DefaultMsgHandler(HWND, UINT, WPARAM, LPARAM);
 };
 } // namespace z8

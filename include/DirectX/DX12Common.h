@@ -13,6 +13,7 @@ using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 class IDXGIFactory;
 class ID3D12Device;
+class IDXGISwapChain;
 
 #define Ok(expr)              \
   {                           \
