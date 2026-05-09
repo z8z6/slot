@@ -3,10 +3,10 @@
 //
 
 #include "Core/Application.h"
+#include "DirectX/DX12Render.h"
 
 z8::Application::Application() {
-  Windows.emplace_back();
-
-  for (auto &W : Windows)
-    W.Open();
+  Render = new DX12Render(&Wnd);
+  Render->Init();
+  Wnd.Open();
 }

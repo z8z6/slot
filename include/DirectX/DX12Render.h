@@ -3,23 +3,20 @@
 //
 #pragma once
 
-#include <d3d12.h>
-#include <wrl.h>
+#include "Core/IRender.h"
+#include "DX12Common.h"
+#include "d3d12.h"
 
 namespace z8 {
 class Window;
+class DX12Context;
 
-template<typename T>
-using ComPtr = Microsoft::WRL::ComPtr<T>;
-
-class DX12 {
+// 这个类是每个窗口独立的
+class DX12Render : public IRender {
 private:
   static const int SwapChainBufCount = 2;
-  Window* Window;
-public:
-  // Device
-  ComPtr<IDXGIFactory> Factory;
-  ComPtr<ID3D12Device> Device;
+  Window* Wnd;
+  DX12Context* Ctx;
 
   // Sync
   ComPtr<ID3D12Fence> Fence;
@@ -54,7 +51,10 @@ public:
   UINT MsaaQuality = 0;
 
 public:
-  void Init();
+  DX12Render(Window* w);
+  void Init() override;
+  void Sync();
+  ID3D12Resource* GetBackBuffer() const;
 };
 
 }

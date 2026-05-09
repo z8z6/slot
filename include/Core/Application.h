@@ -5,13 +5,14 @@
 #pragma once
 
 #include "Window.h"
-#include <vector>
 
 namespace z8
 {
+class IRender;
 class Application {
 private:
-  std::vector<Window> Windows;
+  Window Wnd;
+  IRender* Render;
 public:
   Application();
 };

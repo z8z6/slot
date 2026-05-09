@@ -120,6 +120,7 @@ bool Window::Init() {
   DefaultWndClass.lpszMenuName = nullptr;
   DefaultWndClass.lpszClassName = reinterpret_cast<LPCSTR>(L"DefaultWindowClass");
 
-  assert(RegisterClass(&DefaultWndClass));
+  auto R = RegisterClass(&DefaultWndClass);
+  assert(R);
   return true;
 }
