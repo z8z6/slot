@@ -27,29 +27,35 @@ private:
   ComPtr<ID3D12CommandAllocator> CmdAllocator;
   ComPtr<ID3D12GraphicsCommandList> CmdList;
 
-  // Resource
+  // =============================================================== //
+  // 当前 Rtv 缓冲区索引
   int CurRtvId = 0;
   ComPtr<IDXGISwapChain> SwapChain;
-  // 这里是 GPU 的内存
+  // Rtv 缓冲区
   ComPtr<ID3D12Resource> RtvBuf[RtvBufCount];
+  // Dsv 缓冲区
   ComPtr<ID3D12Resource> DsvBuf;
-  // 内存类型
+  // 缓冲区内存类型
   DXGI_FORMAT FormatRtv = DXGI_FORMAT_R8G8B8A8_UNORM;
   DXGI_FORMAT FormatDsv = DXGI_FORMAT_D24_UNORM_S8_UINT;
-  // 存放 Resource 的若干描述符
-  ComPtr<ID3D12DescriptorHeap> RtvHeap;
-  ComPtr<ID3D12DescriptorHeap> DsvHeap;
+
+  // =============================================================== //
+  // 资源描述符堆
+  ComPtr<ID3D12DescriptorHeap> RtvDptHeap;
+  ComPtr<ID3D12DescriptorHeap> DsvDptHeap;
   // 单个描述符的大小
-  UINT RtvDescriptorSize = 0;
-  UINT DsvDescriptorSize = 0;
-  UINT CbvSrvUavDescriptorSize = 0;
-  // 当前描述符的指针
-  D3D12_CPU_DESCRIPTOR_HANDLE RtvHandle;
-  D3D12_CPU_DESCRIPTOR_HANDLE DsvHandle;
+  UINT RtvDptSize = 0;
+  UINT DsvDptSize = 0;
+  UINT CbvSrvUavDptSize = 0;
+  // 资源描述符
+  D3D12_CPU_DESCRIPTOR_HANDLE RtvDpt;
+  D3D12_CPU_DESCRIPTOR_HANDLE DsvDpt;
+
+  // =============================================================== //
 
   D3D_DRIVER_TYPE DriverType = D3D_DRIVER_TYPE_HARDWARE;
 
-  D3D12_VIEWPORT ScreenViewport;
+  D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
 
   // MSAA
@@ -65,8 +71,13 @@ public:
 
 private:
   void Sync();
+  void CreateMsaa();
+  void CreateCmd();
   void CreateSwapChain();
-  void UpdateHandle();
+  void CreateDptHeap();
+  void CreateDpt();
+  void CreateDsv();
+  void CreateRtv();
   ID3D12Resource* GetCurRtvBuf() const;
 };
 

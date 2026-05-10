@@ -17,63 +17,12 @@ z8::DX12Render::DX12Render(Window *w) : Wnd(w) {
 }
 
 void z8::DX12Render::Init() {
-
   Ok(Ctx->Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence)));
 
-  // 查询堆描述符的大小
-  RtvDescriptorSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  DsvDescriptorSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-  CbvSrvUavDescriptorSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-  // 查询 MSAA 的支持情况
-  D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
-  msQualityLevels.Format = FormatRtv;
-  msQualityLevels.SampleCount = 4;
-  msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
-  msQualityLevels.NumQualityLevels = 0;
-  Ok(Ctx->Device->CheckFeatureSupport(
-          D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
-          &msQualityLevels,
-          sizeof(msQualityLevels)));
-
-  MsaaQuality = msQualityLevels.NumQualityLevels;
-  assert(MsaaQuality > 0 && "Unexpected MSAA quality level.");
-
-  // Command
-  D3D12_COMMAND_QUEUE_DESC CmdQueueDesc = {};
-  CmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-  CmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-  Ok(Ctx->Device->CreateCommandQueue(&CmdQueueDesc, IID_PPV_ARGS(&CmdQueue)));
-  Ok(Ctx->Device->CreateCommandAllocator(
-          D3D12_COMMAND_LIST_TYPE_DIRECT,
-          IID_PPV_ARGS(CmdAllocator.GetAddressOf())));
-  Ok(Ctx->Device->CreateCommandList(
-          0,
-          D3D12_COMMAND_LIST_TYPE_DIRECT,
-          CmdAllocator.Get(),
-          nullptr,
-          IID_PPV_ARGS(CmdList.GetAddressOf())));
-  Ok(CmdList->Close());
-
-  // SwapChain
+  CreateMsaa();
+  CreateCmd();
   CreateSwapChain();
-
-  // Rtv Heap
-  D3D12_DESCRIPTOR_HEAP_DESC RtvDesc;
-  RtvDesc.NumDescriptors = RtvBufCount;
-  RtvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-  RtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  RtvDesc.NodeMask = 0;
-  Ok(Ctx->Device->CreateDescriptorHeap(&RtvDesc, IID_PPV_ARGS(RtvHeap.GetAddressOf())));
-
-  // Dsv Heap
-  D3D12_DESCRIPTOR_HEAP_DESC DsvDesc;
-  DsvDesc.NumDescriptors = 1;
-  DsvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-  DsvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  DsvDesc.NodeMask = 0;
-  Ok(Ctx->Device->CreateDescriptorHeap(&DsvDesc, IID_PPV_ARGS(DsvHeap.GetAddressOf())));
-
+  CreateDptHeap();
   Resize();
 }
 
@@ -92,17 +41,17 @@ void z8::DX12Render::Draw() {
   CmdList->ResourceBarrier(1, &RenderBarrier);
 
   // Set the viewport and scissor rect.  This needs to be reset whenever the command list is reset.
-  CmdList->RSSetViewports(1, &ScreenViewport);
+  CmdList->RSSetViewports(1, &ScreenView);
   CmdList->RSSetScissorRects(1, &ScissorRect);
 
   // 清空缓冲区
-  UpdateHandle();
-  CmdList->ClearRenderTargetView(RtvHandle, Colors::LightSteelBlue, 0, nullptr);
-  CmdList->ClearDepthStencilView(DsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+  CreateDpt();
+  CmdList->ClearRenderTargetView(RtvDpt, Colors::LightSteelBlue, 0, nullptr);
+  CmdList->ClearDepthStencilView(DsvDpt, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
   // 设置要写入的缓冲区
-  CmdList->OMSetRenderTargets(1, &RtvHandle,
-    true, &DsvHandle);
+  CmdList->OMSetRenderTargets(1, &RtvDpt,
+    true, &DsvDpt);
 
   // Rtv 资源类型转换
   auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
@@ -135,70 +84,60 @@ void z8::DX12Render::Sync() {
   CloseHandle(eventHandle);
 }
 
+// 查询 Msaa
+// 初始化时调用一次
+void DX12Render::CreateMsaa() {
+  // 查询 MSAA 的支持情况
+  D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
+  msQualityLevels.Format = FormatRtv;
+  msQualityLevels.SampleCount = 4;
+  msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+  msQualityLevels.NumQualityLevels = 0;
+  Ok(Ctx->Device->CheckFeatureSupport(
+          D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+          &msQualityLevels,
+          sizeof(msQualityLevels)));
+
+  MsaaQuality = msQualityLevels.NumQualityLevels;
+  assert(MsaaQuality > 0 && "Unexpected MSAA quality level.");
+}
+
+// 创建命令队列
+// 初始化时调用一次
+void DX12Render::CreateCmd() {
+  D3D12_COMMAND_QUEUE_DESC CD = {};
+  CD.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+  CD.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+  Ok(Ctx->Device->CreateCommandQueue(&CD, IID_PPV_ARGS(&CmdQueue)));
+  Ok(Ctx->Device->CreateCommandAllocator(
+          D3D12_COMMAND_LIST_TYPE_DIRECT,
+          IID_PPV_ARGS(CmdAllocator.GetAddressOf())));
+  Ok(Ctx->Device->CreateCommandList(
+          0,
+          D3D12_COMMAND_LIST_TYPE_DIRECT,
+          CmdAllocator.Get(),
+          nullptr,
+          IID_PPV_ARGS(CmdList.GetAddressOf())));
+  Ok(CmdList->Close());
+}
+
 void DX12Render::Resize() {
   Sync();
 
   Ok(CmdList->Reset(CmdAllocator.Get(), nullptr));
 
-  // Release the previous resources we will be recreating.
   for (int i = 0; i < RtvBufCount; ++i)
     RtvBuf[i].Reset();
-    DsvBuf.Reset();
+  DsvBuf.Reset();
 
-  // Resize the swap chain.
+  // 调整 SwapChain 大小
   Ok(SwapChain->ResizeBuffers(
 	      RtvBufCount, Wnd->Width, Wnd->Height,
 	      FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
-  CurRtvId = 0;
+  CreateRtv();
 
-  CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(RtvHeap->GetCPUDescriptorHandleForHeapStart());
-  for (UINT i = 0; i < RtvBufCount; i++)
-  {
-    Ok(SwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
-    Ctx->Device->CreateRenderTargetView(RtvBuf[i].Get(), nullptr, rtvHeapHandle);
-    rtvHeapHandle.Offset(1, RtvDescriptorSize);
-  }
-
-  // Create the depth/stencil buffer and view.
-  D3D12_RESOURCE_DESC DsvBufDesc;
-  DsvBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-  DsvBufDesc.Alignment = 0;
-  DsvBufDesc.Width = Wnd->Width;
-  DsvBufDesc.Height = Wnd->Height;
-  DsvBufDesc.DepthOrArraySize = 1;
-  DsvBufDesc.MipLevels = 1;
-  DsvBufDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-  DsvBufDesc.SampleDesc.Count = EnableMsaa ? 4 : 1;
-  DsvBufDesc.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
-  DsvBufDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-  DsvBufDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-  D3D12_CLEAR_VALUE optClear;
-  optClear.Format = FormatDsv;
-  optClear.DepthStencil.Depth = 1.0f;
-  optClear.DepthStencil.Stencil = 0;
-  Ok(Ctx->Device->CreateCommittedResource(
-      &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-      D3D12_HEAP_FLAG_NONE,
-      &DsvBufDesc,
-      D3D12_RESOURCE_STATE_COMMON,
-      &optClear,
-      IID_PPV_ARGS(DsvBuf.GetAddressOf())));
-
-  // Create descriptor to mip level 0 of entire resource using the format of the resource.
-  D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-  dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-  dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-  dsvDesc.Format = FormatDsv;
-  dsvDesc.Texture2D.MipSlice = 0;
-  UpdateHandle();
-  Ctx->Device->CreateDepthStencilView(DsvBuf.Get(), &dsvDesc, DsvHandle);
-
-  // Transition the resource from its initial state to be used as a depth buffer.
-  CmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(DsvBuf.Get(),
-	      D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-
+  CreateDsv();
 
   Ok(CmdList->Close());
   ID3D12CommandList* cmdsLists[] = { CmdList.Get() };
@@ -206,45 +145,135 @@ void DX12Render::Resize() {
 
   Sync();
 
-  ScreenViewport.TopLeftX = 0;
-  ScreenViewport.TopLeftY = 0;
-  ScreenViewport.Width    = static_cast<float>(Wnd->Width);
-  ScreenViewport.Height   = static_cast<float>(Wnd->Height);
-  ScreenViewport.MinDepth = 0.0f;
-  ScreenViewport.MaxDepth = 1.0f;
+  ScreenView.TopLeftX = 0;
+  ScreenView.TopLeftY = 0;
+  ScreenView.Width    = static_cast<float>(Wnd->Width);
+  ScreenView.Height   = static_cast<float>(Wnd->Height);
+  ScreenView.MinDepth = 0.0f;
+  ScreenView.MaxDepth = 1.0f;
 
   ScissorRect = {0, 0, Wnd->Width, Wnd->Height};
 }
 
+// 创建交换链
+// 初始化时调用一次
 void z8::DX12Render::CreateSwapChain() {
   SwapChain.Reset();
-  DXGI_SWAP_CHAIN_DESC SwapDesc;
-  SwapDesc.BufferDesc.Width = Wnd->Width;
-  SwapDesc.BufferDesc.Height = Wnd->Height;
-  SwapDesc.BufferDesc.RefreshRate.Numerator = 60;
-  SwapDesc.BufferDesc.RefreshRate.Denominator = 1;
-  SwapDesc.BufferDesc.Format = FormatRtv;
-  SwapDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-  SwapDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-  SwapDesc.SampleDesc.Count = EnableMsaa ? 4 : 1;
-  SwapDesc.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
-  SwapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  SwapDesc.BufferCount = RtvBufCount;
-  SwapDesc.OutputWindow = Wnd->Wnd;
-  SwapDesc.Windowed = true;
-  SwapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-  SwapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+  DXGI_SWAP_CHAIN_DESC SD;
+  SD.BufferDesc.Width = Wnd->Width;
+  SD.BufferDesc.Height = Wnd->Height;
+  SD.BufferDesc.RefreshRate.Numerator = 60;
+  SD.BufferDesc.RefreshRate.Denominator = 1;
+  SD.BufferDesc.Format = FormatRtv;
+  SD.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+  SD.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+  SD.SampleDesc.Count = EnableMsaa ? 4 : 1;
+  SD.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
+  SD.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  SD.BufferCount = RtvBufCount;
+  SD.OutputWindow = Wnd->Wnd;
+  SD.Windowed = true;
+  SD.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+  SD.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
   // SwapChain 创建依赖 CmdQueue
-  Ok(Ctx->Factory->CreateSwapChain(CmdQueue.Get(), &SwapDesc, SwapChain.GetAddressOf()));
+  Ok(Ctx->Factory->CreateSwapChain(CmdQueue.Get(), &SD, SwapChain.GetAddressOf()));
 }
 
-void z8::DX12Render::UpdateHandle() {
-  DsvHandle = DsvHeap->GetCPUDescriptorHandleForHeapStart();
-  RtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-          RtvHeap->GetCPUDescriptorHandleForHeapStart(),
+// 创建资源描述符
+// 每次缓冲区交换时调用一次
+void z8::DX12Render::CreateDpt() {
+  // 只需调用一次
+  DsvDpt = DsvDptHeap->GetCPUDescriptorHandleForHeapStart();
+  // 计算描述符的偏移
+  RtvDpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
+          RtvDptHeap->GetCPUDescriptorHandleForHeapStart(),
           CurRtvId,
-          RtvDescriptorSize);
+          RtvDptSize);
+}
+
+// 创建 Dsv 缓冲区，并绑定描述符
+// 每次 Resize 时调用一次
+void DX12Render::CreateDsv() {
+
+  // 创建 Dsv 缓冲区
+  D3D12_RESOURCE_DESC BD;
+  BD.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  BD.Alignment = 0;
+  BD.Width = Wnd->Width;
+  BD.Height = Wnd->Height;
+  BD.DepthOrArraySize = 1;
+  BD.MipLevels = 1;
+  BD.Format = DXGI_FORMAT_R24G8_TYPELESS;
+  BD.SampleDesc.Count = EnableMsaa ? 4 : 1;
+  BD.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
+  BD.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  BD.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+  D3D12_CLEAR_VALUE Clv;
+  Clv.Format = FormatDsv;
+  Clv.DepthStencil.Depth = 1.0f;
+  Clv.DepthStencil.Stencil = 0;
+
+  auto HP = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+  Ok(Ctx->Device->CreateCommittedResource(
+      &HP,
+      D3D12_HEAP_FLAG_NONE,
+      &BD,
+      D3D12_RESOURCE_STATE_COMMON,
+      &Clv,
+      IID_PPV_ARGS(DsvBuf.GetAddressOf())));
+
+  // 绑定 Dsv 描述符
+  D3D12_DEPTH_STENCIL_VIEW_DESC DD;
+  DD.Flags = D3D12_DSV_FLAG_NONE;
+  DD.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+  DD.Format = FormatDsv;
+  DD.Texture2D.MipSlice = 0;
+  Ctx->Device->CreateDepthStencilView(DsvBuf.Get(), &DD, DsvDptHeap->GetCPUDescriptorHandleForHeapStart());
+
+  // 状态转换
+  auto WriteBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DsvBuf.Get(),
+              D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+  CmdList->ResourceBarrier(1, &WriteBarrier);
+}
+
+// 创建 Rtv 缓冲区，并绑定描述符
+// 每次 Resize 时调用一次
+void DX12Render::CreateRtv() {
+  CurRtvId = 0;
+  CD3DX12_CPU_DESCRIPTOR_HANDLE Dpt(RtvDptHeap->GetCPUDescriptorHandleForHeapStart());
+  for (UINT i = 0; i < RtvBufCount; i++)
+  {
+    Ok(SwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
+    Ctx->Device->CreateRenderTargetView(RtvBuf[i].Get(), nullptr, Dpt);
+    Dpt.Offset(1, RtvDptSize);
+  }
+}
+
+// 创建资源描述符堆，存放描述符
+// 初始化时调用一次
+void DX12Render::CreateDptHeap() {
+  // 查询堆描述符的大小
+  RtvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  DsvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+  CbvSrvUavDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+  // Rtv 的描述符堆
+  D3D12_DESCRIPTOR_HEAP_DESC RD;
+  RD.NumDescriptors = RtvBufCount;  // 2个描述符
+  RD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+  RD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+  RD.NodeMask = 0;
+  Ok(Ctx->Device->CreateDescriptorHeap(&RD, IID_PPV_ARGS(RtvDptHeap.GetAddressOf())));
+
+  // Dsv Heap
+  D3D12_DESCRIPTOR_HEAP_DESC DD;
+  DD.NumDescriptors = 1;
+  DD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+  DD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+  DD.NodeMask = 0;
+  Ok(Ctx->Device->CreateDescriptorHeap(&DD, IID_PPV_ARGS(DsvDptHeap.GetAddressOf())));
 }
 
 ID3D12Resource *z8::DX12Render::GetCurRtvBuf() const {

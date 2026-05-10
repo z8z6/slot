@@ -9,6 +9,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR, int) {
   freopen("CONOUT$", "w", stderr);
 
   Window::Instance = hInstance;
-  Application App;
-  return App.Run();
+  Application App1;
+  // Application App2;
+  return Application::Run();
 }
