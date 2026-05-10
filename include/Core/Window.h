@@ -13,7 +13,7 @@ class Window {
 public:
   HINSTANCE Inst;
   HWND Wnd;
-  WNDCLASS* WndClass;
+  WNDCLASSW* WndClass;
 
   int Width = 1000;
   int Height = 800;
@@ -30,6 +30,6 @@ public:
 private:
   static bool Init();
   inline static bool IsInit = Init();
-  inline static WNDCLASS DefaultWndClass;
+  inline static WNDCLASSW DefaultWndClass;
 };
 } // namespace z8

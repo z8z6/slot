@@ -8,11 +8,14 @@
 #include <iostream>
 #include <ostream>
 
+using namespace z8;
+using namespace std;
+
 z8::Application::Application() {
   Render = new DX12Render(&Window);
   Render->Init();
-  SetWindowLongPtr(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-  SetWindowLongPtr(Window.Wnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(FakeMsgHandler));
+  SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+  SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(FakeMsgHandler));
   Window.Open();
   Application::Apps.push_back(this);
 }
@@ -23,12 +26,14 @@ int z8::Application::Run() {
 
   while (msg.message != WM_QUIT) {
     // If there are Window messages then process them.
-    if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
       TranslateMessage(&msg);
-      DispatchMessage(&msg);
+      DispatchMessageW(&msg);
     }
     else {
       for (auto* App : Apps) {
+        App->Timer.Tick();
+        App->ShowFrame();
         App->Render->Update();
         App->Render->Draw();
       }
@@ -41,14 +46,14 @@ int z8::Application::Run() {
 LRESULT z8::Application::FakeMsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
                                   LPARAM lParam) {
   // 取出对象指针
-  auto* app = reinterpret_cast<Application *>(GetWindowLongPtr(Wnd, GWLP_USERDATA));
+  auto* app = reinterpret_cast<Application *>(GetWindowLongPtrW(Wnd, GWLP_USERDATA));
 
   if (app && Msg != WM_NCDESTROY)
     // 转发给成员函数
     return app->MsgHandler(Wnd, Msg, wParam, lParam);
 
   // 默认处理
-  return DefWindowProc(Wnd, Msg, wParam, lParam);
+  return DefWindowProcW(Wnd, Msg, wParam, lParam);
 }
 
 LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
@@ -109,12 +114,35 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   case WM_RBUTTONUP:
     return 0;
   case WM_MOUSEMOVE:
-
     return 0;
   case WM_KEYUP:
-
     return 0;
   default:
-    return DefWindowProc(Wnd, Msg, wParam, lParam);
+    return DefWindowProcW(Wnd, Msg, wParam, lParam);
+  }
+}
+
+void z8::Application::ShowFrame() const {
+  static int Frames = 0;
+  static float timeElapsed = 0.0f;
+
+  ++Frames;
+
+  // 累计 1s 计算一次
+  if( Timer.TimeTotal - timeElapsed >= 1.0f )
+  {
+    // fps = frameCnt / 1
+    int fps = Frames;
+    float mspf = 1000.0f / static_cast<float>(fps);
+
+    wstring FpsText = Window.Caption +
+        L"    fps: " + to_wstring(fps) +
+        L"   mspf: " + to_wstring(mspf);
+
+    SetWindowTextW(Window.Wnd, FpsText.c_str());
+
+    // 重置
+    Frames = 0;
+    timeElapsed += 1.0f;
   }
 }

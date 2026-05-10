@@ -16,6 +16,10 @@ z8::DX12Render::DX12Render(Window *w) : Wnd(w) {
   Ctx = &DX12Context::Instance();
 }
 
+DX12Render::~DX12Render() {
+  Sync();
+}
+
 void z8::DX12Render::Init() {
   Ok(Ctx->Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence)));
 

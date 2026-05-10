@@ -17,8 +17,8 @@ z8::Window::Window() {
   int width = R.right - R.left;
   int height = R.bottom - R.top;
 
-  Wnd = CreateWindow(WndClass->lpszClassName,
-                     reinterpret_cast<LPCSTR>(Caption.c_str()),
+  Wnd = CreateWindowW(WndClass->lpszClassName,
+                     Caption.c_str(),
                      WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width,
                      height, nullptr, nullptr, Inst, nullptr);
   assert(Wnd);
@@ -32,7 +32,7 @@ void Window::Open() const {
 
 bool Window::Init() {
   DefaultWndClass.style = CS_HREDRAW | CS_VREDRAW;
-  DefaultWndClass.lpfnWndProc = DefWindowProc;
+  DefaultWndClass.lpfnWndProc = DefWindowProcW;
   DefaultWndClass.cbClsExtra = 0;
   DefaultWndClass.cbWndExtra = 0;
   DefaultWndClass.hInstance = Window::Instance;
@@ -40,9 +40,9 @@ bool Window::Init() {
   DefaultWndClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
   DefaultWndClass.hbrBackground = static_cast<HBRUSH>(GetStockObject(NULL_BRUSH));
   DefaultWndClass.lpszMenuName = nullptr;
-  DefaultWndClass.lpszClassName = reinterpret_cast<LPCSTR>(L"DefaultWindowClass");
+  DefaultWndClass.lpszClassName = L"DefaultWindowClass";
 
-  auto R = RegisterClass(&DefaultWndClass);
+  auto R = RegisterClassW(&DefaultWndClass);
   assert(R);
   return true;
 }

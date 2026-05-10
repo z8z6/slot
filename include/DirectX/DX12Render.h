@@ -64,6 +64,8 @@ private:
 
 public:
   DX12Render(Window* w);
+  ~DX12Render();
+
   void Init() override;
   void Update() override;
   void Draw() override;

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "Timer.h"
 #include "Window.h"
 
 #include <vector>
@@ -15,15 +16,19 @@ class Application {
 private:
   Window Window;
   IRender* Render;
+  Timer Timer;
 public:
   Application();
 
   LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
 
+  inline static std::vector<Application*> Apps;
   // 所有 App 都在这个方法中处理
   static int Run();
-  inline static std::vector<Application*> Apps;
   static LRESULT CALLBACK FakeMsgHandler(HWND, UINT, WPARAM, LPARAM);
+
+private:
+  void ShowFrame() const;
 };
 }
 
