@@ -2,22 +2,29 @@
 // Created by zhou_zhengming on 2026/5/8.
 //
 
+#include "DirectX/DX12Render.h"
+#include "Core/Application.h"
 #include "Core/Window.h"
 #include "DirectX/DX12Context.h"
-#include "DirectX/DX12Render.h"
+#include "Shape/IShape.h"
+
 #include "d3dx12.h"
-#include <dxgi1_4.h>
+#include "d3dcompiler.h"
 #include <DirectXColors.h>
+#include <dxgi1_4.h>
 
 using namespace DirectX;
 using namespace z8;
 
-z8::DX12Render::DX12Render(Window *w) : Wnd(w) {
+z8::DX12Render::DX12Render(Application *app) : App(app) {
   Ctx = &DX12Context::Instance();
+  Wnd = &App->Window;
+  Shape = App->Shape;
+  assert(Shape);
 }
 
 DX12Render::~DX12Render() {
-  Sync();
+  CmdSync();
 }
 
 void z8::DX12Render::Init() {
@@ -28,6 +35,12 @@ void z8::DX12Render::Init() {
   CreateSwapChain();
   CreateDptHeap();
   Resize();
+
+  CmdBegin();
+  CreateMesh();
+  CreateMeshView();
+  CmdEnd();
+  CmdSync();
 }
 
 void z8::DX12Render::Update() {
@@ -37,7 +50,7 @@ void z8::DX12Render::Update() {
 void z8::DX12Render::Draw() {
 
   Ok(CmdAllocator->Reset());
-  Ok(CmdList->Reset(CmdAllocator.Get(), nullptr));
+  CmdBegin();
 
   // Rtv 资源类型转换
   auto RenderBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
@@ -57,16 +70,20 @@ void z8::DX12Render::Draw() {
   CmdList->OMSetRenderTargets(1, &RtvDpt,
     true, &DsvDpt);
 
+  // 指定顶点缓冲区和着色器
+  CmdList->IASetVertexBuffers(0, 1, &Vv);
+  CmdList->IASetIndexBuffer(&Iv);
+  CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  // 绘制图形
+  CmdList->DrawIndexedInstanced(Shape->ICount(), 1, 0, 0, 0);
+
   // Rtv 资源类型转换
   auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
           D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
   CmdList->ResourceBarrier(1, &PresentBarrier);
 
-  Ok(CmdList->Close());
-
-  // 执行渲染命令
-  ID3D12CommandList* cmdsLists[] = { CmdList.Get() };
-  CmdQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+  CmdEnd();
 
   // 呈现当前缓冲区
   Ok(SwapChain->Present(0, 0));
@@ -74,10 +91,10 @@ void z8::DX12Render::Draw() {
   CurRtvId = ++CurRtvId % RtvBufCount;
 
   // 等待命令执行完毕
-  Sync();
+  CmdSync();
 }
 
-void z8::DX12Render::Sync() {
+void z8::DX12Render::CmdSync() {
   ++CurFence;
   Ok(CmdQueue->Signal(Fence.Get(), CurFence));
   if(Fence->GetCompletedValue() >= CurFence) return;
@@ -86,6 +103,18 @@ void z8::DX12Render::Sync() {
   Ok(Fence->SetEventOnCompletion(CurFence, eventHandle));
   WaitForSingleObject(eventHandle, INFINITE);
   CloseHandle(eventHandle);
+}
+
+void DX12Render::CmdBegin() {
+  Ok(CmdList->Reset(CmdAllocator.Get(), nullptr));
+}
+
+void DX12Render::CmdEnd() {
+  Ok(CmdList->Close());
+
+  // 执行渲染命令
+  ID3D12CommandList* cmdsLists[] = { CmdList.Get() };
+  CmdQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 }
 
 // 查询 Msaa
@@ -126,9 +155,9 @@ void DX12Render::CreateCmd() {
 }
 
 void DX12Render::Resize() {
-  Sync();
+  CmdSync();
 
-  Ok(CmdList->Reset(CmdAllocator.Get(), nullptr));
+  CmdBegin();
 
   for (int i = 0; i < RtvBufCount; ++i)
     RtvBuf[i].Reset();
@@ -143,11 +172,9 @@ void DX12Render::Resize() {
 
   CreateDsv();
 
-  Ok(CmdList->Close());
-  ID3D12CommandList* cmdsLists[] = { CmdList.Get() };
-  CmdQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+  CmdEnd();
 
-  Sync();
+  CmdSync();
 
   ScreenView.TopLeftX = 0;
   ScreenView.TopLeftY = 0;
@@ -271,15 +298,122 @@ void DX12Render::CreateDptHeap() {
   RD.NodeMask = 0;
   Ok(Ctx->Device->CreateDescriptorHeap(&RD, IID_PPV_ARGS(RtvDptHeap.GetAddressOf())));
 
-  // Dsv Heap
+  // Dsv 的描述符堆
   D3D12_DESCRIPTOR_HEAP_DESC DD;
   DD.NumDescriptors = 1;
   DD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
   DD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
   DD.NodeMask = 0;
   Ok(Ctx->Device->CreateDescriptorHeap(&DD, IID_PPV_ARGS(DsvDptHeap.GetAddressOf())));
+
+  // Cbv 的描述符堆
+  D3D12_DESCRIPTOR_HEAP_DESC CD;
+  CD.NumDescriptors = 1;
+  CD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  CD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  CD.NodeMask = 0;
+  Ok(Ctx->Device->CreateDescriptorHeap(&CD, IID_PPV_ARGS(CbvDptHeap.GetAddressOf())));
+
+  // 对于 ComPtr, operator &() = ReleaseAndGetAddressOf()
+}
+
+void DX12Render::CreateRootSignature() {
+  // Root parameter can be a table, root descriptor or root constants.
+  CD3DX12_ROOT_PARAMETER slotRootParameter[1];
+
+  // Create a single descriptor table of CBVs.
+  CD3DX12_DESCRIPTOR_RANGE cbvTable;
+  cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+  slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable);
+
+  // A root signature is an array of root parameters.
+  CD3DX12_ROOT_SIGNATURE_DESC RD(1, slotRootParameter, 0, nullptr,
+          D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+  // create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
+  ComPtr<ID3DBlob> serializedRootSig = nullptr;
+  ComPtr<ID3DBlob> errorBlob = nullptr;
+  Ok(D3D12SerializeRootSignature(&RD, D3D_ROOT_SIGNATURE_VERSION_1,
+          serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf()));
+
+  if(errorBlob != nullptr)
+  {
+    ::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+  }
+
+  Ok(Ctx->Device->CreateRootSignature(
+          0,
+          serializedRootSig->GetBufferPointer(),
+          serializedRootSig->GetBufferSize(),
+          IID_PPV_ARGS(RootSignature.GetAddressOf())));
 }
 
 ID3D12Resource *z8::DX12Render::GetCurRtvBuf() const {
   return RtvBuf[CurRtvId].Get();
+}
+
+void DX12Render::CreateMesh() {
+  Ok(D3DCreateBlob(Shape->VSize(), &VBufCPU));
+  CopyMemory(VBufCPU->GetBufferPointer(), Shape->V().data(), Shape->VSize());
+
+  Ok(D3DCreateBlob(Shape->ISize(), &IBufCPU));
+  CopyMemory(IBufCPU->GetBufferPointer(), Shape->I().data(), Shape->ISize());
+
+  VBufGPU = CreateDefaultBuffer(Shape->V().data(), Shape->VSize(), VBufUpload);
+
+  IBufGPU = CreateDefaultBuffer(Shape->I().data(), Shape->ISize(), IBufUpload);
+}
+
+void DX12Render::CreateMeshView() {
+  Vv.BufferLocation = VBufGPU->GetGPUVirtualAddress();
+  Vv.StrideInBytes = Shape->VElemSize();
+  Vv.SizeInBytes = Shape->VSize();
+
+  Iv.BufferLocation = IBufGPU->GetGPUVirtualAddress();
+  Iv.Format = FormatIBuf;
+  Iv.SizeInBytes = Shape->ISize();
+}
+
+ComPtr<ID3D12Resource> DX12Render::CreateDefaultBuffer(const void* initData,
+    UINT64 byteSize,
+    ComPtr<ID3D12Resource>& uploadBuffer) {
+  ComPtr<ID3D12Resource> defaultBuffer;
+
+  // Create the actual default buffer resource.
+  auto D = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+  auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+  Ok(Ctx->Device->CreateCommittedResource(
+      &Prop, D3D12_HEAP_FLAG_NONE,
+      &D, D3D12_RESOURCE_STATE_COMMON,
+      nullptr,
+      IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
+
+  Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+  Ok(Ctx->Device->CreateCommittedResource(
+      &Prop, D3D12_HEAP_FLAG_NONE,
+      &D, D3D12_RESOURCE_STATE_GENERIC_READ,
+      nullptr,
+      IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
+
+  // Describe the data we want to copy into the default buffer.
+  D3D12_SUBRESOURCE_DATA subResourceData = {};
+  subResourceData.pData = initData;
+  subResourceData.RowPitch = byteSize;
+  subResourceData.SlicePitch = subResourceData.RowPitch;
+
+  // Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources
+  // will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
+  // the intermediate upload heap data will be copied to mBuffer.
+  auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
+              D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+  CmdList->ResourceBarrier(1, &Barrier);
+  UpdateSubresources<1>(CmdList.Get(), defaultBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
+  auto Barrier1 = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
+              D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+  CmdList->ResourceBarrier(1, &Barrier1);
+
+  // Note: uploadBuffer has to be kept alive after the above function calls because
+  // the command list has not been executed yet that performs the actual copy.
+  // The caller can Release the uploadBuffer after it knows the copy has been executed.
+  return defaultBuffer;
 }

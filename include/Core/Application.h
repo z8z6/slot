@@ -6,18 +6,19 @@
 
 #include "Timer.h"
 #include "Window.h"
-
+#include "Shape/IShape.h"
 #include <vector>
 
 namespace z8
 {
 class IRender;
 class Application {
-private:
+public:
   Window Window;
   IRender* Render;
+  IShape* Shape;
   Timer Timer;
-public:
+
   Application();
 
   LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);

@@ -6,17 +6,22 @@
 #include "Core/IRender.h"
 #include "DX12Common.h"
 #include "d3d12.h"
+#include <cstdint>
 
 namespace z8 {
 class Window;
+class IShape;
 class DX12Context;
+class Application;
 
 // 这个类是每个窗口独立的
 class DX12Render : public IRender {
 private:
   static const int RtvBufCount = 2;
+  Application* App;
   Window* Wnd;
   DX12Context* Ctx;
+  IShape* Shape;
 
   // Sync
   ComPtr<ID3D12Fence> Fence;
@@ -39,10 +44,10 @@ private:
   DXGI_FORMAT FormatRtv = DXGI_FORMAT_R8G8B8A8_UNORM;
   DXGI_FORMAT FormatDsv = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-  // =============================================================== //
   // 资源描述符堆
   ComPtr<ID3D12DescriptorHeap> RtvDptHeap;
   ComPtr<ID3D12DescriptorHeap> DsvDptHeap;
+  ComPtr<ID3D12DescriptorHeap> CbvDptHeap;
   // 单个描述符的大小
   UINT RtvDptSize = 0;
   UINT DsvDptSize = 0;
@@ -50,6 +55,25 @@ private:
   // 资源描述符
   D3D12_CPU_DESCRIPTOR_HANDLE RtvDpt;
   D3D12_CPU_DESCRIPTOR_HANDLE DsvDpt;
+
+  // =============================================================== //
+  // 顶点缓冲区和上传堆
+
+  ComPtr<ID3DBlob> VBufCPU;
+  ComPtr<ID3DBlob> IBufCPU;
+
+  ComPtr<ID3D12Resource> VBufGPU;
+  ComPtr<ID3D12Resource> IBufGPU;
+
+  D3D12_VERTEX_BUFFER_VIEW Vv;
+  D3D12_INDEX_BUFFER_VIEW Iv;
+
+  ComPtr<ID3D12Resource> VBufUpload;
+  ComPtr<ID3D12Resource> IBufUpload;
+
+  DXGI_FORMAT FormatIBuf = DXGI_FORMAT_R16_UINT;
+
+  ComPtr<ID3D12RootSignature> RootSignature;
 
   // =============================================================== //
 
@@ -63,8 +87,8 @@ private:
   UINT MsaaQuality = 0;
 
 public:
-  DX12Render(Window* w);
-  ~DX12Render();
+  DX12Render(Application* app);
+  ~DX12Render() override;
 
   void Init() override;
   void Update() override;
@@ -72,14 +96,21 @@ public:
   void Resize() override;
 
 private:
-  void Sync();
+  void CmdSync();
+  void CmdBegin();
+  void CmdEnd();
   void CreateMsaa();
   void CreateCmd();
   void CreateSwapChain();
   void CreateDptHeap();
+  void CreateRootSignature();
   void CreateDpt();
   void CreateDsv();
   void CreateRtv();
+  void CreateMesh();
+  void CreateMeshView();
+  ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,
+    uint64_t byteSize, ComPtr<ID3D12Resource>& uploadBuffer);
   ID3D12Resource* GetCurRtvBuf() const;
 };
 

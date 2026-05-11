@@ -4,6 +4,7 @@
 
 #include "Core/Application.h"
 #include "DirectX/DX12Render.h"
+#include "Shape/Cube.h"
 
 #include <iostream>
 #include <ostream>
@@ -12,7 +13,8 @@ using namespace z8;
 using namespace std;
 
 z8::Application::Application() {
-  Render = new DX12Render(&Window);
+  Shape = new Cube();
+  Render = new DX12Render(this);
   Render->Init();
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
   SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(FakeMsgHandler));
