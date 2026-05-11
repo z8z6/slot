@@ -8,8 +8,11 @@
 #include "DirectX/DX12Context.h"
 #include "Shape/IShape.h"
 
-#include "d3dx12.h"
+#include "DirectX/DX12Shader.h"
+#include "Util/Math.h"
 #include "d3dcompiler.h"
+#include "d3dx12.h"
+
 #include <DirectXColors.h>
 #include <dxgi1_4.h>
 
@@ -25,6 +28,7 @@ z8::DX12Render::DX12Render(Application *app) : App(app) {
 
 DX12Render::~DX12Render() {
   CmdSync();
+  ConstBufGPU->Unmap(0, nullptr);
 }
 
 void z8::DX12Render::Init() {
@@ -37,20 +41,54 @@ void z8::DX12Render::Init() {
   Resize();
 
   CmdBegin();
+  CreateCbv();
+  CreateRootSignature();
   CreateMesh();
   CreateMeshView();
+  CreateShader();
+  CreatePSO();
   CmdEnd();
   CmdSync();
 }
 
 void z8::DX12Render::Update() {
 
+  XMFLOAT4X4 mWorld = Math::Identity4x4();
+  XMFLOAT4X4 mView = Math::Identity4x4();
+
+  float mTheta = 1.5f*XM_PI;
+  float mPhi = XM_PIDIV4;
+  float mRadius = 5.0f;
+
+  // Convert Spherical to Cartesian coordinates.
+  float x = mRadius*sinf(mPhi)*cosf(mTheta);
+  float z = mRadius*sinf(mPhi)*sinf(mTheta);
+  float y = mRadius*cosf(mPhi);
+
+  // Build the view matrix.
+  XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
+  XMVECTOR target = XMVectorZero();
+  XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+  XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+  XMStoreFloat4x4(&mView, view);
+
+  XMMATRIX world = XMLoadFloat4x4(&mWorld);
+  XMMATRIX proj = XMLoadFloat4x4(&mProj);
+  XMMATRIX worldViewProj = world*view*proj;
+
+  // Update the constant buffer with the latest worldViewProj matrix.
+  Constant objConstants;
+  XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
+  memcpy(&ConstBufCPU[0], &objConstants, sizeof(Constant));
 }
 
 void z8::DX12Render::Draw() {
 
   Ok(CmdAllocator->Reset());
-  CmdBegin();
+  // 这里需要绑定渲染流水线
+  Ok(CmdList->Reset(CmdAllocator.Get(), PSO.Get()));
+  //CmdBegin();
 
   // Rtv 资源类型转换
   auto RenderBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
@@ -70,10 +108,17 @@ void z8::DX12Render::Draw() {
   CmdList->OMSetRenderTargets(1, &RtvDpt,
     true, &DsvDpt);
 
+  ID3D12DescriptorHeap* descriptorHeaps[] = { CbvDptHeap.Get() };
+  CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+  CmdList->SetGraphicsRootSignature(RootSignature.Get());
+
   // 指定顶点缓冲区和着色器
   CmdList->IASetVertexBuffers(0, 1, &Vv);
   CmdList->IASetIndexBuffer(&Iv);
   CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  CmdList->SetGraphicsRootDescriptorTable(0, CbvDptHeap->GetGPUDescriptorHandleForHeapStart());
 
   // 绘制图形
   CmdList->DrawIndexedInstanced(Shape->ICount(), 1, 0, 0, 0);
@@ -156,11 +201,10 @@ void DX12Render::CreateCmd() {
 
 void DX12Render::Resize() {
   CmdSync();
-
   CmdBegin();
 
-  for (int i = 0; i < RtvBufCount; ++i)
-    RtvBuf[i].Reset();
+  for (auto & i : RtvBuf)
+    i.Reset();
   DsvBuf.Reset();
 
   // 调整 SwapChain 大小
@@ -169,11 +213,8 @@ void DX12Render::Resize() {
 	      FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
   CreateRtv();
-
   CreateDsv();
-
   CmdEnd();
-
   CmdSync();
 
   ScreenView.TopLeftX = 0;
@@ -184,6 +225,9 @@ void DX12Render::Resize() {
   ScreenView.MaxDepth = 1.0f;
 
   ScissorRect = {0, 0, Wnd->Width, Wnd->Height};
+
+  XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f* Math::PI, Wnd->AspectRatio(), 1.0f, 1000.0f);
+  XMStoreFloat4x4(&mProj, P);
 }
 
 // 创建交换链
@@ -282,6 +326,32 @@ void DX12Render::CreateRtv() {
   }
 }
 
+void DX12Render::CreateCbv() {
+
+  unsigned ByteSize = (Shape->CSize() + 255) & ~255;
+
+  auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+  auto D = CD3DX12_RESOURCE_DESC::Buffer(ByteSize);
+  Ok(Ctx->Device->CreateCommittedResource(
+     &Prop, D3D12_HEAP_FLAG_NONE,
+     &D, D3D12_RESOURCE_STATE_GENERIC_READ,
+     nullptr,
+     IID_PPV_ARGS(&ConstBufGPU)));
+
+  Ok(ConstBufGPU->Map(0, nullptr, reinterpret_cast<void**>(&ConstBufCPU)));
+
+  D3D12_GPU_VIRTUAL_ADDRESS cbAddress = ConstBufGPU->GetGPUVirtualAddress();
+  // Offset to the ith object constant buffer in the buffer.
+  int boxCBufIndex = 0;
+  cbAddress += boxCBufIndex * ByteSize;
+
+  D3D12_CONSTANT_BUFFER_VIEW_DESC CD;
+  CD.BufferLocation = cbAddress;
+  CD.SizeInBytes = ByteSize;
+
+  Ctx->Device->CreateConstantBufferView(&CD, CbvDptHeap->GetCPUDescriptorHandleForHeapStart());
+}
+
 // 创建资源描述符堆，存放描述符
 // 初始化时调用一次
 void DX12Render::CreateDptHeap() {
@@ -372,6 +442,46 @@ void DX12Render::CreateMeshView() {
   Iv.BufferLocation = IBufGPU->GetGPUVirtualAddress();
   Iv.Format = FormatIBuf;
   Iv.SizeInBytes = Shape->ISize();
+}
+
+void DX12Render::CreateShader() {
+
+  VShader = DX12Shader::CompileShader(L"shader\\Cube.hlsl", nullptr, "VS", "vs_5_0");
+  PShader = DX12Shader::CompileShader(L"shader\\Cube.hlsl", nullptr, "PS", "ps_5_0");
+
+  InputLayout =
+  {
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+  };
+}
+
+void DX12Render::CreatePSO() {
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+  ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+  psoDesc.InputLayout = { InputLayout.data(), static_cast<UINT>(InputLayout.size()) };
+  psoDesc.pRootSignature = RootSignature.Get();
+  psoDesc.VS =
+      {
+        static_cast<BYTE*>(VShader->GetBufferPointer()),
+        VShader->GetBufferSize()
+};
+  psoDesc.PS =
+      {
+        static_cast<BYTE*>(PShader->GetBufferPointer()),
+        PShader->GetBufferSize()
+};
+  psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+  psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+  psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+  psoDesc.SampleMask = UINT_MAX;
+  psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  psoDesc.NumRenderTargets = 1;
+  psoDesc.RTVFormats[0] = FormatRtv;
+  psoDesc.SampleDesc.Count = EnableMsaa ? 4 : 1;
+  psoDesc.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
+  psoDesc.DSVFormat = FormatDsv;
+  Ok(Ctx->Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PSO)));
 }
 
 ComPtr<ID3D12Resource> DX12Render::CreateDefaultBuffer(const void* initData,

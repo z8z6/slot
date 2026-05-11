@@ -42,4 +42,6 @@ z8::Cube::Cube() {
         // bottom face
         {4, 0, 3},
         {4, 3, 7}};
+
+  Const = Constant();
 }

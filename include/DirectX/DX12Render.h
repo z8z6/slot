@@ -6,13 +6,19 @@
 #include "Core/IRender.h"
 #include "DX12Common.h"
 #include "d3d12.h"
+
+#include <DirectXMath.h>
 #include <cstdint>
+#include <vector>
+
+class IDXGISwapChain;
 
 namespace z8 {
 class Window;
 class IShape;
 class DX12Context;
 class Application;
+
 
 // 这个类是每个窗口独立的
 class DX12Render : public IRender {
@@ -73,7 +79,17 @@ private:
 
   DXGI_FORMAT FormatIBuf = DXGI_FORMAT_R16_UINT;
 
+  ComPtr<ID3D12Resource> ConstBufGPU;
+  char* ConstBufCPU;
   ComPtr<ID3D12RootSignature> RootSignature;
+
+  // =============================================================== //
+  // Shader
+
+  ComPtr<ID3DBlob> VShader;
+  ComPtr<ID3DBlob> PShader;
+  std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
+  ComPtr<ID3D12PipelineState> PSO;
 
   // =============================================================== //
 
@@ -81,6 +97,8 @@ private:
 
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
+
+  DirectX::XMFLOAT4X4 mProj;
 
   // MSAA
   bool EnableMsaa = false;
@@ -107,8 +125,11 @@ private:
   void CreateDpt();
   void CreateDsv();
   void CreateRtv();
+  void CreateCbv();
   void CreateMesh();
   void CreateMeshView();
+  void CreateShader();
+  void CreatePSO();
   ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,
     uint64_t byteSize, ComPtr<ID3D12Resource>& uploadBuffer);
   ID3D12Resource* GetCurRtvBuf() const;

@@ -22,6 +22,7 @@ public:
 public:
   Window();
   void Open() const;
+  float AspectRatio() const;
 
 public:
   inline static HINSTANCE Instance;

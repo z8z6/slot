@@ -30,6 +30,10 @@ void Window::Open() const {
   UpdateWindow(Wnd);
 }
 
+float Window::AspectRatio() const {
+  return static_cast<float>(Width) / Height;
+}
+
 bool Window::Init() {
   DefaultWndClass.style = CS_HREDRAW | CS_VREDRAW;
   DefaultWndClass.lpfnWndProc = DefWindowProcW;
