@@ -2,15 +2,15 @@
 // Created by zhou_zhengming on 2026/5/11.
 //
 
-#include "Shape/Cube.h"
+#include "UI/Mesh/CubeMesh.h"
 
 #include <DirectXColors.h>
 
 using namespace z8;
 using namespace DirectX;
 
-z8::Cube::Cube() {
-  Vs = {Vertex({{-1.0f, -1.0f, -1.0f}, XMFLOAT4(Colors::White)}),
+CubeMesh::CubeMesh() {
+  V = {Vertex({{-1.0f, -1.0f, -1.0f}, XMFLOAT4(Colors::White)}),
         Vertex({{-1.0f, +1.0f, -1.0f}, XMFLOAT4(Colors::Black)}),
         Vertex({{+1.0f, +1.0f, -1.0f}, XMFLOAT4(Colors::Red)}),
         Vertex({{+1.0f, -1.0f, -1.0f}, XMFLOAT4(Colors::Green)}),
@@ -19,7 +19,7 @@ z8::Cube::Cube() {
         Vertex({{+1.0f, +1.0f, +1.0f}, XMFLOAT4(Colors::Cyan)}),
         Vertex({{+1.0f, -1.0f, +1.0f}, XMFLOAT4(Colors::Magenta)})};
 
-  Is = {// front face
+  I = {// front face
         {0, 1, 2},
         {0, 2, 3},
 
@@ -42,6 +42,4 @@ z8::Cube::Cube() {
         // bottom face
         {4, 0, 3},
         {4, 3, 7}};
-
-  Const = Constant();
 }

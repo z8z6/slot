@@ -5,6 +5,15 @@
 #pragma once
 
 namespace z8 {
+class Application;
+
+enum RenderType
+{
+  DirectX12 = 0,
+  DirectX11 = 1,
+  Vulcan = 2
+};
+
 class IRender {
 public:
   virtual ~IRender() = default;
@@ -12,6 +21,8 @@ public:
   virtual void Update() = 0;
   virtual void Draw() = 0;
   virtual void Resize() = 0;
+
+  static IRender* CreateRender(Application* App, RenderType type = DirectX12);
 };
 }
 

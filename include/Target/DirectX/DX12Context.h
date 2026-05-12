@@ -6,9 +6,6 @@
 
 #include "DX12Common.h"
 
-class IDXGIFactory;
-class ID3D12Device;
-
 namespace z8 {
 // 这个类存放 DX12 的全局类
 class DX12Context {

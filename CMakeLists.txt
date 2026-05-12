@@ -25,4 +25,4 @@ set_target_properties(slot PROPERTIES
         WIN32_EXECUTABLE TRUE
 )
 
-# cmake .. -G "Visual Studio 17 2022"
+# cmake .. -G "Visual Studio 18 2026"

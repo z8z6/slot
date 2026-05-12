@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "Core/IRender.h"
+#include "Target/IRender.h"
 #include "DX12Common.h"
 #include "d3d12.h"
 
@@ -15,10 +15,9 @@ class IDXGISwapChain;
 
 namespace z8 {
 class Window;
-class IShape;
+class IObject;
 class DX12Context;
 class Application;
-
 
 // 这个类是每个窗口独立的
 class DX12Render : public IRender {
@@ -27,7 +26,7 @@ private:
   Application* App;
   Window* Wnd;
   DX12Context* Ctx;
-  IShape* Shape;
+  IObject* O;
 
   // Sync
   ComPtr<ID3D12Fence> Fence;
@@ -86,8 +85,6 @@ private:
   // =============================================================== //
   // Shader
 
-  ComPtr<ID3DBlob> VShader;
-  ComPtr<ID3DBlob> PShader;
   std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
   ComPtr<ID3D12PipelineState> PSO;
 

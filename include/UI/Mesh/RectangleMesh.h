@@ -3,9 +3,11 @@
 //
 
 #pragma once
+#include "IMesh.h"
 
 namespace z8 {
-class Triangle {
+class RectangleMesh : public IMesh{
 
 };
 }
+

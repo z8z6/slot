@@ -2,13 +2,12 @@
 // Created by zhou_zhengming on 2026/5/8.
 //
 
-#include "DirectX/DX12Render.h"
+#include "Target/DirectX/DX12Render.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
-#include "DirectX/DX12Context.h"
-#include "Shape/IShape.h"
-
-#include "DirectX/DX12Shader.h"
+#include "UI/Object/IObject.h"
+#include "Target/DirectX/DX12Context.h"
+#include "Target/DirectX/DX12Shader.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
@@ -16,14 +15,17 @@
 #include <DirectXColors.h>
 #include <dxgi1_4.h>
 
+#include "UI/Material/IMaterial.h"
+#include "UI/Mesh/IMesh.h"
+
 using namespace DirectX;
 using namespace z8;
 
 z8::DX12Render::DX12Render(Application *app) : App(app) {
   Ctx = &DX12Context::Instance();
   Wnd = &App->Window;
-  Shape = App->Shape;
-  assert(Shape);
+  O = App->O[0];
+  assert(O);
 }
 
 DX12Render::~DX12Render() {
@@ -78,9 +80,9 @@ void z8::DX12Render::Update() {
   XMMATRIX worldViewProj = world*view*proj;
 
   // Update the constant buffer with the latest worldViewProj matrix.
-  Constant objConstants;
-  XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
-  memcpy(&ConstBufCPU[0], &objConstants, sizeof(Constant));
+  XMFLOAT4X4 objConstants;
+  XMStoreFloat4x4(&objConstants, XMMatrixTranspose(worldViewProj));
+  memcpy(&ConstBufCPU[0], &objConstants, sizeof(XMFLOAT4X4));
 }
 
 void z8::DX12Render::Draw() {
@@ -121,7 +123,7 @@ void z8::DX12Render::Draw() {
   CmdList->SetGraphicsRootDescriptorTable(0, CbvDptHeap->GetGPUDescriptorHandleForHeapStart());
 
   // 绘制图形
-  CmdList->DrawIndexedInstanced(Shape->ICount(), 1, 0, 0, 0);
+  CmdList->DrawIndexedInstanced(O->Mesh->ICount(), 1, 0, 0, 0);
 
   // Rtv 资源类型转换
   auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
@@ -328,7 +330,7 @@ void DX12Render::CreateRtv() {
 
 void DX12Render::CreateCbv() {
 
-  unsigned ByteSize = (Shape->CSize() + 255) & ~255;
+  unsigned ByteSize = (sizeof (XMFLOAT4X4) + 255) & ~255;
 
   auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
   auto D = CD3DX12_RESOURCE_DESC::Buffer(ByteSize);
@@ -423,31 +425,28 @@ ID3D12Resource *z8::DX12Render::GetCurRtvBuf() const {
 }
 
 void DX12Render::CreateMesh() {
-  Ok(D3DCreateBlob(Shape->VSize(), &VBufCPU));
-  CopyMemory(VBufCPU->GetBufferPointer(), Shape->V().data(), Shape->VSize());
+  Ok(D3DCreateBlob(O->Mesh->VSize(), &VBufCPU));
+  CopyMemory(VBufCPU->GetBufferPointer(), O->Mesh->V.data(), O->Mesh->VSize());
 
-  Ok(D3DCreateBlob(Shape->ISize(), &IBufCPU));
-  CopyMemory(IBufCPU->GetBufferPointer(), Shape->I().data(), Shape->ISize());
+  Ok(D3DCreateBlob(O->Mesh->ISize(), &IBufCPU));
+  CopyMemory(IBufCPU->GetBufferPointer(), O->Mesh->I.data(), O->Mesh->ISize());
 
-  VBufGPU = CreateDefaultBuffer(Shape->V().data(), Shape->VSize(), VBufUpload);
+  VBufGPU = CreateDefaultBuffer(O->Mesh->V.data(), O->Mesh->VSize(), VBufUpload);
 
-  IBufGPU = CreateDefaultBuffer(Shape->I().data(), Shape->ISize(), IBufUpload);
+  IBufGPU = CreateDefaultBuffer(O->Mesh->I.data(), O->Mesh->ISize(), IBufUpload);
 }
 
 void DX12Render::CreateMeshView() {
   Vv.BufferLocation = VBufGPU->GetGPUVirtualAddress();
-  Vv.StrideInBytes = Shape->VElemSize();
-  Vv.SizeInBytes = Shape->VSize();
+  Vv.StrideInBytes = O->Mesh->VElemSize();
+  Vv.SizeInBytes = O->Mesh->VSize();
 
   Iv.BufferLocation = IBufGPU->GetGPUVirtualAddress();
   Iv.Format = FormatIBuf;
-  Iv.SizeInBytes = Shape->ISize();
+  Iv.SizeInBytes = O->Mesh->ISize();
 }
 
 void DX12Render::CreateShader() {
-
-  VShader = DX12Shader::CompileShader(L"shader\\Cube.hlsl", nullptr, "VS", "vs_5_0");
-  PShader = DX12Shader::CompileShader(L"shader\\Cube.hlsl", nullptr, "PS", "ps_5_0");
 
   InputLayout =
   {
@@ -463,13 +462,13 @@ void DX12Render::CreatePSO() {
   psoDesc.pRootSignature = RootSignature.Get();
   psoDesc.VS =
       {
-        static_cast<BYTE*>(VShader->GetBufferPointer()),
-        VShader->GetBufferSize()
+        static_cast<BYTE*>(O->Material->V->ByteCode->GetBufferPointer()),
+        O->Material->V->ByteCode->GetBufferSize()
 };
   psoDesc.PS =
       {
-        static_cast<BYTE*>(PShader->GetBufferPointer()),
-        PShader->GetBufferSize()
+        static_cast<BYTE*>(O->Material->P->ByteCode->GetBufferPointer()),
+        O->Material->P->ByteCode->GetBufferSize()
 };
   psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);

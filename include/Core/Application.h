@@ -6,18 +6,18 @@
 
 #include "Timer.h"
 #include "Window.h"
-#include "Shape/IShape.h"
 #include <vector>
 
 namespace z8
 {
 class IRender;
+class IObject;
 class Application {
 public:
   Window Window;
   IRender* Render;
-  IShape* Shape;
   Timer Timer;
+  std::vector<IObject*> O;
 
   Application();
 
