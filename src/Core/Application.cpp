@@ -5,15 +5,21 @@
 #include "Core/Application.h"
 #include "UI/Object/CubeObject.h"
 #include "Target/IRender.h"
+#include <WindowsX.h>
+
 
 #include <iostream>
 #include <ostream>
+
+#include "Core/Event.h"
+#include "UI/Object/RotateCube.h"
+#include "UI/Phys/ICollider.h"
 
 using namespace z8;
 using namespace std;
 
 z8::Application::Application() {
-  O.push_back(new CubeObject());
+  Objects.push_back(new RotateCube());
   Render = IRender::CreateRender(this);
   Render->Init();
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
@@ -102,21 +108,24 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
 
     // Catch this message so to prevent the window from becoming too small.
   case WM_GETMINMAXINFO:
-    ((MINMAXINFO *)lParam)->ptMinTrackSize.x = 200;
-    ((MINMAXINFO *)lParam)->ptMinTrackSize.y = 200;
+    reinterpret_cast<MINMAXINFO*>(lParam)->ptMinTrackSize.x = 200;
+    reinterpret_cast<MINMAXINFO*>(lParam)->ptMinTrackSize.y = 200;
     return 0;
 
   case WM_LBUTTONDOWN:
   case WM_MBUTTONDOWN:
   case WM_RBUTTONDOWN:
-
+    OnMouseDown(ButtonEventArgs(wParam, lParam));
     return 0;
   case WM_LBUTTONUP:
   case WM_MBUTTONUP:
   case WM_RBUTTONUP:
+    OnMouseUp(ButtonEventArgs(wParam, lParam));
     return 0;
   case WM_MOUSEMOVE:
+    OnMouseMove(ButtonEventArgs(wParam, lParam));
     return 0;
+
   case WM_KEYUP:
     return 0;
   default:
@@ -147,4 +156,22 @@ void z8::Application::ShowFrame() const {
     Frames = 0;
     timeElapsed += 1.0f;
   }
+}
+
+void Application::OnMouseMove(ButtonEventArgs Args)
+{
+  for (auto* O : Objects)
+    O->OnMouseMove(Args);
+}
+
+void Application::OnMouseDown(ButtonEventArgs Args)
+{
+  for (auto* O : Objects)
+    O->OnMouseDown(Args);
+}
+
+void Application::OnMouseUp(ButtonEventArgs Args)
+{
+  for (auto* O : Objects)
+    O->OnMouseUp(Args);
 }

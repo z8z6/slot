@@ -8,6 +8,8 @@
 #include "Window.h"
 #include <vector>
 
+#include "Event.h"
+
 namespace z8
 {
 class IRender;
@@ -17,7 +19,7 @@ public:
   Window Window;
   IRender* Render;
   Timer Timer;
-  std::vector<IObject*> O;
+  std::vector<IObject*> Objects;
 
   Application();
 
@@ -30,6 +32,9 @@ public:
 
 private:
   void ShowFrame() const;
+  void OnMouseMove(ButtonEventArgs);
+  void OnMouseDown(ButtonEventArgs);
+  void OnMouseUp(ButtonEventArgs);
 };
 }
 

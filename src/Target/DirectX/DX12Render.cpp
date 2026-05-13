@@ -24,7 +24,7 @@ using namespace z8;
 z8::DX12Render::DX12Render(Application *app) : App(app) {
   Ctx = &DX12Context::Instance();
   Wnd = &App->Window;
-  O = App->O[0];
+  O = App->Objects[0];
   assert(O);
 }
 
@@ -54,35 +54,8 @@ void z8::DX12Render::Init() {
 }
 
 void z8::DX12Render::Update() {
-
-  XMFLOAT4X4 mWorld = Math::Identity4x4();
-  XMFLOAT4X4 mView = Math::Identity4x4();
-
-  float mTheta = 1.5f*XM_PI;
-  float mPhi = XM_PIDIV4;
-  float mRadius = 5.0f;
-
-  // Convert Spherical to Cartesian coordinates.
-  float x = mRadius*sinf(mPhi)*cosf(mTheta);
-  float z = mRadius*sinf(mPhi)*sinf(mTheta);
-  float y = mRadius*cosf(mPhi);
-
-  // Build the view matrix.
-  XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
-  XMVECTOR target = XMVectorZero();
-  XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-  XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-  XMStoreFloat4x4(&mView, view);
-
-  XMMATRIX world = XMLoadFloat4x4(&mWorld);
-  XMMATRIX proj = XMLoadFloat4x4(&mProj);
-  XMMATRIX worldViewProj = world*view*proj;
-
-  // Update the constant buffer with the latest worldViewProj matrix.
-  XMFLOAT4X4 objConstants;
-  XMStoreFloat4x4(&objConstants, XMMatrixTranspose(worldViewProj));
-  memcpy(&ConstBufCPU[0], &objConstants, sizeof(XMFLOAT4X4));
+  O->Update(mProj);
+  memcpy(&ConstBufCPU[0], O->ConstBuf(), O->ConstBufSize());
 }
 
 void z8::DX12Render::Draw() {
