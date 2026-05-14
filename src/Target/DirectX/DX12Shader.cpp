@@ -35,8 +35,14 @@ DX12ShaderRegistry::DX12ShaderRegistry()
 
 void DX12ShaderRegistry::Prepare()
 {
-  Shaders.emplace_back(L"shader\\Cube.hlsl", "DV", "VS", "vs_5_0");
-  Shaders.emplace_back(L"shader\\Cube.hlsl", "DP", "PS", "ps_5_0");
+  Shaders.emplace_back(L"shader\\Default.hlsl", "DV", "VS", "vs_5_0");
+  Shaders.emplace_back(L"shader\\Default.hlsl", "DP", "PS", "ps_5_0");
+
+  Shaders.emplace_back(L"shader\\Missing.hlsl", "MissingV", "VS", "vs_5_0");
+  Shaders.emplace_back(L"shader\\Missing.hlsl", "MissingP", "PS", "ps_5_0");
+
+  Shaders.emplace_back(L"shader\\Cube.hlsl", "CubeV", "VS", "vs_5_0");
+  Shaders.emplace_back(L"shader\\Cube.hlsl", "CubeP", "PS", "ps_5_0");
 
   for (auto& Shader : Shaders)
     Shader.Compile();

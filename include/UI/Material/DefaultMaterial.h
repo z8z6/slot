@@ -3,13 +3,21 @@
 //
 
 #pragma once
+#include <cassert>
+
 #include "IMaterial.h"
+#include "Target/DirectX/DX12Shader.h"
 
 namespace z8
 {
-class DefaultMaterial : public IMaterial {
-public:
-  DefaultMaterial();
+struct  DefaultMaterial : public IMaterial {
+  DefaultMaterial()
+  {
+    V = DX12ShaderRegistry::Instance().GetShader("DV");
+    P = DX12ShaderRegistry::Instance().GetShader("DP");
+
+    assert(V && P);
+  }
 };
 }
 

@@ -3,6 +3,8 @@
 //
 
 #include "UI/Object/RotateCube.h"
+
+#include "UI/Material/RotateCubeMaterial.h"
 #include "Util/Math.h"
 
 using namespace z8;
@@ -16,6 +18,8 @@ RotateCube::RotateCube() : LastPos(), objConstants()
 
   Transform.UpdateCartesian();
   Transform.UpdateWorld();
+
+  //Material = new RotateCubeMaterial();
 }
 
 void RotateCube::Update(const XMFLOAT4X4& mProj)
