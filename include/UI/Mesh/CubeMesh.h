@@ -5,11 +5,12 @@
 
 #include "IMesh.h"
 
-namespace z8{
-class CubeMesh : public IMesh {
+namespace z8
+{
+class CubeMesh : public IMesh
+{
 private:
 public:
   CubeMesh();
-
 };
 }

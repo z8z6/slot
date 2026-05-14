@@ -18,13 +18,12 @@ public:
   IMaterial* Material;
   ICollider* Collider;
   Transform Transform;
-  DirectX::XMMATRIX WorldViewProj;
 
-  IObject() = default;
+  IObject();
   virtual ~IObject() = default;
   virtual void* ConstBuf() = 0;
   virtual unsigned ConstBufSize() = 0;
-  virtual void Update(DirectX::XMFLOAT4X4) {}
+  virtual void Update(const DirectX::XMFLOAT4X4&) {}
   virtual void OnMouseUp(ButtonEventArgs) {}
   virtual void OnMouseMove(ButtonEventArgs) {}
   virtual void OnMouseDown(ButtonEventArgs) {}

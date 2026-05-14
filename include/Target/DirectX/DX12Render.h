@@ -95,7 +95,7 @@ private:
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
 
-  DirectX::XMFLOAT4X4 mProj;
+  DirectX::XMFLOAT4X4 Proj;
 
   // MSAA
   bool EnableMsaa = false;

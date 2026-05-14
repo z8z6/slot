@@ -21,19 +21,22 @@
 using namespace DirectX;
 using namespace z8;
 
-z8::DX12Render::DX12Render(Application *app) : App(app) {
+z8::DX12Render::DX12Render(Application* app) : App(app)
+{
   Ctx = &DX12Context::Instance();
   Wnd = &App->Window;
   O = App->Objects[0];
   assert(O);
 }
 
-DX12Render::~DX12Render() {
+DX12Render::~DX12Render()
+{
   CmdSync();
   ConstBufGPU->Unmap(0, nullptr);
 }
 
-void z8::DX12Render::Init() {
+void z8::DX12Render::Init()
+{
   Ok(Ctx->Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence)));
 
   CreateMsaa();
@@ -53,13 +56,14 @@ void z8::DX12Render::Init() {
   CmdSync();
 }
 
-void z8::DX12Render::Update() {
-  O->Update(mProj);
+void z8::DX12Render::Update()
+{
+  O->Update(Proj);
   memcpy(&ConstBufCPU[0], O->ConstBuf(), O->ConstBufSize());
 }
 
-void z8::DX12Render::Draw() {
-
+void z8::DX12Render::Draw()
+{
   Ok(CmdAllocator->Reset());
   // 这里需要绑定渲染流水线
   Ok(CmdList->Reset(CmdAllocator.Get(), PSO.Get()));
@@ -67,7 +71,8 @@ void z8::DX12Render::Draw() {
 
   // Rtv 资源类型转换
   auto RenderBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
-          D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                                                            D3D12_RESOURCE_STATE_PRESENT,
+                                                            D3D12_RESOURCE_STATE_RENDER_TARGET);
   CmdList->ResourceBarrier(1, &RenderBarrier);
 
   // Set the viewport and scissor rect.  This needs to be reset whenever the command list is reset.
@@ -81,9 +86,9 @@ void z8::DX12Render::Draw() {
 
   // 设置要写入的缓冲区
   CmdList->OMSetRenderTargets(1, &RtvDpt,
-    true, &DsvDpt);
+                              true, &DsvDpt);
 
-  ID3D12DescriptorHeap* descriptorHeaps[] = { CbvDptHeap.Get() };
+  ID3D12DescriptorHeap* descriptorHeaps[] = {CbvDptHeap.Get()};
   CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
   CmdList->SetGraphicsRootSignature(RootSignature.Get());
@@ -100,7 +105,8 @@ void z8::DX12Render::Draw() {
 
   // Rtv 资源类型转换
   auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
-          D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+                                                             D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                             D3D12_RESOURCE_STATE_PRESENT);
   CmdList->ResourceBarrier(1, &PresentBarrier);
 
   CmdEnd();
@@ -114,10 +120,11 @@ void z8::DX12Render::Draw() {
   CmdSync();
 }
 
-void z8::DX12Render::CmdSync() {
+void z8::DX12Render::CmdSync()
+{
   ++CurFence;
   Ok(CmdQueue->Signal(Fence.Get(), CurFence));
-  if(Fence->GetCompletedValue() >= CurFence) return;
+  if (Fence->GetCompletedValue() >= CurFence) return;
 
   HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
   Ok(Fence->SetEventOnCompletion(CurFence, eventHandle));
@@ -125,21 +132,24 @@ void z8::DX12Render::CmdSync() {
   CloseHandle(eventHandle);
 }
 
-void DX12Render::CmdBegin() {
+void DX12Render::CmdBegin()
+{
   Ok(CmdList->Reset(CmdAllocator.Get(), nullptr));
 }
 
-void DX12Render::CmdEnd() {
+void DX12Render::CmdEnd()
+{
   Ok(CmdList->Close());
 
   // 执行渲染命令
-  ID3D12CommandList* cmdsLists[] = { CmdList.Get() };
+  ID3D12CommandList* cmdsLists[] = {CmdList.Get()};
   CmdQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 }
 
 // 查询 Msaa
 // 初始化时调用一次
-void DX12Render::CreateMsaa() {
+void DX12Render::CreateMsaa()
+{
   // 查询 MSAA 的支持情况
   D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
   msQualityLevels.Format = FormatRtv;
@@ -147,9 +157,9 @@ void DX12Render::CreateMsaa() {
   msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
   msQualityLevels.NumQualityLevels = 0;
   Ok(Ctx->Device->CheckFeatureSupport(
-          D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
-          &msQualityLevels,
-          sizeof(msQualityLevels)));
+    D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+    &msQualityLevels,
+    sizeof(msQualityLevels)));
 
   MsaaQuality = msQualityLevels.NumQualityLevels;
   assert(MsaaQuality > 0 && "Unexpected MSAA quality level.");
@@ -157,35 +167,37 @@ void DX12Render::CreateMsaa() {
 
 // 创建命令队列
 // 初始化时调用一次
-void DX12Render::CreateCmd() {
+void DX12Render::CreateCmd()
+{
   D3D12_COMMAND_QUEUE_DESC CD = {};
   CD.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
   CD.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
   Ok(Ctx->Device->CreateCommandQueue(&CD, IID_PPV_ARGS(&CmdQueue)));
   Ok(Ctx->Device->CreateCommandAllocator(
-          D3D12_COMMAND_LIST_TYPE_DIRECT,
-          IID_PPV_ARGS(CmdAllocator.GetAddressOf())));
+    D3D12_COMMAND_LIST_TYPE_DIRECT,
+    IID_PPV_ARGS(CmdAllocator.GetAddressOf())));
   Ok(Ctx->Device->CreateCommandList(
-          0,
-          D3D12_COMMAND_LIST_TYPE_DIRECT,
-          CmdAllocator.Get(),
-          nullptr,
-          IID_PPV_ARGS(CmdList.GetAddressOf())));
+    0,
+    D3D12_COMMAND_LIST_TYPE_DIRECT,
+    CmdAllocator.Get(),
+    nullptr,
+    IID_PPV_ARGS(CmdList.GetAddressOf())));
   Ok(CmdList->Close());
 }
 
-void DX12Render::Resize() {
+void DX12Render::Resize()
+{
   CmdSync();
   CmdBegin();
 
-  for (auto & i : RtvBuf)
+  for (auto& i : RtvBuf)
     i.Reset();
   DsvBuf.Reset();
 
   // 调整 SwapChain 大小
   Ok(SwapChain->ResizeBuffers(
-	      RtvBufCount, Wnd->Width, Wnd->Height,
-	      FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+    RtvBufCount, Wnd->Width, Wnd->Height,
+    FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
   CreateRtv();
   CreateDsv();
@@ -194,20 +206,21 @@ void DX12Render::Resize() {
 
   ScreenView.TopLeftX = 0;
   ScreenView.TopLeftY = 0;
-  ScreenView.Width    = static_cast<float>(Wnd->Width);
-  ScreenView.Height   = static_cast<float>(Wnd->Height);
+  ScreenView.Width = static_cast<float>(Wnd->Width);
+  ScreenView.Height = static_cast<float>(Wnd->Height);
   ScreenView.MinDepth = 0.0f;
   ScreenView.MaxDepth = 1.0f;
 
   ScissorRect = {0, 0, Wnd->Width, Wnd->Height};
 
-  XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f* Math::PI, Wnd->AspectRatio(), 1.0f, 1000.0f);
-  XMStoreFloat4x4(&mProj, P);
+  XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * XM_PI, Wnd->AspectRatio(), 1.0f, 1000.0f);
+  XMStoreFloat4x4(&Proj, P);
 }
 
 // 创建交换链
 // 初始化时调用一次
-void z8::DX12Render::CreateSwapChain() {
+void z8::DX12Render::CreateSwapChain()
+{
   SwapChain.Reset();
   DXGI_SWAP_CHAIN_DESC SD;
   SD.BufferDesc.Width = Wnd->Width;
@@ -232,20 +245,21 @@ void z8::DX12Render::CreateSwapChain() {
 
 // 创建资源描述符
 // 每次缓冲区交换时调用一次
-void z8::DX12Render::CreateDpt() {
+void z8::DX12Render::CreateDpt()
+{
   // 只需调用一次
   DsvDpt = DsvDptHeap->GetCPUDescriptorHandleForHeapStart();
   // 计算描述符的偏移
   RtvDpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-          RtvDptHeap->GetCPUDescriptorHandleForHeapStart(),
-          CurRtvId,
-          RtvDptSize);
+    RtvDptHeap->GetCPUDescriptorHandleForHeapStart(),
+    CurRtvId,
+    RtvDptSize);
 }
 
 // 创建 Dsv 缓冲区，并绑定描述符
 // 每次 Resize 时调用一次
-void DX12Render::CreateDsv() {
-
+void DX12Render::CreateDsv()
+{
   // 创建 Dsv 缓冲区
   D3D12_RESOURCE_DESC BD;
   BD.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -267,12 +281,12 @@ void DX12Render::CreateDsv() {
 
   auto HP = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
   Ok(Ctx->Device->CreateCommittedResource(
-      &HP,
-      D3D12_HEAP_FLAG_NONE,
-      &BD,
-      D3D12_RESOURCE_STATE_COMMON,
-      &Clv,
-      IID_PPV_ARGS(DsvBuf.GetAddressOf())));
+    &HP,
+    D3D12_HEAP_FLAG_NONE,
+    &BD,
+    D3D12_RESOURCE_STATE_COMMON,
+    &Clv,
+    IID_PPV_ARGS(DsvBuf.GetAddressOf())));
 
   // 绑定 Dsv 描述符
   D3D12_DEPTH_STENCIL_VIEW_DESC DD;
@@ -284,13 +298,15 @@ void DX12Render::CreateDsv() {
 
   // 状态转换
   auto WriteBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DsvBuf.Get(),
-              D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+                                                           D3D12_RESOURCE_STATE_COMMON,
+                                                           D3D12_RESOURCE_STATE_DEPTH_WRITE);
   CmdList->ResourceBarrier(1, &WriteBarrier);
 }
 
 // 创建 Rtv 缓冲区，并绑定描述符
 // 每次 Resize 时调用一次
-void DX12Render::CreateRtv() {
+void DX12Render::CreateRtv()
+{
   CurRtvId = 0;
   CD3DX12_CPU_DESCRIPTOR_HANDLE Dpt(RtvDptHeap->GetCPUDescriptorHandleForHeapStart());
   for (UINT i = 0; i < RtvBufCount; i++)
@@ -301,17 +317,17 @@ void DX12Render::CreateRtv() {
   }
 }
 
-void DX12Render::CreateCbv() {
-
-  unsigned ByteSize = (sizeof (XMFLOAT4X4) + 255) & ~255;
+void DX12Render::CreateCbv()
+{
+  unsigned ByteSize = (sizeof(XMFLOAT4X4) + 255) & ~255;
 
   auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
   auto D = CD3DX12_RESOURCE_DESC::Buffer(ByteSize);
   Ok(Ctx->Device->CreateCommittedResource(
-     &Prop, D3D12_HEAP_FLAG_NONE,
-     &D, D3D12_RESOURCE_STATE_GENERIC_READ,
-     nullptr,
-     IID_PPV_ARGS(&ConstBufGPU)));
+    &Prop, D3D12_HEAP_FLAG_NONE,
+    &D, D3D12_RESOURCE_STATE_GENERIC_READ,
+    nullptr,
+    IID_PPV_ARGS(&ConstBufGPU)));
 
   Ok(ConstBufGPU->Map(0, nullptr, reinterpret_cast<void**>(&ConstBufCPU)));
 
@@ -329,7 +345,8 @@ void DX12Render::CreateCbv() {
 
 // 创建资源描述符堆，存放描述符
 // 初始化时调用一次
-void DX12Render::CreateDptHeap() {
+void DX12Render::CreateDptHeap()
+{
   // 查询堆描述符的大小
   RtvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   DsvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
@@ -337,7 +354,7 @@ void DX12Render::CreateDptHeap() {
 
   // Rtv 的描述符堆
   D3D12_DESCRIPTOR_HEAP_DESC RD;
-  RD.NumDescriptors = RtvBufCount;  // 2个描述符
+  RD.NumDescriptors = RtvBufCount; // 2个描述符
   RD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
   RD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
   RD.NodeMask = 0;
@@ -362,7 +379,8 @@ void DX12Render::CreateDptHeap() {
   // 对于 ComPtr, operator &() = ReleaseAndGetAddressOf()
 }
 
-void DX12Render::CreateRootSignature() {
+void DX12Render::CreateRootSignature()
+{
   // Root parameter can be a table, root descriptor or root constants.
   CD3DX12_ROOT_PARAMETER slotRootParameter[1];
 
@@ -373,31 +391,33 @@ void DX12Render::CreateRootSignature() {
 
   // A root signature is an array of root parameters.
   CD3DX12_ROOT_SIGNATURE_DESC RD(1, slotRootParameter, 0, nullptr,
-          D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+                                 D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
   // create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
   ComPtr<ID3DBlob> serializedRootSig = nullptr;
   ComPtr<ID3DBlob> errorBlob = nullptr;
   Ok(D3D12SerializeRootSignature(&RD, D3D_ROOT_SIGNATURE_VERSION_1,
-          serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf()));
+    serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf()));
 
-  if(errorBlob != nullptr)
+  if (errorBlob != nullptr)
   {
     ::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
   }
 
   Ok(Ctx->Device->CreateRootSignature(
-          0,
-          serializedRootSig->GetBufferPointer(),
-          serializedRootSig->GetBufferSize(),
-          IID_PPV_ARGS(RootSignature.GetAddressOf())));
+    0,
+    serializedRootSig->GetBufferPointer(),
+    serializedRootSig->GetBufferSize(),
+    IID_PPV_ARGS(RootSignature.GetAddressOf())));
 }
 
-ID3D12Resource *z8::DX12Render::GetCurRtvBuf() const {
+ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const
+{
   return RtvBuf[CurRtvId].Get();
 }
 
-void DX12Render::CreateMesh() {
+void DX12Render::CreateMesh()
+{
   Ok(D3DCreateBlob(O->Mesh->VSize(), &VBufCPU));
   CopyMemory(VBufCPU->GetBufferPointer(), O->Mesh->V.data(), O->Mesh->VSize());
 
@@ -409,7 +429,8 @@ void DX12Render::CreateMesh() {
   IBufGPU = CreateDefaultBuffer(O->Mesh->I.data(), O->Mesh->ISize(), IBufUpload);
 }
 
-void DX12Render::CreateMeshView() {
+void DX12Render::CreateMeshView()
+{
   Vv.BufferLocation = VBufGPU->GetGPUVirtualAddress();
   Vv.StrideInBytes = O->Mesh->VElemSize();
   Vv.SizeInBytes = O->Mesh->VSize();
@@ -419,30 +440,31 @@ void DX12Render::CreateMeshView() {
   Iv.SizeInBytes = O->Mesh->ISize();
 }
 
-void DX12Render::CreateShader() {
-
+void DX12Render::CreateShader()
+{
   InputLayout =
   {
-    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
   };
 }
 
-void DX12Render::CreatePSO() {
+void DX12Render::CreatePSO()
+{
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
   ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-  psoDesc.InputLayout = { InputLayout.data(), static_cast<UINT>(InputLayout.size()) };
+  psoDesc.InputLayout = {InputLayout.data(), static_cast<UINT>(InputLayout.size())};
   psoDesc.pRootSignature = RootSignature.Get();
   psoDesc.VS =
-      {
-        static_cast<BYTE*>(O->Material->V->ByteCode->GetBufferPointer()),
-        O->Material->V->ByteCode->GetBufferSize()
-};
+  {
+    static_cast<BYTE*>(O->Material->V->ByteCode->GetBufferPointer()),
+    O->Material->V->ByteCode->GetBufferSize()
+  };
   psoDesc.PS =
-      {
-        static_cast<BYTE*>(O->Material->P->ByteCode->GetBufferPointer()),
-        O->Material->P->ByteCode->GetBufferSize()
-};
+  {
+    static_cast<BYTE*>(O->Material->P->ByteCode->GetBufferPointer()),
+    O->Material->P->ByteCode->GetBufferSize()
+  };
   psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
   psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -457,25 +479,26 @@ void DX12Render::CreatePSO() {
 }
 
 ComPtr<ID3D12Resource> DX12Render::CreateDefaultBuffer(const void* initData,
-    UINT64 byteSize,
-    ComPtr<ID3D12Resource>& uploadBuffer) {
+                                                       UINT64 byteSize,
+                                                       ComPtr<ID3D12Resource>& uploadBuffer)
+{
   ComPtr<ID3D12Resource> defaultBuffer;
 
   // Create the actual default buffer resource.
   auto D = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
   auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
   Ok(Ctx->Device->CreateCommittedResource(
-      &Prop, D3D12_HEAP_FLAG_NONE,
-      &D, D3D12_RESOURCE_STATE_COMMON,
-      nullptr,
-      IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
+    &Prop, D3D12_HEAP_FLAG_NONE,
+    &D, D3D12_RESOURCE_STATE_COMMON,
+    nullptr,
+    IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
 
   Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
   Ok(Ctx->Device->CreateCommittedResource(
-      &Prop, D3D12_HEAP_FLAG_NONE,
-      &D, D3D12_RESOURCE_STATE_GENERIC_READ,
-      nullptr,
-      IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
+    &Prop, D3D12_HEAP_FLAG_NONE,
+    &D, D3D12_RESOURCE_STATE_GENERIC_READ,
+    nullptr,
+    IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
 
   // Describe the data we want to copy into the default buffer.
   D3D12_SUBRESOURCE_DATA subResourceData = {};
@@ -487,11 +510,12 @@ ComPtr<ID3D12Resource> DX12Render::CreateDefaultBuffer(const void* initData,
   // will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
   // the intermediate upload heap data will be copied to mBuffer.
   auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
-              D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+                                                      D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
   CmdList->ResourceBarrier(1, &Barrier);
   UpdateSubresources<1>(CmdList.Get(), defaultBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
   auto Barrier1 = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
-              D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+                                                       D3D12_RESOURCE_STATE_COPY_DEST,
+                                                       D3D12_RESOURCE_STATE_GENERIC_READ);
   CmdList->ResourceBarrier(1, &Barrier1);
 
   // Note: uploadBuffer has to be kept alive after the above function calls because
