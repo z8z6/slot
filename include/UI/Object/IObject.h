@@ -21,9 +21,9 @@ public:
 
   IObject();
   virtual ~IObject() = default;
-  virtual void* ConstBuf() = 0;
-  virtual unsigned ConstBufSize() = 0;
-  virtual void Update(const DirectX::XMFLOAT4X4&) {}
+  virtual void* ConstBuf() { return nullptr; }
+  virtual unsigned ConstBufSize() { return 0; }
+  virtual void Update(const DirectX::XMFLOAT4X4& View, const DirectX::XMFLOAT4X4&Proj) {}
   virtual void OnMouseUp(ButtonEventArgs) {}
   virtual void OnMouseMove(ButtonEventArgs) {}
   virtual void OnMouseDown(ButtonEventArgs) {}

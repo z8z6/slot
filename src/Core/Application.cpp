@@ -12,6 +12,7 @@
 #include <ostream>
 
 #include "Core/Event.h"
+#include "UI/Object/Camera.h"
 #include "UI/Object/RotateCube.h"
 #include "UI/Phys/ICollider.h"
 
@@ -19,6 +20,7 @@ using namespace z8;
 using namespace std;
 
 z8::Application::Application() {
+  Camera = new z8::Camera();
   Objects.push_back(new RotateCube());
   Render = IRender::CreateRender(this);
   Render->Init();

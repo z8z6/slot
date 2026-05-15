@@ -4,6 +4,8 @@
 
 #include "UI/Object/RotateCube.h"
 
+#include <iostream>
+
 #include "UI/Material/RotateCubeMaterial.h"
 #include "Util/Math.h"
 
@@ -19,13 +21,12 @@ RotateCube::RotateCube() : LastPos(), objConstants()
   Transform.UpdateCartesian();
   Transform.UpdateWorld();
 
-  //Material = new RotateCubeMaterial();
+  Material = new RotateCubeMaterial();
 }
 
-void RotateCube::Update(const XMFLOAT4X4& mProj)
+void RotateCube::Update(const XMFLOAT4X4& View, const XMFLOAT4X4& Proj)
 {
-  // Update the constant buffer with the latest worldViewProj matrix.
-  Transform.UpdateWorldViewProj(mProj);
+  Transform.UpdateWorldViewProj(View, Proj);
   XMMATRIX wvp = XMLoadFloat4x4(&Transform.WorldViewProj);
   XMStoreFloat4x4(&objConstants, XMMatrixTranspose(wvp));
 }
@@ -36,8 +37,8 @@ void z8::RotateCube::OnMouseMove(ButtonEventArgs Args)
   if ((Args.State & MK_LBUTTON) != 0)
   {
     // Make each pixel correspond to a quarter of a degree.
-    float dx = XMConvertToRadians(0.25f * static_cast<float>(Args.X - LastPos.x));
-    float dy = XMConvertToRadians(0.25f * static_cast<float>(Args.Y - LastPos.y));
+    float dx = XMConvertToRadians(0.5f * static_cast<float>(Args.X - LastPos.x));
+    float dy = XMConvertToRadians(0.5f * static_cast<float>(Args.Y - LastPos.y));
 
     // Update angles based on input to orbit camera around box.
     Transform.Theta += dx;
@@ -47,12 +48,14 @@ void z8::RotateCube::OnMouseMove(ButtonEventArgs Args)
     Transform.Phi = Math::Clamp(Transform.Phi, 0.1f, XM_PI - 0.1f);
     Transform.UpdateCartesian();
     Transform.UpdateWorld();
+
+    std::cout << Transform << "\n";
   }
   else if ((Args.State & MK_RBUTTON) != 0)
   {
     // Make each pixel correspond to 0.005 unit in the scene.
-    float dx = 0.005f * static_cast<float>(Args.X - LastPos.x);
-    float dy = 0.005f * static_cast<float>(Args.Y - LastPos.y);
+    float dx = 0.05f * static_cast<float>(Args.X - LastPos.x);
+    float dy = 0.05f * static_cast<float>(Args.Y - LastPos.y);
 
     // Update the camera radius based on input.
     Transform.Radius += dx - dy;
@@ -61,6 +64,8 @@ void z8::RotateCube::OnMouseMove(ButtonEventArgs Args)
     Transform.Radius = Math::Clamp(Transform.Radius, 3.0f, 15.0f);
     Transform.UpdateCartesian();
     Transform.UpdateWorld();
+
+    std::cout << Transform << "\n";
   }
 
   LastPos.x = Args.X;

@@ -17,6 +17,7 @@
 
 #include "UI/Material/IMaterial.h"
 #include "UI/Mesh/IMesh.h"
+#include "UI/Object/Camera.h"
 
 using namespace DirectX;
 using namespace z8;
@@ -24,9 +25,6 @@ using namespace z8;
 z8::DX12Render::DX12Render(Application* app) : App(app)
 {
   Ctx = &DX12Context::Instance();
-  Wnd = &App->Window;
-  O = App->Objects[0];
-  assert(O);
 }
 
 DX12Render::~DX12Render()
@@ -58,8 +56,9 @@ void z8::DX12Render::Init()
 
 void z8::DX12Render::Update()
 {
-  O->Update(Proj);
-  memcpy(&ConstBufCPU[0], O->ConstBuf(), O->ConstBufSize());
+  GetCamera()->UpdateView();
+  GetObjects()->Update(GetCamera()->GetView(), GetCamera()->GetProj());
+  memcpy(&ConstBufCPU[0], GetObjects()->ConstBuf(), GetObjects()->ConstBufSize());
 }
 
 void z8::DX12Render::Draw()
@@ -101,7 +100,7 @@ void z8::DX12Render::Draw()
   CmdList->SetGraphicsRootDescriptorTable(0, CbvDptHeap->GetGPUDescriptorHandleForHeapStart());
 
   // 绘制图形
-  CmdList->DrawIndexedInstanced(O->Mesh->ICount(), 1, 0, 0, 0);
+  CmdList->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
 
   // Rtv 资源类型转换
   auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
@@ -196,7 +195,7 @@ void DX12Render::Resize()
 
   // 调整 SwapChain 大小
   Ok(SwapChain->ResizeBuffers(
-    RtvBufCount, Wnd->Width, Wnd->Height,
+    RtvBufCount, GetWindow()->Width, GetWindow()->Height,
     FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
   CreateRtv();
@@ -206,15 +205,14 @@ void DX12Render::Resize()
 
   ScreenView.TopLeftX = 0;
   ScreenView.TopLeftY = 0;
-  ScreenView.Width = static_cast<float>(Wnd->Width);
-  ScreenView.Height = static_cast<float>(Wnd->Height);
+  ScreenView.Width = static_cast<float>(GetWindow()->Width);
+  ScreenView.Height = static_cast<float>(GetWindow()->Height);
   ScreenView.MinDepth = 0.0f;
   ScreenView.MaxDepth = 1.0f;
 
-  ScissorRect = {0, 0, Wnd->Width, Wnd->Height};
+  ScissorRect = {0, 0, GetWindow()->Width, GetWindow()->Height};
 
-  XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * XM_PI, Wnd->AspectRatio(), 1.0f, 1000.0f);
-  XMStoreFloat4x4(&Proj, P);
+  GetCamera()->UpdateProj(GetWindow()->AspectRatio());
 }
 
 // 创建交换链
@@ -223,8 +221,8 @@ void z8::DX12Render::CreateSwapChain()
 {
   SwapChain.Reset();
   DXGI_SWAP_CHAIN_DESC SD;
-  SD.BufferDesc.Width = Wnd->Width;
-  SD.BufferDesc.Height = Wnd->Height;
+  SD.BufferDesc.Width = GetWindow()->Width;
+  SD.BufferDesc.Height = GetWindow()->Height;
   SD.BufferDesc.RefreshRate.Numerator = 60;
   SD.BufferDesc.RefreshRate.Denominator = 1;
   SD.BufferDesc.Format = FormatRtv;
@@ -234,7 +232,7 @@ void z8::DX12Render::CreateSwapChain()
   SD.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
   SD.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   SD.BufferCount = RtvBufCount;
-  SD.OutputWindow = Wnd->Wnd;
+  SD.OutputWindow = GetWindow()->Wnd;
   SD.Windowed = true;
   SD.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
   SD.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
@@ -264,8 +262,8 @@ void DX12Render::CreateDsv()
   D3D12_RESOURCE_DESC BD;
   BD.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
   BD.Alignment = 0;
-  BD.Width = Wnd->Width;
-  BD.Height = Wnd->Height;
+  BD.Width = GetWindow()->Width;
+  BD.Height = GetWindow()->Height;
   BD.DepthOrArraySize = 1;
   BD.MipLevels = 1;
   BD.Format = DXGI_FORMAT_R24G8_TYPELESS;
@@ -418,26 +416,26 @@ ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const
 
 void DX12Render::CreateMesh()
 {
-  Ok(D3DCreateBlob(O->Mesh->VSize(), &VBufCPU));
-  CopyMemory(VBufCPU->GetBufferPointer(), O->Mesh->V.data(), O->Mesh->VSize());
+  Ok(D3DCreateBlob(GetObjects()->Mesh->VSize(), &VBufCPU));
+  CopyMemory(VBufCPU->GetBufferPointer(), GetObjects()->Mesh->V.data(), GetObjects()->Mesh->VSize());
 
-  Ok(D3DCreateBlob(O->Mesh->ISize(), &IBufCPU));
-  CopyMemory(IBufCPU->GetBufferPointer(), O->Mesh->I.data(), O->Mesh->ISize());
+  Ok(D3DCreateBlob(GetObjects()->Mesh->ISize(), &IBufCPU));
+  CopyMemory(IBufCPU->GetBufferPointer(), GetObjects()->Mesh->I.data(), GetObjects()->Mesh->ISize());
 
-  VBufGPU = CreateDefaultBuffer(O->Mesh->V.data(), O->Mesh->VSize(), VBufUpload);
+  VBufGPU = CreateDefaultBuffer(GetObjects()->Mesh->V.data(), GetObjects()->Mesh->VSize(), VBufUpload);
 
-  IBufGPU = CreateDefaultBuffer(O->Mesh->I.data(), O->Mesh->ISize(), IBufUpload);
+  IBufGPU = CreateDefaultBuffer(GetObjects()->Mesh->I.data(), GetObjects()->Mesh->ISize(), IBufUpload);
 }
 
 void DX12Render::CreateMeshView()
 {
   Vv.BufferLocation = VBufGPU->GetGPUVirtualAddress();
-  Vv.StrideInBytes = O->Mesh->VElemSize();
-  Vv.SizeInBytes = O->Mesh->VSize();
+  Vv.StrideInBytes = GetObjects()->Mesh->VElemSize();
+  Vv.SizeInBytes = GetObjects()->Mesh->VSize();
 
   Iv.BufferLocation = IBufGPU->GetGPUVirtualAddress();
   Iv.Format = FormatIBuf;
-  Iv.SizeInBytes = O->Mesh->ISize();
+  Iv.SizeInBytes = GetObjects()->Mesh->ISize();
 }
 
 void DX12Render::CreateShader()
@@ -457,13 +455,13 @@ void DX12Render::CreatePSO()
   psoDesc.pRootSignature = RootSignature.Get();
   psoDesc.VS =
   {
-    static_cast<BYTE*>(O->Material->V->ByteCode->GetBufferPointer()),
-    O->Material->V->ByteCode->GetBufferSize()
+    static_cast<BYTE*>(GetObjects()->Material->V->ByteCode->GetBufferPointer()),
+    GetObjects()->Material->V->ByteCode->GetBufferSize()
   };
   psoDesc.PS =
   {
-    static_cast<BYTE*>(O->Material->P->ByteCode->GetBufferPointer()),
-    O->Material->P->ByteCode->GetBufferSize()
+    static_cast<BYTE*>(GetObjects()->Material->P->ByteCode->GetBufferPointer()),
+    GetObjects()->Material->P->ByteCode->GetBufferSize()
   };
   psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -522,4 +520,19 @@ ComPtr<ID3D12Resource> DX12Render::CreateDefaultBuffer(const void* initData,
   // the command list has not been executed yet that performs the actual copy.
   // The caller can Release the uploadBuffer after it knows the copy has been executed.
   return defaultBuffer;
+}
+
+Camera* DX12Render::GetCamera()
+{
+  return App->Camera;
+}
+
+IObject* DX12Render::GetObjects()
+{
+  return App->Objects[0];
+}
+
+Window* DX12Render::GetWindow()
+{
+  return &App->Window;
 }

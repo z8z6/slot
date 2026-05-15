@@ -4,6 +4,7 @@
 
 #include "UI/Object/Transform.h"
 #include "Util/Math.h"
+#include <ostream>
 
 using namespace DirectX;
 using namespace z8;
@@ -12,7 +13,7 @@ Transform::Transform()
   : Position{0, 0, 0},
     Rotation{0, 0, 0},
     Scale{1, 1, 1},
-    Radius(1.0f),
+    Radius(0.0f),
     Theta(0.0f),
     Phi(0.0f),
     World(Math::Identity4x4),
@@ -22,29 +23,26 @@ Transform::Transform()
 
 void Transform::UpdateWorld()
 {
-  // 顺序：缩放 → 旋转 → 平移 (DX标准变换顺序)
+  // 顺序：缩放 -> 旋转 -> 平移 (DX标准变换顺序)
+  // 统一使用齐次坐标进行计算
+
+  // 缩放矩阵
   XMMATRIX scale = XMMatrixScaling(Scale.x, Scale.y, Scale.z);
+  // 旋转矩阵
   XMMATRIX rot = XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z);
+  // 偏移矩阵
   XMMATRIX translate = XMMatrixTranslation(Position.x, Position.y, Position.z);
 
   XMMATRIX world = scale * rot * translate;
   XMStoreFloat4x4(&World, world);
 }
 
-void Transform::UpdateWorldViewProj(const XMFLOAT4X4& Proj)
+void Transform::UpdateWorldViewProj(const XMFLOAT4X4& View, const XMFLOAT4X4& Proj)
 {
-  // Build the view matrix.
-  XMVECTOR pos = XMVectorSet(Position.x, Position.y, Position.z, 1.0f);
-  XMVECTOR target = XMVectorZero();
-  XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-  XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-
-  XMMATRIX world = XMLoadFloat4x4(&Math::Identity4x4);
-
+  XMMATRIX world = XMLoadFloat4x4(&World);
+  XMMATRIX view = XMLoadFloat4x4(&View);
   XMMATRIX proj = XMLoadFloat4x4(&Proj);
   XMMATRIX wvp = world * view * proj;
-
   XMStoreFloat4x4(&WorldViewProj, wvp);
 }
 
@@ -87,4 +85,12 @@ void Transform::UpdateSpherical()
 
   // 方位角 Theta：水平绕 Y 轴旋转
   Theta = atan2f(z, x);
+}
+
+std::ostream& z8::operator<<(std::ostream& o, const Transform& transform)
+{
+  o << "x: " << transform.Position.x
+  << ", y: " << transform.Position.y
+  << ", z: " << transform.Position.z;
+  return o;
 }

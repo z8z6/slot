@@ -7,10 +7,8 @@
 
 namespace z8
 {
-class CubeMesh : public IMesh
+struct  CubeMesh : public IMesh
 {
-private:
-public:
   CubeMesh();
 };
 }

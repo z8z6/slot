@@ -14,6 +14,7 @@
 class IDXGISwapChain;
 
 namespace z8 {
+class Camera;
 class Window;
 class IObject;
 class DX12Context;
@@ -24,9 +25,7 @@ class DX12Render : public IRender {
 private:
   static const int RtvBufCount = 2;
   Application* App;
-  Window* Wnd;
   DX12Context* Ctx;
-  IObject* O;
 
   // Sync
   ComPtr<ID3D12Fence> Fence;
@@ -95,8 +94,6 @@ private:
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
 
-  DirectX::XMFLOAT4X4 Proj;
-
   // MSAA
   bool EnableMsaa = false;
   UINT MsaaQuality = 0;
@@ -130,6 +127,10 @@ private:
   ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,
     uint64_t byteSize, ComPtr<ID3D12Resource>& uploadBuffer);
   ID3D12Resource* GetCurRtvBuf() const;
+
+  Camera* GetCamera();
+  IObject* GetObjects();
+  Window* GetWindow();
 };
 
 }
