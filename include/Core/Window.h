@@ -15,8 +15,8 @@ public:
   HWND Wnd;
   WNDCLASSW* WndClass;
 
-  int Width = 1000;
-  int Height = 800;
+  int Width = 960;
+  int Height = 540;
   std::wstring Caption = L"window";
 
 public:

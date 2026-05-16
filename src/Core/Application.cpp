@@ -21,7 +21,8 @@ using namespace std;
 
 z8::Application::Application() {
   Camera = new z8::Camera();
-  Objects.push_back(new RectObject());
+  //Objects.push_back(new RectObject());
+  Objects.push_back(new RotateCube());
   Render = IRender::CreateRender(this);
   Render->Init();
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
