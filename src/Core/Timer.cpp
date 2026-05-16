@@ -24,7 +24,13 @@ void Timer::Reset()
 
 void Timer::Tick()
 {
+  static bool isFirstTime = true;
   QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&TimeCur));
+  if (isFirstTime)
+  {
+    isFirstTime = false;
+    TimePrev = TimeCur;
+  }
 
   TimeCost = static_cast<double>(TimeCur - TimePrev) * SecondsPerCount;
   TimeTotal += static_cast<double>(TimeCur - TimePrev) * SecondsPerCount;

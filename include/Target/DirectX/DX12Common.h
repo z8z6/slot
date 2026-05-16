@@ -8,6 +8,7 @@
 
 class IDXGIFactory;
 class ID3D12Device;
+class ID3D12Resource;
 class ID3D12CommandQueue;
 class ID3D12CommandAllocator;
 class ID3D12GraphicsCommandList;
