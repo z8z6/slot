@@ -13,14 +13,14 @@
 namespace z8
 {
 class IRender;
-class IObject;
+class Object;
 class Camera;
 class Application {
 public:
   Window Window;
   IRender* Render;
   Timer Timer;
-  std::vector<IObject*> Objects;
+  std::vector<Object*> Objects;
   Camera* Camera;
 
   Application();

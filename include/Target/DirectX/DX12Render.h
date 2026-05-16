@@ -16,7 +16,7 @@ class IDXGISwapChain;
 namespace z8 {
 class Camera;
 class Window;
-class IObject;
+class Object;
 class DX12Context;
 class Application;
 
@@ -129,7 +129,7 @@ private:
   ID3D12Resource* GetCurRtvBuf() const;
 
   Camera* GetCamera();
-  IObject* GetObjects();
+  Object* GetObjects();
   Window* GetWindow();
 };
 

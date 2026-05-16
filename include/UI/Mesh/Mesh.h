@@ -13,13 +13,13 @@
  */
 
 namespace z8 {
-class IMesh {
+class Mesh {
 public:
   std::vector<Vertex> V;
   std::vector<VertexGroup> I;
 
-  IMesh() = default;
-  virtual ~IMesh() = default;
+  Mesh() = default;
+  virtual ~Mesh() = default;
 
   unsigned VSize() const { return V.size() * sizeof(Vertex); }
   unsigned VElemSize() const { return sizeof(Vertex); }

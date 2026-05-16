@@ -8,10 +8,10 @@
 
 namespace z8
 {
-class ICollider {
+class Collider {
 public:
-  ICollider() = default;
-  virtual ~ICollider() = default;
+  Collider() = default;
+  virtual ~Collider() = default;
 
   virtual bool Contains(DirectX::XMFLOAT3) = 0;
 };

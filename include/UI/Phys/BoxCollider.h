@@ -3,11 +3,11 @@
 //
 
 #pragma once
-#include "ICollider.h"
+#include "Collider.h"
 
 namespace z8
 {
-class BoxCollider : public ICollider{
+class BoxCollider : public Collider{
 public:
 
 };

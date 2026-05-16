@@ -3,11 +3,11 @@
 //
 
 #pragma once
-#include "IObject.h"
+#include "Object.h"
 
 namespace z8
 {
-class Camera : public IObject{
+class Camera : public Object{
 private:
   DirectX::XMFLOAT3 Target;
   DirectX::XMFLOAT3 Up;

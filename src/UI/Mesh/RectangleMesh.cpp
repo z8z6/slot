@@ -3,7 +3,7 @@
 //
 
 #include "UI/Mesh/RectangleMesh.h"
-#include <DirectXColors.h>
+#include "Util/Color.h"
 
 using namespace DirectX;
 using namespace z8;
@@ -11,10 +11,10 @@ using namespace z8;
 z8::RectangleMesh::RectangleMesh()
 {
   V = {
-    Vertex({{-1.0f, -1.0f, 0.0f}, XMFLOAT4(Colors::White)}),
-    Vertex({{-1.0f, +1.0f, 0.0f}, XMFLOAT4(Colors::Black)}),
-    Vertex({{+1.0f, +1.0f, 0.0f}, XMFLOAT4(Colors::Red)}),
-    Vertex({{+1.0f, -1.0f, 0.0f}, XMFLOAT4(Colors::Green)})
+    Vertex({{-1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
+    Vertex({{-1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
+    Vertex({{+1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
+    Vertex({{+1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)})
   };
 
   I = {

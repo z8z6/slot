@@ -8,19 +8,19 @@
 
 namespace z8
 {
-class IMesh;
-class IMaterial;
-class ICollider;
+class Mesh;
+class Material;
+class Collider;
 
-class IObject {
+class Object {
 public:
-  IMesh* Mesh;
-  IMaterial* Material;
-  ICollider* Collider;
+  Mesh* Mesh;
+  Material* Material;
+  Collider* Collider;
   Transform Transform;
 
-  IObject();
-  virtual ~IObject() = default;
+  Object();
+  virtual ~Object() = default;
   virtual void* ConstBuf() { return nullptr; }
   virtual unsigned ConstBufSize() { return 0; }
   virtual void Update(const DirectX::XMFLOAT4X4& View, const DirectX::XMFLOAT4X4&Proj) {}

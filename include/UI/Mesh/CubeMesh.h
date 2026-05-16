@@ -3,11 +3,11 @@
 //
 #pragma once
 
-#include "IMesh.h"
+#include "Mesh.h"
 
 namespace z8
 {
-struct  CubeMesh : public IMesh
+struct  CubeMesh : public Mesh
 {
   CubeMesh();
 };

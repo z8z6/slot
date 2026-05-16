@@ -3,10 +3,10 @@
 //
 
 #pragma once
-#include "IMesh.h"
+#include "Mesh.h"
 
 namespace z8 {
-class TriangleMesh : public IMesh{
+class TriangleMesh : public Mesh{
 
 };
 }

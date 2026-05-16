@@ -5,12 +5,12 @@
 #pragma once
 #include <cassert>
 
-#include "IMaterial.h"
+#include "Material.h"
 #include "Target/DirectX/DX12Shader.h"
 
 namespace z8
 {
-struct  DefaultMaterial : public IMaterial {
+struct  DefaultMaterial : public Material {
   DefaultMaterial()
   {
     V = DX12ShaderRegistry::Instance().GetShader("DV");

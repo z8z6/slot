@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "UI/Material/RotateCubeMaterial.h"
+#include "UI/Mesh/CubeMesh.h"
 #include "Util/Math.h"
 
 using namespace z8;
@@ -20,7 +21,7 @@ RotateCube::RotateCube() : LastPos(), objConstants()
 
   Transform.UpdateCartesian();
   Transform.UpdateWorld();
-
+  Mesh = new CubeMesh;
   Material = new RotateCubeMaterial();
 }
 

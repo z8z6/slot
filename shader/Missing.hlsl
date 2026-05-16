@@ -20,6 +20,8 @@ VertexOut VS(VertexIn vin)
 	VertexOut vout;
 	vout.PosH = mul(float4(vin.PosL, 1.0f), gWorldViewProj);
 
+	// #66ccff
+    // vout.Color = float4(0.2588f, 0.8f, 1.0f, 1.0f);;
     // Unity 缺失材质 品红 #ff00ff
 	vout.Color = float4(1.0f, 0.0f, 1.0f, 1.0f);
 	return vout;

@@ -7,13 +7,13 @@ namespace z8
 {
 class DX12Shader;
 
-class IMaterial {
+class Material {
 public:
   DX12Shader* V;
   DX12Shader* P;
 
-  IMaterial() = default;
-  virtual ~IMaterial() = default;
+  Material() = default;
+  virtual ~Material() = default;
 };
 }
 

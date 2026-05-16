@@ -3,7 +3,7 @@
 //
 
 #include "Core/Application.h"
-#include "UI/Object/CubeObject.h"
+#include "UI/Object/RectObject.h"
 #include "Target/IRender.h"
 #include <WindowsX.h>
 
@@ -14,14 +14,14 @@
 #include "Core/Event.h"
 #include "UI/Object/Camera.h"
 #include "UI/Object/RotateCube.h"
-#include "UI/Phys/ICollider.h"
+#include "UI/Phys/Collider.h"
 
 using namespace z8;
 using namespace std;
 
 z8::Application::Application() {
   Camera = new z8::Camera();
-  Objects.push_back(new RotateCube());
+  Objects.push_back(new RectObject());
   Render = IRender::CreateRender(this);
   Render->Init();
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));

@@ -4,12 +4,12 @@
 #pragma once
 
 #include <cassert>
-#include "IMaterial.h"
+#include "Material.h"
 #include "Target/DirectX/DX12Shader.h"
 
 namespace z8
 {
-struct RotateCubeMaterial : public IMaterial{
+struct RotateCubeMaterial : public Material{
   RotateCubeMaterial()
   {
     V = DX12ShaderRegistry::Instance().GetShader("CubeV");

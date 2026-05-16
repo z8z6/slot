@@ -5,18 +5,18 @@
 #include "Target/DirectX/DX12Render.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
-#include "UI/Object/IObject.h"
+#include "UI/Object/Object.h"
 #include "Target/DirectX/DX12Context.h"
 #include "Target/DirectX/DX12Shader.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
 
-#include <DirectXColors.h>
+#include "Util/Color.h"
 #include <dxgi1_4.h>
 
-#include "UI/Material/IMaterial.h"
-#include "UI/Mesh/IMesh.h"
+#include "UI/Material/Material.h"
+#include "UI/Mesh/Mesh.h"
 #include "UI/Object/Camera.h"
 
 using namespace DirectX;
@@ -80,7 +80,7 @@ void z8::DX12Render::Draw()
 
   // 清空缓冲区
   CreateDpt();
-  CmdList->ClearRenderTargetView(RtvDpt, Colors::LightSteelBlue, 0, nullptr);
+  CmdList->ClearRenderTargetView(RtvDpt, Color::Black_2, 0, nullptr);
   CmdList->ClearDepthStencilView(DsvDpt, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
   // 设置要写入的缓冲区
@@ -527,7 +527,7 @@ Camera* DX12Render::GetCamera()
   return App->Camera;
 }
 
-IObject* DX12Render::GetObjects()
+Object* DX12Render::GetObjects()
 {
   return App->Objects[0];
 }

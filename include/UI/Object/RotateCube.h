@@ -7,7 +7,7 @@
 
 namespace z8
 {
-class RotateCube : public CubeObject
+class RotateCube : public Object
 {
   POINT LastPos;
   DirectX::XMFLOAT4X4 objConstants;
