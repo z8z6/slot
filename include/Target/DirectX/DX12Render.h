@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "Target/IRender.h"
+#include "Target/Render.h"
 #include "DX12Common.h"
 #include "d3d12.h"
 
@@ -16,12 +16,12 @@ class IDXGISwapChain;
 namespace z8 {
 class Camera;
 class Window;
-class Object;
+class GameObject;
 class DX12Context;
 class Application;
 
 // 这个类是每个窗口独立的
-class DX12Render : public IRender {
+class DX12Render : public Render {
 private:
   static const int RtvBufCount = 2;
   Application* App;
@@ -129,7 +129,7 @@ private:
   ID3D12Resource* GetCurRtvBuf() const;
 
   Camera* GetCamera();
-  Object* GetObjects();
+  GameObject* GetObjects();
   Window* GetWindow();
 };
 

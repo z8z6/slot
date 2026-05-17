@@ -11,18 +11,18 @@ enum RenderType
 {
   DirectX12 = 0,
   DirectX11 = 1,
-  Vulcan = 2
+  Vulkan = 2
 };
 
-class IRender {
+class Render {
 public:
-  virtual ~IRender() = default;
+  virtual ~Render() = default;
   virtual void Init() = 0;
   virtual void Update() = 0;
   virtual void Draw() = 0;
   virtual void Resize() = 0;
 
-  static IRender* CreateRender(Application* App, RenderType type = DirectX12);
+  static Render* CreateRender(Application* App, RenderType type = DirectX12);
 };
 }
 

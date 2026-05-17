@@ -5,7 +5,7 @@
 #include "Target/DirectX/DX12Render.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
-#include "UI/Object/Object.h"
+#include "UI/Object/GameObject.h"
 #include "Target/DirectX/DX12Context.h"
 #include "Target/DirectX/DX12Shader.h"
 #include "Util/Math.h"
@@ -527,7 +527,7 @@ Camera* DX12Render::GetCamera()
   return App->Camera;
 }
 
-Object* DX12Render::GetObjects()
+GameObject* DX12Render::GetObjects()
 {
   return App->Objects[0];
 }

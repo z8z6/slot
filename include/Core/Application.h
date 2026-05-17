@@ -12,15 +12,15 @@
 
 namespace z8
 {
-class IRender;
-class Object;
+class Render;
+class GameObject;
 class Camera;
 class Application {
 public:
   Window Window;
-  IRender* Render;
+  Render* Render;
   Timer Timer;
-  std::vector<Object*> Objects;
+  std::vector<GameObject*> Objects;
   Camera* Camera;
 
   Application();

@@ -3,11 +3,11 @@
 //
 
 #pragma once
-#include "CubeObject.h"
+#include "GameObject.h"
 
 namespace z8
 {
-class RotateCube : public Object
+class RotateCube : public GameObject
 {
   POINT LastPos;
   DirectX::XMFLOAT4X4 objConstants;

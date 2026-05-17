@@ -3,10 +3,4 @@
 //
 
 #include "UI/Object/Object.h"
-#include "UI/Material/DefaultMaterial.h"
-#include "UI/Material/MissingMaterial.h"
 
-z8::Object::Object()
-{
-  Material = new DefaultMaterial();
-}

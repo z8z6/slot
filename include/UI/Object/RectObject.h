@@ -3,11 +3,11 @@
 //
 
 #pragma once
-#include "Object.h"
+#include "UIObject.h"
 
 namespace z8
 {
-class RectObject : public Object
+class RectObject : public UIObject
 {
 public:
   void* ConstBuf() override;

@@ -4,7 +4,7 @@
 
 #include "Core/Application.h"
 #include "UI/Object/RectObject.h"
-#include "Target/IRender.h"
+#include "Target/Render.h"
 #include <WindowsX.h>
 
 
@@ -23,7 +23,7 @@ z8::Application::Application() {
   Camera = new z8::Camera();
   //Objects.push_back(new RectObject());
   Objects.push_back(new RotateCube());
-  Render = IRender::CreateRender(this);
+  Render = Render::CreateRender(this);
   Render->Init();
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
   SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(FakeMsgHandler));
