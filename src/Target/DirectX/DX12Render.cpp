@@ -39,7 +39,9 @@ void z8::DX12Render::Init()
   CreateCmd();
   CreateSwapChain();
   CreateDptHeap();
+  DepthStencil.InitDescriptor();
   ConstBuf.InitDescriptor();
+
   Resize();
 
   CmdBegin();
@@ -63,7 +65,6 @@ void z8::DX12Render::Draw()
   Ok(CmdAllocator->Reset());
   // 这里需要绑定渲染流水线
   Ok(CmdList->Reset(CmdAllocator.Get(), PSO.Get()));
-  //CmdBegin();
 
   // Rtv 资源类型转换
   auto RenderBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
@@ -78,11 +79,11 @@ void z8::DX12Render::Draw()
   // 清空缓冲区
   CreateDpt();
   CmdList->ClearRenderTargetView(RtvDpt, Color::Black_2, 0, nullptr);
-  CmdList->ClearDepthStencilView(DsvDpt, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+  DepthStencil.ClearBuffer();
 
   // 设置要写入的缓冲区
   CmdList->OMSetRenderTargets(1, &RtvDpt,
-                              true, &DsvDpt);
+                              true, &DepthStencil.Dpt);
 
   ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
   CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -166,7 +167,7 @@ void DX12Render::Resize()
 
   for (auto& i : RtvBuf)
     i.Reset();
-  DsvBuf.Reset();
+  DepthStencil.ResetBuffer();
 
   // 调整 SwapChain 大小
   Ok(mSwapChain->ResizeBuffers(
@@ -174,7 +175,7 @@ void DX12Render::Resize()
     FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
   CreateRtv();
-  CreateDsv();
+  DepthStencil.InitBuffer();
   CmdEnd();
   CmdSync();
 
@@ -221,59 +222,12 @@ void z8::DX12Render::CreateSwapChain()
 void z8::DX12Render::CreateDpt()
 {
   // 只需调用一次
-  DsvDpt = DsvDptHeap->GetCPUDescriptorHandleForHeapStart();
+  // DsvDpt = DsvDptHeap->GetCPUDescriptorHandleForHeapStart();
   // 计算描述符的偏移
   RtvDpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
     RtvDptHeap->GetCPUDescriptorHandleForHeapStart(),
     CurRtvId,
     RtvDptSize);
-}
-
-// 创建 Dsv 缓冲区，并绑定描述符
-// 每次 Resize 时调用一次
-void DX12Render::CreateDsv()
-{
-  // 创建 Dsv 缓冲区
-  D3D12_RESOURCE_DESC BD;
-  BD.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-  BD.Alignment = 0;
-  BD.Width = GetWindow()->Width;
-  BD.Height = GetWindow()->Height;
-  BD.DepthOrArraySize = 1;
-  BD.MipLevels = 1;
-  BD.Format = DXGI_FORMAT_R24G8_TYPELESS;
-  BD.SampleDesc.Count = Msaa.GetSampleCount();
-  BD.SampleDesc.Quality = Msaa.GetMsaaQuality();
-  BD.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-  BD.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-  D3D12_CLEAR_VALUE Clv;
-  Clv.Format = FormatDsv;
-  Clv.DepthStencil.Depth = 1.0f;
-  Clv.DepthStencil.Stencil = 0;
-
-  auto HP = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-  Ok(Ctx->Device->CreateCommittedResource(
-    &HP,
-    D3D12_HEAP_FLAG_NONE,
-    &BD,
-    D3D12_RESOURCE_STATE_COMMON,
-    &Clv,
-    IID_PPV_ARGS(DsvBuf.GetAddressOf())));
-
-  // 绑定 Dsv 描述符
-  D3D12_DEPTH_STENCIL_VIEW_DESC DD;
-  DD.Flags = D3D12_DSV_FLAG_NONE;
-  DD.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-  DD.Format = FormatDsv;
-  DD.Texture2D.MipSlice = 0;
-  Ctx->Device->CreateDepthStencilView(DsvBuf.Get(), &DD, DsvDptHeap->GetCPUDescriptorHandleForHeapStart());
-
-  // 状态转换
-  auto WriteBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DsvBuf.Get(),
-                                                           D3D12_RESOURCE_STATE_COMMON,
-                                                           D3D12_RESOURCE_STATE_DEPTH_WRITE);
-  CmdList->ResourceBarrier(1, &WriteBarrier);
 }
 
 // 创建 Rtv 缓冲区，并绑定描述符
@@ -296,8 +250,6 @@ void DX12Render::CreateDptHeap()
 {
   // 查询堆描述符的大小
   RtvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  DsvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-
 
   // Rtv 的描述符堆
   D3D12_DESCRIPTOR_HEAP_DESC RD;
@@ -306,17 +258,6 @@ void DX12Render::CreateDptHeap()
   RD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
   RD.NodeMask = 0;
   Ok(Ctx->Device->CreateDescriptorHeap(&RD, IID_PPV_ARGS(RtvDptHeap.GetAddressOf())));
-
-  // Dsv 的描述符堆
-  D3D12_DESCRIPTOR_HEAP_DESC DD;
-  DD.NumDescriptors = 1;
-  DD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-  DD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  DD.NodeMask = 0;
-  Ok(Ctx->Device->CreateDescriptorHeap(&DD, IID_PPV_ARGS(DsvDptHeap.GetAddressOf())));
-
-
-  // 对于 ComPtr, operator &() = ReleaseAndGetAddressOf()
 }
 
 ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const

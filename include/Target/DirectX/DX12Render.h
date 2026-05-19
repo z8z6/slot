@@ -42,25 +42,11 @@ public:
   // 当前 Rtv 缓冲区索引
   int CurRtvId = 0;
   ComPtr<IDXGISwapChain> mSwapChain;
-  // Rtv 缓冲区
   ComPtr<ID3D12Resource> RtvBuf[RtvBufCount];
-  // Dsv 缓冲区
-  ComPtr<ID3D12Resource> DsvBuf;
-  // 缓冲区内存类型
   DXGI_FORMAT FormatRtv = DXGI_FORMAT_R8G8B8A8_UNORM;
-  DXGI_FORMAT FormatDsv = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-  // 资源描述符堆
   ComPtr<ID3D12DescriptorHeap> RtvDptHeap;
-  ComPtr<ID3D12DescriptorHeap> DsvDptHeap;
-
-  // 单个描述符的大小
   UINT RtvDptSize = 0;
-  UINT DsvDptSize = 0;
-
-  // 资源描述符
   D3D12_CPU_DESCRIPTOR_HANDLE RtvDpt;
-  D3D12_CPU_DESCRIPTOR_HANDLE DsvDpt;
 
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
@@ -91,7 +77,6 @@ public:
   void CreateSwapChain();
   void CreateDptHeap();
   void CreateDpt();
-  void CreateDsv();
   void CreateRtv();
   ID3D12Resource* GetCurRtvBuf() const;
 
