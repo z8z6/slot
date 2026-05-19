@@ -46,7 +46,7 @@ void DX12MeshManager::Init()
 
 void DX12MeshManager::Bind() const
 {
-  Render->CmdList->IASetVertexBuffers(0, 1, &Vv);
-  Render->CmdList->IASetIndexBuffer(&Iv);
-  Render->CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  Render->Cmd.CmdList->IASetVertexBuffers(0, 1, &Vv);
+  Render->Cmd.CmdList->IASetIndexBuffer(&Iv);
+  Render->Cmd.CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }

@@ -8,7 +8,6 @@
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Shader.h"
 #include "UI/Object/GameObject.h"
-#include "Util/Color.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
@@ -28,15 +27,13 @@ z8::DX12Render::DX12Render(Application* app)
 
 DX12Render::~DX12Render()
 {
-  CmdSync();
+  Cmd.Synchronize();
 }
 
 void z8::DX12Render::Init()
 {
-  Ok(Ctx->Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence)));
-
   Msaa.Init();
-  CreateCmd();
+  Cmd.Init();
   SwapChain.Init();
   RenderTarget.InitDescriptor();
   DepthStencil.InitDescriptor();
@@ -44,13 +41,13 @@ void z8::DX12Render::Init()
 
   Resize();
 
-  CmdBegin();
+  Cmd.Reset();
   ConstBuf.InitBuffer();
   RootSignature.Init();
   MeshManager.Init();
   PSO.Init();
-  CmdEnd();
-  CmdSync();
+  Cmd.CloseAndExecute();
+  Cmd.Synchronize();
 }
 
 void z8::DX12Render::Update()
@@ -62,19 +59,19 @@ void z8::DX12Render::Update()
 
 void z8::DX12Render::Draw()
 {
-  Ok(CmdAllocator->Reset());
+  Ok(Cmd.CmdAllocator->Reset());
   // 这里需要绑定渲染流水线
-  Ok(CmdList->Reset(CmdAllocator.Get(), PSO.Get()));
+  Cmd.ResetWithPso();
 
   // Rtv 资源类型转换
   auto RenderBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
                                                             D3D12_RESOURCE_STATE_PRESENT,
                                                             D3D12_RESOURCE_STATE_RENDER_TARGET);
-  CmdList->ResourceBarrier(1, &RenderBarrier);
+  Cmd.CmdList->ResourceBarrier(1, &RenderBarrier);
 
   // Set the viewport and scissor rect.  This needs to be reset whenever the command list is reset.
-  CmdList->RSSetViewports(1, &ScreenView);
-  CmdList->RSSetScissorRects(1, &ScissorRect);
+  Cmd.CmdList->RSSetViewports(1, &ScreenView);
+  Cmd.CmdList->RSSetScissorRects(1, &ScissorRect);
 
   // 清空缓冲区
   CreateDpt();
@@ -85,23 +82,23 @@ void z8::DX12Render::Draw()
   RenderTarget.Bind();
 
   ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
-  CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+  Cmd.CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
   RootSignature.Bind();
   MeshManager.Bind();
 
-  CmdList->SetGraphicsRootDescriptorTable(0, ConstBuf.DptHeap->GetGPUDescriptorHandleForHeapStart());
+  Cmd.CmdList->SetGraphicsRootDescriptorTable(0, ConstBuf.DptHeap->GetGPUDescriptorHandleForHeapStart());
 
   // 绘制图形
-  CmdList->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
+  Cmd.CmdList->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
 
   // Rtv 资源类型转换
   auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
                                                              D3D12_RESOURCE_STATE_RENDER_TARGET,
                                                              D3D12_RESOURCE_STATE_PRESENT);
-  CmdList->ResourceBarrier(1, &PresentBarrier);
+  Cmd.CmdList->ResourceBarrier(1, &PresentBarrier);
 
-  CmdEnd();
+  Cmd.CloseAndExecute();
 
   // 呈现当前缓冲区
   SwapChain.Present();
@@ -109,60 +106,13 @@ void z8::DX12Render::Draw()
   CurRtvId = ++CurRtvId % RtvBufCount;
 
   // 等待命令执行完毕
-  CmdSync();
-}
-
-void z8::DX12Render::CmdSync()
-{
-  ++CurFence;
-  Ok(CmdQueue->Signal(Fence.Get(), CurFence));
-  if (Fence->GetCompletedValue() >= CurFence) return;
-
-  HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
-  Ok(Fence->SetEventOnCompletion(CurFence, eventHandle));
-  WaitForSingleObject(eventHandle, INFINITE);
-  CloseHandle(eventHandle);
-}
-
-void DX12Render::CmdBegin()
-{
-  Ok(CmdList->Reset(CmdAllocator.Get(), nullptr));
-}
-
-void DX12Render::CmdEnd()
-{
-  Ok(CmdList->Close());
-
-  // 执行渲染命令
-  ID3D12CommandList* cmdsLists[] = {CmdList.Get()};
-  CmdQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-}
-
-
-// 创建命令队列
-// 初始化时调用一次
-void DX12Render::CreateCmd()
-{
-  D3D12_COMMAND_QUEUE_DESC CD = {};
-  CD.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-  CD.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-  Ok(Ctx->Device->CreateCommandQueue(&CD, IID_PPV_ARGS(&CmdQueue)));
-  Ok(Ctx->Device->CreateCommandAllocator(
-    D3D12_COMMAND_LIST_TYPE_DIRECT,
-    IID_PPV_ARGS(CmdAllocator.GetAddressOf())));
-  Ok(Ctx->Device->CreateCommandList(
-    0,
-    D3D12_COMMAND_LIST_TYPE_DIRECT,
-    CmdAllocator.Get(),
-    nullptr,
-    IID_PPV_ARGS(CmdList.GetAddressOf())));
-  Ok(CmdList->Close());
+  Cmd.Synchronize();
 }
 
 void DX12Render::Resize()
 {
-  CmdSync();
-  CmdBegin();
+  Cmd.Synchronize();
+  Cmd.Reset();
 
   for (auto& i : RtvBuf)
     i.Reset();
@@ -173,8 +123,8 @@ void DX12Render::Resize()
 
   CreateRtv();
   DepthStencil.InitBuffer();
-  CmdEnd();
-  CmdSync();
+  Cmd.CloseAndExecute();
+  Cmd.Synchronize();
 
   ScreenView.TopLeftX = 0;
   ScreenView.TopLeftY = 0;

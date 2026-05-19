@@ -52,16 +52,16 @@ void z8::DX12RenderTarget::Swap()
 void z8::DX12RenderTarget::Bind(bool needDepth)
 {
   if (needDepth)
-    Render->CmdList->OMSetRenderTargets(1, &Dpt,
+    Render->Cmd.CmdList->OMSetRenderTargets(1, &Dpt,
       true, &Render->DepthStencil.Dpt);
   else
-    Render->CmdList->OMSetRenderTargets(1, &Dpt,
+    Render->Cmd.CmdList->OMSetRenderTargets(1, &Dpt,
       true, nullptr);
 }
 
 void z8::DX12RenderTarget::ClearBuffer()
 {
-  Render->CmdList->ClearRenderTargetView(Dpt, Color::Black_2, 0, nullptr);
+  Render->Cmd.CmdList->ClearRenderTargetView(Dpt, Color::Black_2, 0, nullptr);
 }
 
 void z8::DX12RenderTarget::ResetBuffer()
@@ -86,5 +86,5 @@ void z8::DX12RenderTarget::Transition(bool toPresent)
     Barrier = CD3DX12_RESOURCE_BARRIER::Transition(GetBuffer(),
     D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-  Render->CmdList->ResourceBarrier(1, &Barrier);
+  Render->Cmd.CmdList->ResourceBarrier(1, &Barrier);
 }

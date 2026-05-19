@@ -48,7 +48,7 @@ void DX12RootSignature::Init()
 
 void DX12RootSignature::Bind() const
 {
-  Render->CmdList->SetGraphicsRootSignature(RootSignature.Get());
+  Render->Cmd.CmdList->SetGraphicsRootSignature(RootSignature.Get());
 }
 
 ID3D12RootSignature* DX12RootSignature::operator->() const

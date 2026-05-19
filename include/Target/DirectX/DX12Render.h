@@ -29,17 +29,6 @@ public:
   Application* App;
   DX12Device* Ctx;
 
-  // Sync
-  ComPtr<ID3D12Fence> Fence;
-  UINT64 CurFence = 0;
-
-  // Command
-  ComPtr<ID3D12CommandQueue> CmdQueue;
-  ComPtr<ID3D12CommandAllocator> CmdAllocator;
-  ComPtr<ID3D12GraphicsCommandList> CmdList;
-
-  // =============================================================== //
-  // 当前 Rtv 缓冲区索引
   int CurRtvId = 0;
   ComPtr<ID3D12Resource> RtvBuf[RtvBufCount];
   DXGI_FORMAT FormatRtv = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -66,10 +55,6 @@ public:
   void Draw() override;
   void Resize() override;
 
-  void CmdSync();
-  void CmdBegin();
-  void CmdEnd();
-  void CreateCmd();
   void CreateDpt();
   void CreateRtv();
   ID3D12Resource* GetCurRtvBuf() const;
