@@ -17,5 +17,7 @@ public:
 
   DX12Msaa(DX12Render* R) : DX12Common(R){}
   void Init();
+  unsigned GetMsaaQuality() const;
+  unsigned GetSampleCount() const;
 };
-}
+} // namespace z8

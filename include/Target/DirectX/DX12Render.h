@@ -69,20 +69,6 @@ public:
   // =============================================================== //
   // 顶点缓冲区和上传堆
 
-  ComPtr<ID3DBlob> VBufCPU;
-  ComPtr<ID3DBlob> IBufCPU;
-
-  ComPtr<ID3D12Resource> VBufGPU;
-  ComPtr<ID3D12Resource> IBufGPU;
-
-  D3D12_VERTEX_BUFFER_VIEW Vv;
-  D3D12_INDEX_BUFFER_VIEW Iv;
-
-  ComPtr<ID3D12Resource> VBufUpload;
-  ComPtr<ID3D12Resource> IBufUpload;
-
-  DXGI_FORMAT FormatIBuf = DXGI_FORMAT_R16_UINT;
-
   ComPtr<ID3D12Resource> ConstBufGPU;
   char* ConstBufCPU;
   ComPtr<ID3D12RootSignature> mRootSignature;
@@ -95,14 +81,9 @@ public:
 
   // =============================================================== //
 
-  D3D_DRIVER_TYPE DriverType = D3D_DRIVER_TYPE_HARDWARE;
-
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
 
-  // MSAA
-  bool EnableMsaa = false;
-  UINT MsaaQuality = 0;
 
   DX12Command Cmd;
   DX12SwapChain SwapChain;
@@ -127,7 +108,6 @@ public:
   void CmdSync();
   void CmdBegin();
   void CmdEnd();
-  void CreateMsaa();
   void CreateCmd();
   void CreateSwapChain();
   void CreateDptHeap();
@@ -136,12 +116,7 @@ public:
   void CreateDsv();
   void CreateRtv();
   void CreateCbv();
-  void CreateMesh();
-  void CreateMeshView();
-  void CreateShader();
   void CreatePSO();
-  ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,
-    uint64_t byteSize, ComPtr<ID3D12Resource>& uploadBuffer);
   ID3D12Resource* GetCurRtvBuf() const;
 
   Camera* GetCamera();

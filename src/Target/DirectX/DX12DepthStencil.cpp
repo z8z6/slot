@@ -35,8 +35,8 @@ void z8::DX12DepthStencil::InitBuffer()
   BD.DepthOrArraySize = 1;
   BD.MipLevels = 1;
   BD.Format = DXGI_FORMAT_R24G8_TYPELESS;
-  BD.SampleDesc.Count = Render->Msaa.EnableMsaa ? Render->Msaa.SampleCount : 1;
-  BD.SampleDesc.Quality = Render->Msaa.EnableMsaa ? (Render->Msaa.MsaaQuality - 1) : 0;
+  BD.SampleDesc.Count = Render->Msaa.GetSampleCount();
+  BD.SampleDesc.Quality = Render->Msaa.GetMsaaQuality();
   BD.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   BD.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 

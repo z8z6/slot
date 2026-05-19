@@ -38,7 +38,7 @@ void z8::DX12Render::Init()
 {
   Ok(Ctx->Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence)));
 
-  CreateMsaa();
+  Msaa.Init();
   CreateCmd();
   CreateSwapChain();
   CreateDptHeap();
@@ -47,9 +47,7 @@ void z8::DX12Render::Init()
   CmdBegin();
   CreateCbv();
   CreateRootSignature();
-  CreateMesh();
-  CreateMeshView();
-  CreateShader();
+  MeshManager.Init();
   CreatePSO();
   CmdEnd();
   CmdSync();
@@ -94,9 +92,7 @@ void z8::DX12Render::Draw()
   CmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
   // 指定顶点缓冲区和着色器
-  CmdList->IASetVertexBuffers(0, 1, &Vv);
-  CmdList->IASetIndexBuffer(&Iv);
-  CmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  MeshManager.Bind();
 
   CmdList->SetGraphicsRootDescriptorTable(0, CbvDptHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -146,24 +142,6 @@ void DX12Render::CmdEnd()
   CmdQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 }
 
-// 查询 Msaa
-// 初始化时调用一次
-void DX12Render::CreateMsaa()
-{
-  // 查询 MSAA 的支持情况
-  D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
-  msQualityLevels.Format = FormatRtv;
-  msQualityLevels.SampleCount = 4;
-  msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
-  msQualityLevels.NumQualityLevels = 0;
-  Ok(Ctx->Device->CheckFeatureSupport(
-    D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
-    &msQualityLevels,
-    sizeof(msQualityLevels)));
-
-  MsaaQuality = msQualityLevels.NumQualityLevels;
-  assert(MsaaQuality > 0 && "Unexpected MSAA quality level.");
-}
 
 // 创建命令队列
 // 初始化时调用一次
@@ -229,8 +207,8 @@ void z8::DX12Render::CreateSwapChain()
   SD.BufferDesc.Format = FormatRtv;
   SD.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
   SD.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-  SD.SampleDesc.Count = EnableMsaa ? 4 : 1;
-  SD.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
+  SD.SampleDesc.Count = Msaa.GetSampleCount();
+  SD.SampleDesc.Quality = Msaa.GetMsaaQuality();
   SD.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   SD.BufferCount = RtvBufCount;
   SD.OutputWindow = GetWindow()->Wnd;
@@ -268,8 +246,8 @@ void DX12Render::CreateDsv()
   BD.DepthOrArraySize = 1;
   BD.MipLevels = 1;
   BD.Format = DXGI_FORMAT_R24G8_TYPELESS;
-  BD.SampleDesc.Count = EnableMsaa ? 4 : 1;
-  BD.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
+  BD.SampleDesc.Count = Msaa.GetSampleCount();
+  BD.SampleDesc.Quality = Msaa.GetMsaaQuality();
   BD.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   BD.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
@@ -415,41 +393,15 @@ ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const
   return RtvBuf[CurRtvId].Get();
 }
 
-void DX12Render::CreateMesh()
-{
-  Ok(D3DCreateBlob(GetObjects()->Mesh->VSize(), &VBufCPU));
-  CopyMemory(VBufCPU->GetBufferPointer(), GetObjects()->Mesh->V.data(), GetObjects()->Mesh->VSize());
 
-  Ok(D3DCreateBlob(GetObjects()->Mesh->ISize(), &IBufCPU));
-  CopyMemory(IBufCPU->GetBufferPointer(), GetObjects()->Mesh->I.data(), GetObjects()->Mesh->ISize());
-
-  VBufGPU = CreateDefaultBuffer(GetObjects()->Mesh->V.data(), GetObjects()->Mesh->VSize(), VBufUpload);
-
-  IBufGPU = CreateDefaultBuffer(GetObjects()->Mesh->I.data(), GetObjects()->Mesh->ISize(), IBufUpload);
-}
-
-void DX12Render::CreateMeshView()
-{
-  Vv.BufferLocation = VBufGPU->GetGPUVirtualAddress();
-  Vv.StrideInBytes = GetObjects()->Mesh->VElemSize();
-  Vv.SizeInBytes = GetObjects()->Mesh->VSize();
-
-  Iv.BufferLocation = IBufGPU->GetGPUVirtualAddress();
-  Iv.Format = FormatIBuf;
-  Iv.SizeInBytes = GetObjects()->Mesh->ISize();
-}
-
-void DX12Render::CreateShader()
+void DX12Render::CreatePSO()
 {
   InputLayout =
   {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
   };
-}
 
-void DX12Render::CreatePSO()
-{
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
   ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
   psoDesc.InputLayout = {InputLayout.data(), static_cast<UINT>(InputLayout.size())};
@@ -471,57 +423,13 @@ void DX12Render::CreatePSO()
   psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
   psoDesc.NumRenderTargets = 1;
   psoDesc.RTVFormats[0] = FormatRtv;
-  psoDesc.SampleDesc.Count = EnableMsaa ? 4 : 1;
-  psoDesc.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
+  psoDesc.SampleDesc.Count = Msaa.GetSampleCount();
+  psoDesc.SampleDesc.Quality = Msaa.GetMsaaQuality();
   psoDesc.DSVFormat = FormatDsv;
   Ok(Ctx->Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 }
 
-ComPtr<ID3D12Resource> DX12Render::CreateDefaultBuffer(const void* initData,
-                                                       UINT64 byteSize,
-                                                       ComPtr<ID3D12Resource>& uploadBuffer)
-{
-  ComPtr<ID3D12Resource> defaultBuffer;
 
-  // Create the actual default buffer resource.
-  auto D = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
-  auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-  Ok(Ctx->Device->CreateCommittedResource(
-    &Prop, D3D12_HEAP_FLAG_NONE,
-    &D, D3D12_RESOURCE_STATE_COMMON,
-    nullptr,
-    IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
-
-  Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-  Ok(Ctx->Device->CreateCommittedResource(
-    &Prop, D3D12_HEAP_FLAG_NONE,
-    &D, D3D12_RESOURCE_STATE_GENERIC_READ,
-    nullptr,
-    IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
-
-  // Describe the data we want to copy into the default buffer.
-  D3D12_SUBRESOURCE_DATA subResourceData = {};
-  subResourceData.pData = initData;
-  subResourceData.RowPitch = byteSize;
-  subResourceData.SlicePitch = subResourceData.RowPitch;
-
-  // Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources
-  // will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
-  // the intermediate upload heap data will be copied to mBuffer.
-  auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
-                                                      D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-  CmdList->ResourceBarrier(1, &Barrier);
-  UpdateSubresources<1>(CmdList.Get(), defaultBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
-  auto Barrier1 = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
-                                                       D3D12_RESOURCE_STATE_COPY_DEST,
-                                                       D3D12_RESOURCE_STATE_GENERIC_READ);
-  CmdList->ResourceBarrier(1, &Barrier1);
-
-  // Note: uploadBuffer has to be kept alive after the above function calls because
-  // the command list has not been executed yet that performs the actual copy.
-  // The caller can Release the uploadBuffer after it knows the copy has been executed.
-  return defaultBuffer;
-}
 
 Camera* DX12Render::GetCamera()
 {

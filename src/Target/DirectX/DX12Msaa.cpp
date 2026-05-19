@@ -7,6 +7,8 @@
 #include <d3d12.h>
 #include "Target/DirectX/DX12Device.h"
 
+using namespace z8;
+
 void z8::DX12Msaa::Init()
 {
   // 查询 MSAA 的支持情况
@@ -22,4 +24,12 @@ void z8::DX12Msaa::Init()
 
   MsaaQuality = QL.NumQualityLevels;
   assert(MsaaQuality > 0 && "Unexpected MSAA quality level.");
+}
+
+unsigned DX12Msaa::GetMsaaQuality() const {
+  return EnableMsaa ? (MsaaQuality - 1) : 0;
+}
+
+unsigned DX12Msaa::GetSampleCount() const {
+  return EnableMsaa ? SampleCount : 1;
 }
