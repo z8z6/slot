@@ -28,6 +28,11 @@ void DX12Shader::Compile()
   Ok(hr);
 }
 
+D3D12_SHADER_BYTECODE DX12Shader::GetByteCode() const
+{
+  return {static_cast<BYTE*>(ByteCode->GetBufferPointer()), ByteCode->GetBufferSize()};
+}
+
 DX12ShaderRegistry::DX12ShaderRegistry()
 {
   Prepare();

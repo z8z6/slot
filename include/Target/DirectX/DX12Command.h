@@ -14,9 +14,16 @@ public:
   ComPtr<ID3D12CommandQueue> CmdQueue;
   ComPtr<ID3D12CommandAllocator> CmdAllocator;
   ComPtr<ID3D12GraphicsCommandList> CmdList;
+  ComPtr<ID3D12Fence> Fence;
+  unsigned __int64  CurFence = 0;
+
+  DX12Command(DX12Render* R);
+  ~DX12Command();
 
   void Init();
+  void Synchronize();
   void Reset();
-  void Exec();
+  void ResetWithPso();
+  void CloseAndExecute();
 };
 }

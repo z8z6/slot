@@ -22,8 +22,9 @@
 using namespace DirectX;
 using namespace z8;
 
-z8::DX12Render::DX12Render(Application* app) : App(app)
-{
+z8::DX12Render::DX12Render(Application* app)
+    : App(app), Cmd(this), SwapChain(this), Msaa(this), PSO(this), RootSignature(this),
+      DepthStencil(this), RenderTarget(this), ConstBuf(this), MeshManager(this) {
   Ctx = &DX12Context::Instance();
 }
 
@@ -65,7 +66,7 @@ void z8::DX12Render::Draw()
 {
   Ok(CmdAllocator->Reset());
   // 这里需要绑定渲染流水线
-  Ok(CmdList->Reset(CmdAllocator.Get(), PSO.Get()));
+  Ok(CmdList->Reset(CmdAllocator.Get(), mPSO.Get()));
   //CmdBegin();
 
   // Rtv 资源类型转换
@@ -90,7 +91,7 @@ void z8::DX12Render::Draw()
   ID3D12DescriptorHeap* descriptorHeaps[] = {CbvDptHeap.Get()};
   CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-  CmdList->SetGraphicsRootSignature(RootSignature.Get());
+  CmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
   // 指定顶点缓冲区和着色器
   CmdList->IASetVertexBuffers(0, 1, &Vv);
@@ -111,7 +112,7 @@ void z8::DX12Render::Draw()
   CmdEnd();
 
   // 呈现当前缓冲区
-  Ok(SwapChain->Present(0, 0));
+  Ok(mSwapChain->Present(0, 0));
   // 切换缓冲区
   CurRtvId = ++CurRtvId % RtvBufCount;
 
@@ -194,7 +195,7 @@ void DX12Render::Resize()
   DsvBuf.Reset();
 
   // 调整 SwapChain 大小
-  Ok(SwapChain->ResizeBuffers(
+  Ok(mSwapChain->ResizeBuffers(
     RtvBufCount, GetWindow()->Width, GetWindow()->Height,
     FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
@@ -219,7 +220,7 @@ void DX12Render::Resize()
 // 初始化时调用一次
 void z8::DX12Render::CreateSwapChain()
 {
-  SwapChain.Reset();
+  mSwapChain.Reset();
   DXGI_SWAP_CHAIN_DESC SD;
   SD.BufferDesc.Width = GetWindow()->Width;
   SD.BufferDesc.Height = GetWindow()->Height;
@@ -238,7 +239,7 @@ void z8::DX12Render::CreateSwapChain()
   SD.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
   // SwapChain 创建依赖 CmdQueue
-  Ok(Ctx->Factory->CreateSwapChain(CmdQueue.Get(), &SD, SwapChain.GetAddressOf()));
+  Ok(Ctx->Factory->CreateSwapChain(CmdQueue.Get(), &SD, mSwapChain.GetAddressOf()));
 }
 
 // 创建资源描述符
@@ -309,7 +310,7 @@ void DX12Render::CreateRtv()
   CD3DX12_CPU_DESCRIPTOR_HANDLE Dpt(RtvDptHeap->GetCPUDescriptorHandleForHeapStart());
   for (UINT i = 0; i < RtvBufCount; i++)
   {
-    Ok(SwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
+    Ok(mSwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
     Ctx->Device->CreateRenderTargetView(RtvBuf[i].Get(), nullptr, Dpt);
     Dpt.Offset(1, RtvDptSize);
   }
@@ -406,7 +407,7 @@ void DX12Render::CreateRootSignature()
     0,
     serializedRootSig->GetBufferPointer(),
     serializedRootSig->GetBufferSize(),
-    IID_PPV_ARGS(RootSignature.GetAddressOf())));
+    IID_PPV_ARGS(mRootSignature.GetAddressOf())));
 }
 
 ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const
@@ -452,7 +453,7 @@ void DX12Render::CreatePSO()
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
   ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
   psoDesc.InputLayout = {InputLayout.data(), static_cast<UINT>(InputLayout.size())};
-  psoDesc.pRootSignature = RootSignature.Get();
+  psoDesc.pRootSignature = mRootSignature.Get();
   psoDesc.VS =
   {
     static_cast<BYTE*>(GetObjects()->Material->V->ByteCode->GetBufferPointer()),
@@ -473,7 +474,7 @@ void DX12Render::CreatePSO()
   psoDesc.SampleDesc.Count = EnableMsaa ? 4 : 1;
   psoDesc.SampleDesc.Quality = EnableMsaa ? (MsaaQuality - 1) : 0;
   psoDesc.DSVFormat = FormatDsv;
-  Ok(Ctx->Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PSO)));
+  Ok(Ctx->Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 }
 
 ComPtr<ID3D12Resource> DX12Render::CreateDefaultBuffer(const void* initData,

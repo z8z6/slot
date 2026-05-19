@@ -4,7 +4,17 @@
 
 #include <d3d12.h>
 #include "Target/DirectX/DX12Command.h"
-#include "Target/DirectX/DX12Context.h"
+#include "Target/DirectX/DX12Device.h"
+#include "Target/DirectX/DX12Render.h"
+
+z8::DX12Command::DX12Command(DX12Render* R) : DX12Common(R)
+{
+}
+
+z8::DX12Command::~DX12Command()
+{
+  Synchronize();
+}
 
 void z8::DX12Command::Init()
 {
@@ -22,6 +32,20 @@ void z8::DX12Command::Init()
           nullptr,
           IID_PPV_ARGS(CmdList.GetAddressOf())));
   Ok(CmdList->Close());
+
+  Ok(Ctx->Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence)));
+}
+
+void z8::DX12Command::Synchronize()
+{
+  ++CurFence;
+  Ok(CmdQueue->Signal(Fence.Get(), CurFence));
+  if (Fence->GetCompletedValue() >= CurFence) return;
+
+  HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
+  Ok(Fence->SetEventOnCompletion(CurFence, eventHandle));
+  WaitForSingleObject(eventHandle, INFINITE);
+  CloseHandle(eventHandle);
 }
 
 void z8::DX12Command::Reset()
@@ -29,7 +53,12 @@ void z8::DX12Command::Reset()
   Ok(CmdList->Reset(CmdAllocator.Get(), nullptr));
 }
 
-void z8::DX12Command::Exec()
+void z8::DX12Command::ResetWithPso()
+{
+  Ok(CmdList->Reset(CmdAllocator.Get(), Render->PSO.Pipe.Get()));
+}
+
+void z8::DX12Command::CloseAndExecute()
 {
   Ok(CmdList->Close());
 

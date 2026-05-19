@@ -3,13 +3,9 @@
 //
 
 #include "Target/DirectX/DX12Common.h"
-#include "Target/DirectX/DX12Context.h"
+#include "Target/DirectX/DX12Device.h"
 
-z8::DX12Common::DX12Common()
+z8::DX12Common::DX12Common(DX12Render* R) : Render(R)
 {
-  Ctx = &DX12Context::Instance();
-}
-
-z8::DX12Common::~DX12Common()
-{
+  Ctx = &DX12Device::Instance();
 }

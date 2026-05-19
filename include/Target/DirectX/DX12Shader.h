@@ -5,6 +5,7 @@
 #pragma once
 #include "DX12Common.h"
 #include <d3dcommon.h>
+#include <d3d12.h>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,7 @@ public:
   DX12Shader(std::wstring filename,std::string name, std::string entry, std::string target);
 
   void Compile();
+  D3D12_SHADER_BYTECODE GetByteCode() const;
 };
 
 class DX12ShaderRegistry

@@ -3,15 +3,21 @@
 //
 #pragma once
 
-#include "Target/Render.h"
+#include "DX12Command.h"
 #include "DX12Common.h"
+#include "DX12PipelineState.h"
+#include "DX12RootSignature.h"
+#include "DX12MeshManager.h"
+#include "DX12Msaa.h"
+#include "DX12RenderTarget.h"
+#include "DX12ConstBuf.h"
+#include "DX12DepthStencil.h"
+#include "DX12SwapChain.h"
+#include "Target/Render.h"
 #include "d3d12.h"
 
-#include <DirectXMath.h>
 #include <cstdint>
 #include <vector>
-
-class IDXGISwapChain;
 
 namespace z8 {
 class Camera;
@@ -22,7 +28,7 @@ class Application;
 
 // 这个类是每个窗口独立的
 class DX12Render : public Render {
-private:
+public:
   static const int RtvBufCount = 2;
   Application* App;
   DX12Context* Ctx;
@@ -39,7 +45,7 @@ private:
   // =============================================================== //
   // 当前 Rtv 缓冲区索引
   int CurRtvId = 0;
-  ComPtr<IDXGISwapChain> SwapChain;
+  ComPtr<IDXGISwapChain> mSwapChain;
   // Rtv 缓冲区
   ComPtr<ID3D12Resource> RtvBuf[RtvBufCount];
   // Dsv 缓冲区
@@ -79,13 +85,13 @@ private:
 
   ComPtr<ID3D12Resource> ConstBufGPU;
   char* ConstBufCPU;
-  ComPtr<ID3D12RootSignature> RootSignature;
+  ComPtr<ID3D12RootSignature> mRootSignature;
 
   // =============================================================== //
   // Shader
 
   std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
-  ComPtr<ID3D12PipelineState> PSO;
+  ComPtr<ID3D12PipelineState> mPSO;
 
   // =============================================================== //
 
@@ -98,6 +104,17 @@ private:
   bool EnableMsaa = false;
   UINT MsaaQuality = 0;
 
+  DX12Command Cmd;
+  DX12SwapChain SwapChain;
+  DX12Msaa Msaa;
+  DX12PipelineState PSO;
+  DX12RootSignature RootSignature;
+  DX12DepthStencil DepthStencil;
+  DX12RenderTarget RenderTarget;
+  DX12ConstBuf ConstBuf;
+  DX12MeshManager MeshManager;
+
+
 public:
   DX12Render(Application* app);
   ~DX12Render() override;
@@ -107,7 +124,6 @@ public:
   void Draw() override;
   void Resize() override;
 
-private:
   void CmdSync();
   void CmdBegin();
   void CmdEnd();
