@@ -17,6 +17,7 @@ public:
   DX12PipelineState(DX12Render* R);
 
   void Init();
+  ID3D12PipelineState* Get() const;
   ID3D12PipelineState* operator->() const;
 };
 }

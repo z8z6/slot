@@ -44,7 +44,11 @@ void DX12PipelineState::Init()
   Ok(Ctx->Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&Pipe)));
 }
 
-ID3D12PipelineState* DX12PipelineState::operator->() const
+ID3D12PipelineState *DX12PipelineState::Get() const {
+  return Pipe.Get();
+}
+
+ID3D12PipelineState * DX12PipelineState::operator->() const
 {
   return Pipe.Get();
 }

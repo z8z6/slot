@@ -71,15 +71,6 @@ public:
 
   ComPtr<ID3D12Resource> ConstBufGPU;
   char* ConstBufCPU;
-  ComPtr<ID3D12RootSignature> mRootSignature;
-
-  // =============================================================== //
-  // Shader
-
-  std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
-  ComPtr<ID3D12PipelineState> mPSO;
-
-  // =============================================================== //
 
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
@@ -111,12 +102,10 @@ public:
   void CreateCmd();
   void CreateSwapChain();
   void CreateDptHeap();
-  void CreateRootSignature();
   void CreateDpt();
   void CreateDsv();
   void CreateRtv();
   void CreateCbv();
-  void CreatePSO();
   ID3D12Resource* GetCurRtvBuf() const;
 
   Camera* GetCamera();
