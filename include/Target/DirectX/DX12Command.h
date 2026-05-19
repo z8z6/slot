@@ -11,9 +11,9 @@ namespace z8
 class DX12Command : public DX12Common
 {
 public:
-  ComPtr<ID3D12CommandQueue> CmdQueue;
-  ComPtr<ID3D12CommandAllocator> CmdAllocator;
-  ComPtr<ID3D12GraphicsCommandList> CmdList;
+  ComPtr<ID3D12CommandQueue> Queue;
+  ComPtr<ID3D12CommandAllocator> Allocator;
+  ComPtr<ID3D12GraphicsCommandList> List;
   ComPtr<ID3D12Fence> Fence;
   unsigned __int64  CurFence = 0;
 

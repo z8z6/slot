@@ -81,7 +81,7 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   case WM_SIZE:
     Window.Width = LOWORD(lParam);
     Window.Height = HIWORD(lParam);
-    std::cerr << Window.Width << " | " << Window.Height << std::endl;
+    // std::cerr << Window.Width << " | " << Window.Height << std::endl;
     if(wParam == SIZE_MINIMIZED) return 0;
     Render->Resize();
     return 0;

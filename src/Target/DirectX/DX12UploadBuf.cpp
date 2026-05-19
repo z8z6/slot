@@ -40,12 +40,12 @@ ComPtr<ID3D12Resource> DX12UploadBuf::Upload(const void* Src, UINT64 Size)
 
   auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
     D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-  Render->Cmd.CmdList->ResourceBarrier(1, &Barrier);
-  UpdateSubresources<1>(Render->Cmd.CmdList.Get(), defaultBuffer.Get(),
+  Render->Cmd.List->ResourceBarrier(1, &Barrier);
+  UpdateSubresources<1>(Render->Cmd.List.Get(), defaultBuffer.Get(),
     Buffer.Get(), 0, 0, 1, &subResourceData);
   auto Barrier1 = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
     D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
-  Render->Cmd.CmdList->ResourceBarrier(1, &Barrier1);
+  Render->Cmd.List->ResourceBarrier(1, &Barrier1);
 
   return defaultBuffer;
 }

@@ -46,9 +46,7 @@ public:
   DX12ConstBuf ConstBuf;
   DX12MeshManager MeshManager;
 
-public:
   DX12Render(Application* app);
-  ~DX12Render() override;
 
   void Init() override;
   void Update() override;

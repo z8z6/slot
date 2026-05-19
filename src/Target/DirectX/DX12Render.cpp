@@ -25,11 +25,6 @@ z8::DX12Render::DX12Render(Application* app)
   Ctx = &DX12Device::Instance();
 }
 
-DX12Render::~DX12Render()
-{
-  Cmd.Synchronize();
-}
-
 void z8::DX12Render::Init()
 {
   Msaa.Init();
@@ -59,7 +54,7 @@ void z8::DX12Render::Update()
 
 void z8::DX12Render::Draw()
 {
-  Ok(Cmd.CmdAllocator->Reset());
+  Ok(Cmd.Allocator->Reset());
   // 这里需要绑定渲染流水线
   Cmd.ResetWithPso();
 
@@ -67,11 +62,11 @@ void z8::DX12Render::Draw()
   auto RenderBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
                                                             D3D12_RESOURCE_STATE_PRESENT,
                                                             D3D12_RESOURCE_STATE_RENDER_TARGET);
-  Cmd.CmdList->ResourceBarrier(1, &RenderBarrier);
+  Cmd.List->ResourceBarrier(1, &RenderBarrier);
 
   // Set the viewport and scissor rect.  This needs to be reset whenever the command list is reset.
-  Cmd.CmdList->RSSetViewports(1, &ScreenView);
-  Cmd.CmdList->RSSetScissorRects(1, &ScissorRect);
+  Cmd.List->RSSetViewports(1, &ScreenView);
+  Cmd.List->RSSetScissorRects(1, &ScissorRect);
 
   // 清空缓冲区
   CreateDpt();
@@ -82,21 +77,21 @@ void z8::DX12Render::Draw()
   RenderTarget.Bind();
 
   ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
-  Cmd.CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+  Cmd.List->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
   RootSignature.Bind();
   MeshManager.Bind();
 
-  Cmd.CmdList->SetGraphicsRootDescriptorTable(0, ConstBuf.DptHeap->GetGPUDescriptorHandleForHeapStart());
+  Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuf.DptHeap->GetGPUDescriptorHandleForHeapStart());
 
   // 绘制图形
-  Cmd.CmdList->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
+  Cmd.List->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
 
   // Rtv 资源类型转换
   auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
                                                              D3D12_RESOURCE_STATE_RENDER_TARGET,
                                                              D3D12_RESOURCE_STATE_PRESENT);
-  Cmd.CmdList->ResourceBarrier(1, &PresentBarrier);
+  Cmd.List->ResourceBarrier(1, &PresentBarrier);
 
   Cmd.CloseAndExecute();
 

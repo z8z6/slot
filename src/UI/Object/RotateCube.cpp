@@ -50,7 +50,6 @@ void z8::RotateCube::OnMouseMove(ButtonEventArgs Args)
     Transform.UpdateCartesian();
     Transform.UpdateWorld();
 
-    std::cout << Transform << "\n";
   }
   else if ((Args.State & MK_RBUTTON) != 0)
   {
@@ -66,7 +65,6 @@ void z8::RotateCube::OnMouseMove(ButtonEventArgs Args)
     Transform.UpdateCartesian();
     Transform.UpdateWorld();
 
-    std::cout << Transform << "\n";
   }
 
   LastPos.x = Args.X;

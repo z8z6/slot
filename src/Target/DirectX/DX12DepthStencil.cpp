@@ -67,12 +67,12 @@ void z8::DX12DepthStencil::InitBuffer()
   auto WriteBarrier = CD3DX12_RESOURCE_BARRIER::Transition(Buffer.Get(),
                                                            D3D12_RESOURCE_STATE_COMMON,
                                                            D3D12_RESOURCE_STATE_DEPTH_WRITE);
-  Render->Cmd.CmdList->ResourceBarrier(1, &WriteBarrier);
+  Render->Cmd.List->ResourceBarrier(1, &WriteBarrier);
 }
 
 void DX12DepthStencil::ClearBuffer()
 {
-  Render->Cmd.CmdList->ClearDepthStencilView(Dpt, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+  Render->Cmd.List->ClearDepthStencilView(Dpt, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 }
 
 void DX12DepthStencil::ResetBuffer()

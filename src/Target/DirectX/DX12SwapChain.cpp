@@ -36,7 +36,7 @@ void z8::DX12SwapChain::Init()
 
   // SwapChain 创建依赖 CmdQueue
   ComPtr<IDXGISwapChain> SwapChain0;
-  Ok(Ctx->Factory->CreateSwapChain(Render->Cmd.CmdQueue.Get(), &SD, SwapChain0.GetAddressOf()));
+  Ok(Ctx->Factory->CreateSwapChain(Render->Cmd.Queue.Get(), &SD, SwapChain0.GetAddressOf()));
   Ok(SwapChain0.As(&SwapChain));
 }
 
