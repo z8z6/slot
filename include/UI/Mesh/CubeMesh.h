@@ -5,10 +5,8 @@
 
 #include "Mesh.h"
 
-namespace z8
-{
-struct  CubeMesh : public Mesh
-{
+namespace z8 {
+struct CubeMesh : public Mesh {
   CubeMesh();
 };
 }

@@ -9,9 +9,7 @@
 #include <iostream>
 #include <ostream>
 
-z8::Error::Error(HRESULT hr) : ErrorCode(hr) {
-  Ctx = &DX12Device::Instance();
-}
+z8::Error::Error(HRESULT hr) : ErrorCode(hr) { Ctx = &DX12Device::Instance(); }
 
 void z8::Error::PrintError() const {
   _com_error e0(ErrorCode);

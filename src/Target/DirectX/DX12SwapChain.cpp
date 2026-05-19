@@ -49,6 +49,7 @@ void DX12SwapChain::Resize() const {
 void DX12SwapChain::Present() const
 {
   Ok(SwapChain->Present(0, 0));
+  Render->RenderTarget.CurRtvId = ++Render->RenderTarget.CurRtvId % RtvBufCount;
 }
 
 DX12SwapChain::SwapChainTy* DX12SwapChain::operator->() const

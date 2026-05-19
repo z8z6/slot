@@ -37,10 +37,12 @@ void z8::DX12Render::Init()
   Resize();
 
   Cmd.Reset();
+
   ConstBuf.InitBuffer();
   RootSignature.Init();
   MeshManager.Init();
   PSO.Init();
+
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
 }
@@ -55,25 +57,19 @@ void z8::DX12Render::Update()
 void z8::DX12Render::Draw()
 {
   Ok(Cmd.Allocator->Reset());
-  // 这里需要绑定渲染流水线
+  // 绑定渲染流水线
   Cmd.ResetWithPso();
 
-  // Rtv 资源类型转换
-  auto RenderBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
-                                                            D3D12_RESOURCE_STATE_PRESENT,
-                                                            D3D12_RESOURCE_STATE_RENDER_TARGET);
-  Cmd.List->ResourceBarrier(1, &RenderBarrier);
+  RenderTarget.Transition(false);
 
-  // Set the viewport and scissor rect.  This needs to be reset whenever the command list is reset.
+  // This needs to be reset whenever the command list is reset.
   Cmd.List->RSSetViewports(1, &ScreenView);
   Cmd.List->RSSetScissorRects(1, &ScissorRect);
 
-  // 清空缓冲区
-  CreateDpt();
+  RenderTarget.Swap();
   RenderTarget.ClearBuffer();
   DepthStencil.ClearBuffer();
 
-  // 设置要写入的缓冲区
   RenderTarget.Bind();
 
   ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
@@ -87,20 +83,10 @@ void z8::DX12Render::Draw()
   // 绘制图形
   Cmd.List->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
 
-  // Rtv 资源类型转换
-  auto PresentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(GetCurRtvBuf(),
-                                                             D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                                             D3D12_RESOURCE_STATE_PRESENT);
-  Cmd.List->ResourceBarrier(1, &PresentBarrier);
+  RenderTarget.Transition();
 
   Cmd.CloseAndExecute();
-
-  // 呈现当前缓冲区
   SwapChain.Present();
-  // 切换缓冲区
-  CurRtvId = ++CurRtvId % RtvBufCount;
-
-  // 等待命令执行完毕
   Cmd.Synchronize();
 }
 
@@ -109,15 +95,12 @@ void DX12Render::Resize()
   Cmd.Synchronize();
   Cmd.Reset();
 
-  for (auto& i : RtvBuf)
-    i.Reset();
+  RenderTarget.ResetBuffer();
   DepthStencil.ResetBuffer();
-
-  // 调整 SwapChain 大小
   SwapChain.Resize();
-
-  CreateRtv();
+  RenderTarget.InitBuffer();
   DepthStencil.InitBuffer();
+
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
 
@@ -131,39 +114,6 @@ void DX12Render::Resize()
   ScissorRect = {0, 0, GetWindow()->Width, GetWindow()->Height};
 
   GetCamera()->UpdateProj(GetWindow()->AspectRatio());
-}
-
-// 创建资源描述符
-// 每次缓冲区交换时调用一次
-void z8::DX12Render::CreateDpt()
-{
-  // 只需调用一次
-  // DsvDpt = DsvDptHeap->GetCPUDescriptorHandleForHeapStart();
-  // 计算描述符的偏移
-  RenderTarget.Dpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-    RenderTarget.DptHeap->GetCPUDescriptorHandleForHeapStart(),
-    CurRtvId,
-    RenderTarget.DptSize);
-}
-
-// 创建 Rtv 缓冲区，并绑定描述符
-// 每次 Resize 时调用一次
-void DX12Render::CreateRtv()
-{
-  CurRtvId = 0;
-  CD3DX12_CPU_DESCRIPTOR_HANDLE Dpt(RenderTarget.DptHeap->GetCPUDescriptorHandleForHeapStart());
-  for (UINT i = 0; i < RtvBufCount; i++)
-  {
-    Ok(SwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
-    Ctx->Device->CreateRenderTargetView(RtvBuf[i].Get(), nullptr, Dpt);
-    Dpt.Offset(1, RenderTarget.DptSize);
-  }
-}
-
-
-ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const
-{
-  return RtvBuf[CurRtvId].Get();
 }
 
 Camera* DX12Render::GetCamera() const

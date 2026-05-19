@@ -29,6 +29,8 @@ void z8::DX12RenderTarget::InitDescriptor()
 
 void z8::DX12RenderTarget::InitBuffer()
 {
+  // 每次重置缓冲区，也要重置描述符
+  CurRtvId = 0;
   CD3DX12_CPU_DESCRIPTOR_HANDLE Handle(DptHeap->GetCPUDescriptorHandleForHeapStart());
   for (UINT i = 0; i < RtvBufCount; i++)
   {
@@ -43,14 +45,12 @@ void z8::DX12RenderTarget::InitBuffer()
 
 void z8::DX12RenderTarget::Swap()
 {
-
   // 更新描述符
   Dpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
   DptHeap->GetCPUDescriptorHandleForHeapStart(), CurRtvId, DptSize);
 }
 
-void z8::DX12RenderTarget::Bind(bool needDepth)
-{
+void z8::DX12RenderTarget::Bind(bool needDepth) const {
   if (needDepth)
     Render->Cmd.List->OMSetRenderTargets(1, &Dpt,
       true, &Render->DepthStencil.Dpt);
@@ -59,8 +59,7 @@ void z8::DX12RenderTarget::Bind(bool needDepth)
       true, nullptr);
 }
 
-void z8::DX12RenderTarget::ClearBuffer()
-{
+void z8::DX12RenderTarget::ClearBuffer() const {
   Render->Cmd.List->ClearRenderTargetView(Dpt, Color::Black_2, 0, nullptr);
 }
 
@@ -70,14 +69,11 @@ void z8::DX12RenderTarget::ResetBuffer()
     Ptr.Reset();
 }
 
-ID3D12Resource* z8::DX12RenderTarget::GetBuffer()
-{
-
+ID3D12Resource* z8::DX12RenderTarget::GetBuffer() const {
   return Buffer[CurRtvId].Get();
 }
 
-void z8::DX12RenderTarget::Transition(bool toPresent)
-{
+void z8::DX12RenderTarget::Transition(bool toPresent) const {
   CD3DX12_RESOURCE_BARRIER Barrier;
   if (toPresent)
     Barrier = CD3DX12_RESOURCE_BARRIER::Transition(GetBuffer(),

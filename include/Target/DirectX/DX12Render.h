@@ -25,13 +25,8 @@ class Application;
 // 这个类是每个窗口独立的
 class DX12Render : public Render {
 public:
-  static const int RtvBufCount = 2;
   Application* App;
   DX12Device* Ctx;
-
-  int CurRtvId = 0;
-  ComPtr<ID3D12Resource> RtvBuf[RtvBufCount];
-  DXGI_FORMAT FormatRtv = DXGI_FORMAT_R8G8B8A8_UNORM;
 
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
@@ -52,10 +47,6 @@ public:
   void Update() override;
   void Draw() override;
   void Resize() override;
-
-  void CreateDpt();
-  void CreateRtv();
-  ID3D12Resource* GetCurRtvBuf() const;
 
   Camera* GetCamera() const;
   GameObject* GetObjects() const;

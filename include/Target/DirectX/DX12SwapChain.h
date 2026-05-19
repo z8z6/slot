@@ -14,7 +14,7 @@ public:
   using SwapChainTy = IDXGISwapChain3;
   ComPtr<SwapChainTy> SwapChain;
   DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  static constexpr unsigned RtvBufCount = 2;
+  static constexpr int RtvBufCount = 2;
 
   DX12SwapChain(DX12Render* R);
 

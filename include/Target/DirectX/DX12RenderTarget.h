@@ -11,7 +11,7 @@ namespace z8
 {
 class DX12RenderTarget: public DX12Common
 {
-  static constexpr unsigned RtvBufCount = 2;
+  static constexpr int RtvBufCount = 2;
 public:
   ComPtr<ID3D12Resource> Buffer[RtvBufCount];
   ComPtr<ID3D12DescriptorHeap> DptHeap;
@@ -24,12 +24,12 @@ public:
 
   void InitDescriptor();
   void InitBuffer();
-  void ClearBuffer();
+  void ClearBuffer() const;
   void ResetBuffer();
-  void Transition(bool toPresent = true);
+  void Transition(bool toPresent = true) const;
   void Swap();
-  void Bind(bool needDepth = true);
-  ID3D12Resource* GetBuffer();
+  void Bind(bool needDepth = true) const;
+  ID3D12Resource* GetBuffer() const;
 };
 
 }

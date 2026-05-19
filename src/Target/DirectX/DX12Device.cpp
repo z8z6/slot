@@ -8,8 +8,7 @@
 
 using namespace z8;
 
-DX12Device::DX12Device()
-{
+DX12Device::DX12Device() {
   // Enable the D3D12 debug layer.
 #if defined(DEBUG) || defined(_DEBUG)
   ComPtr<ID3D12Debug> Debug;
@@ -20,6 +19,4 @@ DX12Device::DX12Device()
   D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&Device));
 }
 
-DX12Device::~DX12Device()
-{
-}
+DX12Device::~DX12Device() {}

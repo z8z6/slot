@@ -3,8 +3,7 @@
 
 using namespace z8;
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR, int)
-{
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR, int) {
   // 开控制台窗口
   AllocConsole();
   freopen("CONOUT$", "w", stdout);
@@ -14,12 +13,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR, int)
   Application App1;
   // Application App2;
 
-  try
-  {
+  try {
     return Application::Run();
-  }
-  catch (DXException& e)
-  {
+  } catch (DXException &e) {
     MessageBoxW(nullptr, e.toString().c_str(), L"HR Failed", MB_OK);
     return 0;
   }

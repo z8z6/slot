@@ -8,18 +8,13 @@
 using namespace DirectX;
 using namespace z8;
 
-z8::RectangleMesh::RectangleMesh()
-{
-  V = {
-    Vertex({{-1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
-    Vertex({{-1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
-    Vertex({{+1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
-    Vertex({{+1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)})
-  };
+z8::RectangleMesh::RectangleMesh() {
+  V = {Vertex({{-1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
+       Vertex({{-1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
+       Vertex({{+1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
+       Vertex({{+1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)})};
 
-  I = {
-    // front face
-    {0, 1, 2},
-    {0, 2, 3}
-  };
+  I = {// front face
+       {0, 1, 2},
+       {0, 2, 3}};
 }
