@@ -5,17 +5,15 @@
 #include "Target/DirectX/DX12Render.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
-#include "UI/Object/GameObject.h"
-#include "Target/DirectX/DX12Context.h"
+#include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Shader.h"
+#include "UI/Object/GameObject.h"
+#include "Util/Color.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
-
-#include "Util/Color.h"
 #include <dxgi1_4.h>
 
-#include "UI/Material/Material.h"
 #include "UI/Mesh/Mesh.h"
 #include "UI/Object/Camera.h"
 
@@ -25,13 +23,12 @@ using namespace z8;
 z8::DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), SwapChain(this), Msaa(this), PSO(this), RootSignature(this),
       DepthStencil(this), RenderTarget(this), ConstBuf(this), MeshManager(this) {
-  Ctx = &DX12Context::Instance();
+  Ctx = &DX12Device::Instance();
 }
 
 DX12Render::~DX12Render()
 {
   CmdSync();
-  ConstBufGPU->Unmap(0, nullptr);
 }
 
 void z8::DX12Render::Init()
@@ -42,10 +39,11 @@ void z8::DX12Render::Init()
   CreateCmd();
   CreateSwapChain();
   CreateDptHeap();
+  ConstBuf.InitDescriptor();
   Resize();
 
   CmdBegin();
-  CreateCbv();
+  ConstBuf.InitBuffer();
   RootSignature.Init();
   MeshManager.Init();
   PSO.Init();
@@ -57,7 +55,7 @@ void z8::DX12Render::Update()
 {
   GetCamera()->UpdateView();
   GetObjects()->Update(GetCamera()->GetView(), GetCamera()->GetProj());
-  memcpy(&ConstBufCPU[0], GetObjects()->ConstBuf(), GetObjects()->ConstBufSize());
+  memcpy(&ConstBuf.ConstBufCPU[0], GetObjects()->ConstBuf(), GetObjects()->ConstBufSize());
 }
 
 void z8::DX12Render::Draw()
@@ -86,13 +84,13 @@ void z8::DX12Render::Draw()
   CmdList->OMSetRenderTargets(1, &RtvDpt,
                               true, &DsvDpt);
 
-  ID3D12DescriptorHeap* descriptorHeaps[] = {CbvDptHeap.Get()};
+  ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
   CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
   RootSignature.Bind();
   MeshManager.Bind();
 
-  CmdList->SetGraphicsRootDescriptorTable(0, CbvDptHeap->GetGPUDescriptorHandleForHeapStart());
+  CmdList->SetGraphicsRootDescriptorTable(0, ConstBuf.DptHeap->GetGPUDescriptorHandleForHeapStart());
 
   // 绘制图形
   CmdList->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
@@ -292,32 +290,6 @@ void DX12Render::CreateRtv()
   }
 }
 
-void DX12Render::CreateCbv()
-{
-  unsigned ByteSize = (sizeof(XMFLOAT4X4) + 255) & ~255;
-
-  auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-  auto D = CD3DX12_RESOURCE_DESC::Buffer(ByteSize);
-  Ok(Ctx->Device->CreateCommittedResource(
-    &Prop, D3D12_HEAP_FLAG_NONE,
-    &D, D3D12_RESOURCE_STATE_GENERIC_READ,
-    nullptr,
-    IID_PPV_ARGS(&ConstBufGPU)));
-
-  Ok(ConstBufGPU->Map(0, nullptr, reinterpret_cast<void**>(&ConstBufCPU)));
-
-  D3D12_GPU_VIRTUAL_ADDRESS cbAddress = ConstBufGPU->GetGPUVirtualAddress();
-  // Offset to the ith object constant buffer in the buffer.
-  int boxCBufIndex = 0;
-  cbAddress += boxCBufIndex * ByteSize;
-
-  D3D12_CONSTANT_BUFFER_VIEW_DESC CD;
-  CD.BufferLocation = cbAddress;
-  CD.SizeInBytes = ByteSize;
-
-  Ctx->Device->CreateConstantBufferView(&CD, CbvDptHeap->GetCPUDescriptorHandleForHeapStart());
-}
-
 // 创建资源描述符堆，存放描述符
 // 初始化时调用一次
 void DX12Render::CreateDptHeap()
@@ -325,7 +297,7 @@ void DX12Render::CreateDptHeap()
   // 查询堆描述符的大小
   RtvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   DsvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-  CbvSrvUavDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
 
   // Rtv 的描述符堆
   D3D12_DESCRIPTOR_HEAP_DESC RD;
@@ -343,13 +315,6 @@ void DX12Render::CreateDptHeap()
   DD.NodeMask = 0;
   Ok(Ctx->Device->CreateDescriptorHeap(&DD, IID_PPV_ARGS(DsvDptHeap.GetAddressOf())));
 
-  // Cbv 的描述符堆
-  D3D12_DESCRIPTOR_HEAP_DESC CD;
-  CD.NumDescriptors = 1;
-  CD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  CD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-  CD.NodeMask = 0;
-  Ok(Ctx->Device->CreateDescriptorHeap(&CD, IID_PPV_ARGS(CbvDptHeap.GetAddressOf())));
 
   // 对于 ComPtr, operator &() = ReleaseAndGetAddressOf()
 }
@@ -359,17 +324,16 @@ ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const
   return RtvBuf[CurRtvId].Get();
 }
 
-Camera* DX12Render::GetCamera()
+Camera* DX12Render::GetCamera() const
 {
   return App->Camera;
 }
 
-GameObject* DX12Render::GetObjects()
+GameObject* DX12Render::GetObjects() const
 {
   return App->Objects[0];
 }
 
-Window* DX12Render::GetWindow()
-{
+Window* DX12Render::GetWindow() const {
   return &App->Window;
 }

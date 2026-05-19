@@ -16,14 +16,10 @@
 #include "Target/Render.h"
 #include "d3d12.h"
 
-#include <cstdint>
-#include <vector>
-
 namespace z8 {
 class Camera;
 class Window;
 class GameObject;
-class DX12Context;
 class Application;
 
 // 这个类是每个窗口独立的
@@ -31,7 +27,7 @@ class DX12Render : public Render {
 public:
   static const int RtvBufCount = 2;
   Application* App;
-  DX12Context* Ctx;
+  DX12Device* Ctx;
 
   // Sync
   ComPtr<ID3D12Fence> Fence;
@@ -57,24 +53,17 @@ public:
   // 资源描述符堆
   ComPtr<ID3D12DescriptorHeap> RtvDptHeap;
   ComPtr<ID3D12DescriptorHeap> DsvDptHeap;
-  ComPtr<ID3D12DescriptorHeap> CbvDptHeap;
+
   // 单个描述符的大小
   UINT RtvDptSize = 0;
   UINT DsvDptSize = 0;
-  UINT CbvSrvUavDptSize = 0;
+
   // 资源描述符
   D3D12_CPU_DESCRIPTOR_HANDLE RtvDpt;
   D3D12_CPU_DESCRIPTOR_HANDLE DsvDpt;
 
-  // =============================================================== //
-  // 顶点缓冲区和上传堆
-
-  ComPtr<ID3D12Resource> ConstBufGPU;
-  char* ConstBufCPU;
-
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
-
 
   DX12Command Cmd;
   DX12SwapChain SwapChain;
@@ -85,7 +74,6 @@ public:
   DX12RenderTarget RenderTarget;
   DX12ConstBuf ConstBuf;
   DX12MeshManager MeshManager;
-
 
 public:
   DX12Render(Application* app);
@@ -105,12 +93,11 @@ public:
   void CreateDpt();
   void CreateDsv();
   void CreateRtv();
-  void CreateCbv();
   ID3D12Resource* GetCurRtvBuf() const;
 
-  Camera* GetCamera();
-  GameObject* GetObjects();
-  Window* GetWindow();
+  Camera* GetCamera() const;
+  GameObject* GetObjects() const;
+  Window* GetWindow() const;
 };
 
 }
