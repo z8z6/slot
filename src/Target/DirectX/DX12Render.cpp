@@ -38,7 +38,7 @@ void z8::DX12Render::Init()
   Msaa.Init();
   CreateCmd();
   SwapChain.Init();
-  CreateDptHeap();
+  RenderTarget.InitDescriptor();
   DepthStencil.InitDescriptor();
   ConstBuf.InitDescriptor();
 
@@ -78,12 +78,11 @@ void z8::DX12Render::Draw()
 
   // 清空缓冲区
   CreateDpt();
-  CmdList->ClearRenderTargetView(RtvDpt, Color::Black_2, 0, nullptr);
+  RenderTarget.ClearBuffer();
   DepthStencil.ClearBuffer();
 
   // 设置要写入的缓冲区
-  CmdList->OMSetRenderTargets(1, &RtvDpt,
-                              true, &DepthStencil.Dpt);
+  RenderTarget.Bind();
 
   ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
   CmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -196,10 +195,10 @@ void z8::DX12Render::CreateDpt()
   // 只需调用一次
   // DsvDpt = DsvDptHeap->GetCPUDescriptorHandleForHeapStart();
   // 计算描述符的偏移
-  RtvDpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-    RtvDptHeap->GetCPUDescriptorHandleForHeapStart(),
+  RenderTarget.Dpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
+    RenderTarget.DptHeap->GetCPUDescriptorHandleForHeapStart(),
     CurRtvId,
-    RtvDptSize);
+    RenderTarget.DptSize);
 }
 
 // 创建 Rtv 缓冲区，并绑定描述符
@@ -207,30 +206,15 @@ void z8::DX12Render::CreateDpt()
 void DX12Render::CreateRtv()
 {
   CurRtvId = 0;
-  CD3DX12_CPU_DESCRIPTOR_HANDLE Dpt(RtvDptHeap->GetCPUDescriptorHandleForHeapStart());
+  CD3DX12_CPU_DESCRIPTOR_HANDLE Dpt(RenderTarget.DptHeap->GetCPUDescriptorHandleForHeapStart());
   for (UINT i = 0; i < RtvBufCount; i++)
   {
     Ok(SwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
     Ctx->Device->CreateRenderTargetView(RtvBuf[i].Get(), nullptr, Dpt);
-    Dpt.Offset(1, RtvDptSize);
+    Dpt.Offset(1, RenderTarget.DptSize);
   }
 }
 
-// 创建资源描述符堆，存放描述符
-// 初始化时调用一次
-void DX12Render::CreateDptHeap()
-{
-  // 查询堆描述符的大小
-  RtvDptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-  // Rtv 的描述符堆
-  D3D12_DESCRIPTOR_HEAP_DESC RD;
-  RD.NumDescriptors = RtvBufCount; // 2个描述符
-  RD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-  RD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  RD.NodeMask = 0;
-  Ok(Ctx->Device->CreateDescriptorHeap(&RD, IID_PPV_ARGS(RtvDptHeap.GetAddressOf())));
-}
 
 ID3D12Resource* z8::DX12Render::GetCurRtvBuf() const
 {

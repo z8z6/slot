@@ -43,9 +43,6 @@ public:
   int CurRtvId = 0;
   ComPtr<ID3D12Resource> RtvBuf[RtvBufCount];
   DXGI_FORMAT FormatRtv = DXGI_FORMAT_R8G8B8A8_UNORM;
-  ComPtr<ID3D12DescriptorHeap> RtvDptHeap;
-  UINT RtvDptSize = 0;
-  D3D12_CPU_DESCRIPTOR_HANDLE RtvDpt;
 
   D3D12_VIEWPORT ScreenView;
   D3D12_RECT ScissorRect;
@@ -73,7 +70,6 @@ public:
   void CmdBegin();
   void CmdEnd();
   void CreateCmd();
-  void CreateDptHeap();
   void CreateDpt();
   void CreateRtv();
   ID3D12Resource* GetCurRtvBuf() const;
