@@ -36,18 +36,17 @@ void z8::DX12SwapChain::Init()
 
   // SwapChain 创建依赖 CmdQueue
   ComPtr<IDXGISwapChain> SwapChain0;
-  Ok(Ctx->Factory->CreateSwapChain(Render->Cmd.CmdQueue.Get(), &SD, SwapChain0.GetAddressOf()));
+  Ok(Ctx->Factory->CreateSwapChain(Render->CmdQueue.Get(), &SD, SwapChain0.GetAddressOf()));
   Ok(SwapChain0.As(&SwapChain));
 }
 
-void DX12SwapChain::Resize()
-{
+void DX12SwapChain::Resize() const {
   Ok(SwapChain->ResizeBuffers(
     RtvBufCount, Render->GetWindow()->Width, Render->GetWindow()->Height,
     Format, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 }
 
-void DX12SwapChain::Present()
+void DX12SwapChain::Present() const
 {
   Ok(SwapChain->Present(0, 0));
 }

@@ -41,7 +41,6 @@ public:
   // =============================================================== //
   // 当前 Rtv 缓冲区索引
   int CurRtvId = 0;
-  ComPtr<IDXGISwapChain> mSwapChain;
   ComPtr<ID3D12Resource> RtvBuf[RtvBufCount];
   DXGI_FORMAT FormatRtv = DXGI_FORMAT_R8G8B8A8_UNORM;
   ComPtr<ID3D12DescriptorHeap> RtvDptHeap;
@@ -74,7 +73,6 @@ public:
   void CmdBegin();
   void CmdEnd();
   void CreateCmd();
-  void CreateSwapChain();
   void CreateDptHeap();
   void CreateDpt();
   void CreateRtv();

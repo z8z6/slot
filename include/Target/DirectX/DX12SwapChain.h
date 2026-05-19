@@ -19,8 +19,8 @@ public:
   DX12SwapChain(DX12Render* R);
 
   void Init();
-  void Resize();
-  void Present();
+  void Resize() const;
+  void Present() const;
   SwapChainTy* operator->() const;
 };
 }

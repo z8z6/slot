@@ -37,7 +37,7 @@ void z8::DX12Render::Init()
 
   Msaa.Init();
   CreateCmd();
-  CreateSwapChain();
+  SwapChain.Init();
   CreateDptHeap();
   DepthStencil.InitDescriptor();
   ConstBuf.InitDescriptor();
@@ -105,7 +105,7 @@ void z8::DX12Render::Draw()
   CmdEnd();
 
   // 呈现当前缓冲区
-  Ok(mSwapChain->Present(0, 0));
+  SwapChain.Present();
   // 切换缓冲区
   CurRtvId = ++CurRtvId % RtvBufCount;
 
@@ -170,9 +170,7 @@ void DX12Render::Resize()
   DepthStencil.ResetBuffer();
 
   // 调整 SwapChain 大小
-  Ok(mSwapChain->ResizeBuffers(
-    RtvBufCount, GetWindow()->Width, GetWindow()->Height,
-    FormatRtv, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+  SwapChain.Resize();
 
   CreateRtv();
   DepthStencil.InitBuffer();
@@ -189,32 +187,6 @@ void DX12Render::Resize()
   ScissorRect = {0, 0, GetWindow()->Width, GetWindow()->Height};
 
   GetCamera()->UpdateProj(GetWindow()->AspectRatio());
-}
-
-// 创建交换链
-// 初始化时调用一次
-void z8::DX12Render::CreateSwapChain()
-{
-  mSwapChain.Reset();
-  DXGI_SWAP_CHAIN_DESC SD;
-  SD.BufferDesc.Width = GetWindow()->Width;
-  SD.BufferDesc.Height = GetWindow()->Height;
-  SD.BufferDesc.RefreshRate.Numerator = 60;
-  SD.BufferDesc.RefreshRate.Denominator = 1;
-  SD.BufferDesc.Format = FormatRtv;
-  SD.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-  SD.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-  SD.SampleDesc.Count = Msaa.GetSampleCount();
-  SD.SampleDesc.Quality = Msaa.GetMsaaQuality();
-  SD.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  SD.BufferCount = RtvBufCount;
-  SD.OutputWindow = GetWindow()->Wnd;
-  SD.Windowed = true;
-  SD.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-  SD.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-
-  // SwapChain 创建依赖 CmdQueue
-  Ok(Ctx->Factory->CreateSwapChain(CmdQueue.Get(), &SD, mSwapChain.GetAddressOf()));
 }
 
 // 创建资源描述符
@@ -238,7 +210,7 @@ void DX12Render::CreateRtv()
   CD3DX12_CPU_DESCRIPTOR_HANDLE Dpt(RtvDptHeap->GetCPUDescriptorHandleForHeapStart());
   for (UINT i = 0; i < RtvBufCount; i++)
   {
-    Ok(mSwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
+    Ok(SwapChain->GetBuffer(i, IID_PPV_ARGS(&RtvBuf[i])));
     Ctx->Device->CreateRenderTargetView(RtvBuf[i].Get(), nullptr, Dpt);
     Dpt.Offset(1, RtvDptSize);
   }
