@@ -33,7 +33,7 @@ void RotateCube::Update(const XMFLOAT4X4& View, const XMFLOAT4X4& Proj)
 }
 
 
-void z8::RotateCube::OnMouseMove(ButtonEventArgs Args)
+void z8::RotateCube::OnMouseMove(MouseMovArgs Args)
 {
   if ((Args.State & MK_LBUTTON) != 0)
   {

@@ -12,7 +12,7 @@ Camera::Camera()
 Target(0,0,0),
 Up(0,1,0)
 {
-  Transform.Position.z = -10;
+  Transform.Position.z = -20;
   UpdateView();
 }
 
@@ -34,7 +34,15 @@ void Camera::UpdateProj(float aspect)
   XMStoreFloat4x4(&Proj, P);
 }
 
-void Camera::OnMouseMove(ButtonEventArgs button_event_args)
-{
+void Camera::UpdateTarget() {
+  // 欧拉角转弧度
+  float yaw   = XMConvertToRadians(Transform.Rotation.y);
+  float pitch = XMConvertToRadians(Transform.Rotation.x);
 
+  // 计算相机前方向向量
+  Target = {
+    cosf(pitch) * sinf(yaw),
+    sinf(pitch),
+    cosf(pitch) * cosf(yaw)
+  };
 }

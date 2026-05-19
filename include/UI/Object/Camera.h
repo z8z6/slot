@@ -23,7 +23,7 @@ public:
   DirectX::XMFLOAT4X4& GetProj() { return Proj; }
   void UpdateView();
   void UpdateProj(float aspect);
-  void OnMouseMove(ButtonEventArgs) override;
+  void UpdateTarget();
 };
 }
 

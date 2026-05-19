@@ -44,6 +44,6 @@ struct Transform
     const DirectX::XMFLOAT4X4& Proj);
 
 };
-
+std::ostream& operator<<(std::ostream& o, const DirectX::XMFLOAT3& F);
 std::ostream& operator<<(std::ostream& o, const Transform& transform);
 }

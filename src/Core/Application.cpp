@@ -3,11 +3,8 @@
 //
 
 #include "Core/Application.h"
-#include "UI/Object/RectObject.h"
 #include "Target/Render.h"
 #include <WindowsX.h>
-
-
 #include <iostream>
 #include <ostream>
 
@@ -20,15 +17,21 @@ using namespace z8;
 using namespace std;
 
 z8::Application::Application() {
-  Camera = new z8::Camera();
-  //Objects.push_back(new RectObject());
-  Objects.push_back(new RotateCube());
-  Render = Render::CreateRender(this);
-  Render->Init();
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
   SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(FakeMsgHandler));
-  Window.Open();
   Application::Apps.push_back(this);
+}
+
+void Application::Init() {
+  Camera = new z8::Camera();
+  PrepareScene();
+  Render = Render::CreateRender(this);
+  Render->Init();
+  Window.Open();
+}
+
+void Application::PrepareScene() {
+  Objects.push_back(new RotateCube());
 }
 
 
@@ -66,6 +69,7 @@ LRESULT z8::Application::FakeMsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   // 默认处理
   return DefWindowProcW(Wnd, Msg, wParam, lParam);
 }
+
 
 LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
                                   LPARAM lParam) {
@@ -118,18 +122,21 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   case WM_LBUTTONDOWN:
   case WM_MBUTTONDOWN:
   case WM_RBUTTONDOWN:
-    OnMouseDown(ButtonEventArgs(wParam, lParam));
+    OnMouseDown(MouseMovArgs(wParam, lParam));
     return 0;
   case WM_LBUTTONUP:
   case WM_MBUTTONUP:
   case WM_RBUTTONUP:
-    OnMouseUp(ButtonEventArgs(wParam, lParam));
+    OnMouseUp(MouseMovArgs(wParam, lParam));
     return 0;
   case WM_MOUSEMOVE:
-    OnMouseMove(ButtonEventArgs(wParam, lParam));
+    OnMouseMove(MouseMovArgs(wParam, lParam));
     return 0;
-
   case WM_KEYUP:
+    OnKeyUp(KeyArgs(wParam));
+    return 0;
+  case WM_KEYDOWN:
+    OnKeyDown(KeyArgs(wParam));
     return 0;
   default:
     return DefWindowProcW(Wnd, Msg, wParam, lParam);
@@ -161,20 +168,32 @@ void z8::Application::ShowFrame() const {
   }
 }
 
-void Application::OnMouseMove(ButtonEventArgs Args)
+void Application::OnMouseMove(MouseMovArgs Args)
 {
   for (auto* O : Objects)
     O->OnMouseMove(Args);
+  Camera->OnMouseMove(Args);
 }
 
-void Application::OnMouseDown(ButtonEventArgs Args)
+void Application::OnMouseDown(MouseMovArgs Args)
 {
   for (auto* O : Objects)
     O->OnMouseDown(Args);
 }
 
-void Application::OnMouseUp(ButtonEventArgs Args)
+void Application::OnMouseUp(MouseMovArgs Args)
 {
   for (auto* O : Objects)
     O->OnMouseUp(Args);
+}
+
+void Application::OnKeyDown(KeyArgs Args) {
+  for (auto* O : Objects)
+    O->OnKeyDown(Args);
+  Camera->OnKeyDown(Args);
+}
+
+void Application::OnKeyUp(KeyArgs Args) {
+  for (auto* O : Objects)
+    O->OnKeyUp(Args);
 }

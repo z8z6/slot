@@ -7,12 +7,24 @@
 
 namespace z8
 {
-struct ButtonEventArgs
+struct MouseMovArgs
 {
   unsigned State;
   int X;
   int Y;
+  int DeltaX = 0;  // 鼠标X偏移
+  int DeltaY = 0;  // 鼠标Y偏移
 
-  ButtonEventArgs(WPARAM wParam, LPARAM lParam);
+  inline static int LastX = 0;
+  inline static int LastY = 0;
+  inline static bool Init = false;
+
+  MouseMovArgs(WPARAM wParam, LPARAM lParam);
+};
+
+struct KeyArgs {
+  unsigned Key;
+
+  KeyArgs(WPARAM wParam);
 };
 }

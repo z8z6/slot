@@ -15,9 +15,11 @@ public:
   virtual ~Object() = default;
 
   virtual void Update(const DirectX::XMFLOAT4X4& View, const DirectX::XMFLOAT4X4&Proj) {}
-  virtual void OnMouseUp(ButtonEventArgs) {}
-  virtual void OnMouseMove(ButtonEventArgs) {}
-  virtual void OnMouseDown(ButtonEventArgs) {}
+  virtual void OnMouseUp(MouseMovArgs) {}
+  virtual void OnMouseMove(MouseMovArgs) {}
+  virtual void OnMouseDown(MouseMovArgs) {}
+  virtual void OnKeyUp(KeyArgs) {}
+  virtual void OnKeyDown(KeyArgs) {}
 };
 }
 

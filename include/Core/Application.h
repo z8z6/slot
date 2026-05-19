@@ -24,7 +24,9 @@ public:
   Camera* Camera;
 
   Application();
+  virtual ~Application() = default;
 
+  virtual void Init();
   LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
 
   inline static std::vector<Application*> Apps;
@@ -33,10 +35,13 @@ public:
   static LRESULT CALLBACK FakeMsgHandler(HWND, UINT, WPARAM, LPARAM);
 
 private:
+  virtual void PrepareScene();
   void ShowFrame() const;
-  void OnMouseMove(ButtonEventArgs);
-  void OnMouseDown(ButtonEventArgs);
-  void OnMouseUp(ButtonEventArgs);
+  void OnMouseMove(MouseMovArgs);
+  void OnMouseDown(MouseMovArgs);
+  void OnMouseUp(MouseMovArgs);
+  void OnKeyDown(KeyArgs);
+  void OnKeyUp(KeyArgs);
 };
 }
 

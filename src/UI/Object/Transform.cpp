@@ -39,6 +39,7 @@ void Transform::UpdateWorldViewProj(const XMFLOAT4X4 &View,
   XMStoreFloat4x4(&WorldViewProj, wvp);
 }
 
+
 void Transform::UpdateCartesian() {
   // 球坐标系转直角坐标系公式（标准 3D 数学公式）
   // X = r * sin(phi) * cos(theta)
@@ -77,8 +78,13 @@ void Transform::UpdateSpherical() {
   Theta = atan2f(z, x);
 }
 
+std::ostream &z8::operator<<(std::ostream &o, const XMFLOAT3 &F) {
+  o << F.x << ", " << F.y << ", " << F.z;
+  return o;
+}
+
 std::ostream &z8::operator<<(std::ostream &o, const Transform &transform) {
-  o << "x: " << transform.Position.x << ", y: " << transform.Position.y
-    << ", z: " << transform.Position.z;
+  o << "Position: " << transform.Position << "\n"
+    << "Rotation: " << transform.Rotation << "\n";
   return o;
 }

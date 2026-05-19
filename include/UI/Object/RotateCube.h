@@ -17,6 +17,6 @@ public:
   void Update(const DirectX::XMFLOAT4X4& View, const DirectX::XMFLOAT4X4&) override;
   void* ConstBuf() override;
   unsigned ConstBufSize() override;
-  void OnMouseMove(ButtonEventArgs) override;
+  void OnMouseMove(MouseMovArgs) override;
 };
 }
