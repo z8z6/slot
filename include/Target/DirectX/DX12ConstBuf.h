@@ -17,13 +17,16 @@ public:
   ComPtr<ID3D12DescriptorHeap> DptHeap;
   unsigned DptSize = 0;
   D3D12_CPU_DESCRIPTOR_HANDLE Dpt;
-  DXGI_FORMAT Format;
+  unsigned DptCount = 0;
+  unsigned StepSize = 0;
 
   DX12ConstBuf(DX12Render* R) : DX12Common(R){}
-  ~DX12ConstBuf();
+  ~DX12ConstBuf() override;
 
   void InitDescriptor();
   void InitBuffer();
+  D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptor(int index) const;
+  char* GetCPUOffset(unsigned index) const;
 };
 
 

@@ -2,6 +2,8 @@
 // Created by zhou_zhengming on 2026/5/15.
 //
 #include "UI/Object/RectObject.h"
+
+#include "UI/Mesh/MeshRegistry.h"
 #include "UI/Mesh/RectangleMesh.h"
 
 using namespace z8;
@@ -26,5 +28,5 @@ void RectObject::Update(const DirectX::XMFLOAT4X4& View, const DirectX::XMFLOAT4
 
 RectObject::RectObject()
 {
-  Mesh = new RectangleMesh;
+  Mesh = MeshRegistry::Instance().GetMesh("Rectangle");
 }

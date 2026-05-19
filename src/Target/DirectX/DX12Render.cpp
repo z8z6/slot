@@ -41,6 +41,7 @@ void z8::DX12Render::Init()
   ConstBuf.InitBuffer();
   RootSignature.Init();
   MeshManager.Init();
+  InitObject();
   PSO.Init();
 
   Cmd.CloseAndExecute();
@@ -50,8 +51,10 @@ void z8::DX12Render::Init()
 void z8::DX12Render::Update()
 {
   GetCamera()->UpdateView();
-  GetObjects()->Update(GetCamera()->GetView(), GetCamera()->GetProj());
-  memcpy(&ConstBuf.ConstBufCPU[0], GetObjects()->ConstBuf(), GetObjects()->ConstBufSize());
+  for (auto& O : RenderObjects) {
+    O.Object->Update(GetCamera()->GetView(), GetCamera()->GetProj());
+    memcpy(ConstBuf.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
+  }
 }
 
 void z8::DX12Render::Draw()
@@ -76,12 +79,14 @@ void z8::DX12Render::Draw()
   Cmd.List->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
   RootSignature.Bind();
-  MeshManager.Bind();
 
-  Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuf.DptHeap->GetGPUDescriptorHandleForHeapStart());
-
-  // 绘制图形
-  Cmd.List->DrawIndexedInstanced(GetObjects()->Mesh->ICount(), 1, 0, 0, 0);
+  for (auto& O : RenderObjects) {
+    MeshManager.Bind();
+    Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuf.GetGPUDescriptor(O.ConstBufIndex));
+    Cmd.List->DrawIndexedInstanced(O.SubMesh->IndexCount,
+    1, O.SubMesh->StartIndexLocation,
+    O.SubMesh->BaseVertexLocation, 0);
+  }
 
   RenderTarget.Transition();
 
@@ -116,14 +121,20 @@ void DX12Render::Resize()
   GetCamera()->UpdateProj(GetWindow()->AspectRatio());
 }
 
-Camera* DX12Render::GetCamera() const
-{
-  return App->Camera;
+void DX12Render::InitObject() {
+  unsigned i = 0;
+  for (auto* O : App->Objects) {
+    DX12RenderObject RO(O);
+    RO.ConstBufIndex = i;
+    RO.SubMesh = MeshManager.GetSubMesh(O->Mesh);
+    RenderObjects.push_back(RO);
+    ++i;
+  }
 }
 
-GameObject* DX12Render::GetObjects() const
+Camera * DX12Render::GetCamera() const
 {
-  return App->Objects[0];
+  return App->Camera;
 }
 
 Window* DX12Render::GetWindow() const {

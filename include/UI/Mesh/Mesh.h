@@ -15,16 +15,17 @@
 namespace z8 {
 class Mesh {
 public:
+  using IndexTy = uint16_t;
   std::vector<Vertex> V;
-  std::vector<VertexGroup> I;
+  std::vector<IndexTy> I;
 
   Mesh() = default;
   virtual ~Mesh() = default;
 
   unsigned VSize() const { return V.size() * sizeof(Vertex); }
   unsigned VElemSize() const { return sizeof(Vertex); }
-  unsigned ISize() const { return I.size() * sizeof(VertexGroup); }
-  unsigned ICount() const { return I.size() * 3; }
+  unsigned ISize() const { return I.size() * sizeof(IndexTy); }
+  unsigned ICount() const { return I.size(); }
 
 };
 }

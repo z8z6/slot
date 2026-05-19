@@ -4,6 +4,7 @@
 
 #include "UI/Object/CubeObject.h"
 #include "UI/Mesh/CubeMesh.h"
+#include "UI/Mesh/MeshRegistry.h"
 
 using namespace DirectX;
 
@@ -27,5 +28,5 @@ unsigned z8::CubeObject::ConstBufSize()
 
 z8::CubeObject::CubeObject()
 {
-  Mesh = new CubeMesh;
+  Mesh = MeshRegistry::Instance().GetMesh("Cube");
 }

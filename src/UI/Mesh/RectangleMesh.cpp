@@ -15,6 +15,6 @@ z8::RectangleMesh::RectangleMesh() {
        Vertex({{+1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)})};
 
   I = {// front face
-       {0, 1, 2},
-       {0, 2, 3}};
+       0, 1, 2,
+       0, 2, 3};
 }

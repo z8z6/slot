@@ -3,11 +3,9 @@
 //
 
 #include "UI/Object/RotateCube.h"
-
 #include <iostream>
-
 #include "UI/Material/RotateCubeMaterial.h"
-#include "UI/Mesh/CubeMesh.h"
+#include "UI/Mesh/MeshRegistry.h"
 #include "Util/Math.h"
 
 using namespace z8;
@@ -21,7 +19,7 @@ RotateCube::RotateCube() : LastPos(), objConstants()
 
   Transform.UpdateCartesian();
   Transform.UpdateWorld();
-  Mesh = new CubeMesh;
+  Mesh = MeshRegistry::Instance().GetMesh("Cube");
   Material = new RotateCubeMaterial();
 }
 
