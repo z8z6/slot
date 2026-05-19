@@ -7,6 +7,8 @@
 
 using namespace z8;
 
+DXException::DXException(HRESULT hr) : ErrorCode(hr) {
+}
 DXException::DXException(HRESULT hr, const std::wstring& functionName, const std::wstring& filename, int lineNumber) :
     ErrorCode(hr),
     FunctionName(functionName),

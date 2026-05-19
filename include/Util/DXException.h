@@ -11,6 +11,7 @@ class DXException
 {
 public:
   DXException() = default;
+  DXException(HRESULT hr);
   DXException(HRESULT hr, const std::wstring& functionName, const std::wstring& filename, int lineNumber);
 
   std::wstring toString()const;
