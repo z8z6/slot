@@ -8,6 +8,7 @@
 #include "UI/Object/Camera.h"
 #include "UI/Object/CubeObject.h"
 #include "UI/Object/FirstPersonCamera.h"
+#include "UI/Object/GridObject.h"
 
 using namespace z8;
 
@@ -21,6 +22,7 @@ void GameApplication::Init() {
 
 void z8::GameApplication::PrepareScene() {
   Camera->Transform.Position.z = -40.0f;
+  Camera->Transform.Position.y = 5.0f;
   for (int i = -2; i < 3; i++) {
     auto* c = new CubeObject();
     c->Transform.Position.x = 10.0f * i;
@@ -29,4 +31,6 @@ void z8::GameApplication::PrepareScene() {
     c->Transform.Scale.z *= 2;
     Objects.push_back(c);
   }
+  // auto* g = new GridObject();
+  // Objects.push_back(g);
 }

@@ -9,6 +9,7 @@
 
 namespace z8
 {
+// 每一种 Shader 都需要对应一个 PSO
 class DX12PipelineState : public DX12Common{
 public:
   ComPtr<ID3D12PipelineState> Pipe;

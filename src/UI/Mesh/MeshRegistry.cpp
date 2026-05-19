@@ -4,6 +4,7 @@
 
 #include "UI/Mesh/MeshRegistry.h"
 #include "UI/Mesh/CubeMesh.h"
+#include "UI/Mesh/GridMesh.h"
 #include "UI/Mesh/RectangleMesh.h"
 
 using namespace z8;
@@ -17,6 +18,8 @@ void MeshRegistry::Prepare() {
   Map["Cube"] = Meshes.back();
   Meshes.emplace_back(new RectangleMesh());
   Map["Rectangle"] = Meshes.back();
+  Meshes.emplace_back(new GridMesh());
+  Map["Grid"] = Meshes.back();
 }
 
 Mesh* MeshRegistry::GetMesh(std::string name) {
