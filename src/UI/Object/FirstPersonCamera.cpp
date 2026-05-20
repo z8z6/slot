@@ -3,14 +3,14 @@
 //
 
 #include "UI/Object/FirstPersonCamera.h"
-
-#include <iostream>
+#include "Util/Math.h"
 #include <ostream>
 
 using namespace z8;
 using namespace DirectX;
 
 void FirstPersonCamera::OnMouseMove(MouseMovArgs Args) {
+  if (GetAsyncKeyState(VK_MENU) & 0x8000) return;
   // 鼠标偏移量
   float dx = static_cast<float>(Args.DeltaX) * SensitivityX;
   float dy = static_cast<float>(Args.DeltaY) * SensitivityY;
@@ -19,19 +19,16 @@ void FirstPersonCamera::OnMouseMove(MouseMovArgs Args) {
   Transform.Rotation.x -= dy;  // Pitch 上下看
 
   // 限制俯仰角，防止相机翻转
+  // @todo 旋转到边界，隐藏光标，并在每一帧将鼠标重新定位到窗口中心
   if (Transform.Rotation.x > 89.0f)  Transform.Rotation.x = 89.0f;
   if (Transform.Rotation.x < -89.0f) Transform.Rotation.x = -89.0f;
 
   UpdateTarget();
-
-  std::cout << Transform << std::endl;
 }
 
 void FirstPersonCamera::OnKeyDown(KeyArgs Args) {
-  // 移动速度
-  const float speed = 5.0f;
 
-  // 从你的 Transform 欧拉角获取 Yaw
+  // 从欧拉角获取 Yaw
   float yaw = XMConvertToRadians(Transform.Rotation.y);
 
   // 计算相机前方向、右方向（XZ平面）
@@ -43,21 +40,21 @@ void FirstPersonCamera::OnKeyDown(KeyArgs Args) {
   switch (Args.Key)
   {
   case 'W': // 前进
-    Transform.Position.x += forwardX * speed;
-    Transform.Position.z += forwardZ * speed;
+    Transform.Position.x += forwardX * SpeedX;
+    Transform.Position.z += forwardZ * SpeedZ;
     break;
   case 'S': // 后退
-    Transform.Position.x -= forwardX * speed;
-    Transform.Position.z -= forwardZ * speed;
+    Transform.Position.x -= forwardX * SpeedX;
+    Transform.Position.z -= forwardZ * SpeedZ;
     break;
   case 'A': // 左移
-    Transform.Position.x -= rightX * speed;
-    Transform.Position.z -= rightZ * speed;
+    Transform.Position.x -= rightX * SpeedX;
+    Transform.Position.z -= rightZ * SpeedZ;
     break;
   case 'D': // 右移
-    Transform.Position.x += rightX * speed;
-    Transform.Position.z += rightZ * speed;
+    Transform.Position.x += rightX * SpeedX;
+    Transform.Position.z += rightZ * SpeedZ;
     break;
   }
-  std::cout << Transform << std::endl;
+  UpdateTarget();
 }

@@ -4,6 +4,8 @@
 
 #include "UI/Object/Camera.h"
 
+#include <utility>
+
 using namespace DirectX;
 using namespace z8;
 
@@ -40,9 +42,14 @@ void Camera::UpdateTarget() {
   float pitch = XMConvertToRadians(Transform.Rotation.x);
 
   // 计算相机前方向向量
-  Target = {
+  XMVECTOR forward = {
     cosf(pitch) * sinf(yaw),
     sinf(pitch),
-    cosf(pitch) * cosf(yaw)
+    cosf(pitch) * cosf(yaw),
+    0
   };
+
+  XMVECTOR pos = XMLoadFloat3(&Transform.Position);
+  XMVECTOR targetPoint = XMVectorAdd(pos, forward);   // 真实目标点
+  XMStoreFloat3(&Target, targetPoint);
 }

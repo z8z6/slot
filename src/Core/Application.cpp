@@ -138,9 +138,22 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   case WM_KEYDOWN:
     OnKeyDown(KeyArgs(wParam));
     return 0;
-  default:
-    return DefWindowProcW(Wnd, Msg, wParam, lParam);
+  case WM_SYSKEYDOWN:
+    // 禁止系统处理
+    if (wParam == VK_MENU || wParam == VK_F10)
+      return 0;
+    break;
+  case WM_SYSKEYUP:
+    if (wParam == VK_MENU) return 0;
+    break;
+    // 拦截系统命令（如 Alt+Space、Alt+Enter 等）
+  case WM_SYSCOMMAND:
+    // 菜单激活
+    if ((wParam & 0xFFF0) == SC_KEYMENU)
+      return 0;
+    break;
   }
+  return DefWindowProcW(Wnd, Msg, wParam, lParam);
 }
 
 void z8::Application::ShowFrame() const {

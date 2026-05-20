@@ -8,8 +8,10 @@
 namespace z8 {
 class FirstPersonCamera : public Camera {
 public:
-  const float SensitivityX = 0.20f;
-  const float SensitivityY = 0.12f;
+  const float SensitivityX = 0.03f;
+  const float SensitivityY = 0.08f;
+  const float SpeedX = 1.0f;
+  const float SpeedZ = 1.0f;
 
   void OnMouseMove(MouseMovArgs) override;
   void OnKeyDown(KeyArgs) override;

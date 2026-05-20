@@ -23,7 +23,6 @@ void GameApplication::Init() {
 
 void z8::GameApplication::PrepareScene() {
   Camera->Transform.Position.z = -40.0f;
-  Camera->Transform.Position.y = 5.0f;
   for (int i = -2; i < 3; i++) {
     auto* c = new CubeObject();
     c->Transform.Position.x = 10.0f * i;
