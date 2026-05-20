@@ -25,4 +25,10 @@ set_target_properties(slot PROPERTIES
         WIN32_EXECUTABLE TRUE
 )
 
+add_custom_target(gen-docs
+        COMMAND doxygen Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Building HTML documentation with Doxygen"
+)
+
 # cmake .. -G "Visual Studio 18 2026"

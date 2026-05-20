@@ -1,0 +1,53 @@
+name: Build & Docs
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Doxygen
+        run: choco install doxygen.install -y
+
+      - name: Configure
+        run: cmake .. -G "Visual Studio 17 2022" -A x64
+        working-directory: build
+
+      - name: Create build dir
+        run: mkdir build
+
+      - name: Build
+        run: cmake --build . --config Release
+        working-directory: build
+
+      - name: Generate Docs
+        run: cmake --build . --target gen-docs
+
+      - name: Upload Documentation
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/html
+
+  deploy-docs:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
