@@ -3,11 +3,14 @@
 //
 
 #include "UI/Mesh/CubeMesh.h"
+#include "UI/Mesh/MeshRegistry.h"
 
 #include <DirectXColors.h>
 
 using namespace z8;
 using namespace DirectX;
+
+static MeshRegister<CubeMesh> R;
 
 CubeMesh::CubeMesh() {
   V = {Vertex({{-1.0f, -1.0f, -1.0f}, XMFLOAT4(Colors::White)}),
@@ -42,4 +45,6 @@ CubeMesh::CubeMesh() {
        // bottom face
        4, 0, 3,
        4, 3, 7};
+
+  Name = "Cube";
 }

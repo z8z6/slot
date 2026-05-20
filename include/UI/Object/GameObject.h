@@ -22,6 +22,15 @@ public:
   virtual void* ConstBuf() = 0;
   virtual unsigned ConstBufSize() = 0;
 };
+
+template<typename T>
+class GameObjectImpl : public GameObject{
+protected:
+  T Const;
+public:
+  void* ConstBuf() override { return &Const; }
+  unsigned ConstBufSize() override { return sizeof(T); }
+};
 }
 
 

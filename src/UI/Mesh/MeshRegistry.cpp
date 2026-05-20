@@ -3,23 +3,15 @@
 //
 
 #include "UI/Mesh/MeshRegistry.h"
-#include "UI/Mesh/CubeMesh.h"
-#include "UI/Mesh/GridMesh.h"
 #include "UI/Mesh/RectangleMesh.h"
 
 using namespace z8;
 
-MeshRegistry::MeshRegistry() {
-  Prepare();
-}
+MeshRegistry::MeshRegistry() = default;
 
-void MeshRegistry::Prepare() {
-  Meshes.emplace_back(new CubeMesh());
-  Map["Cube"] = Meshes.back();
-  Meshes.emplace_back(new RectangleMesh());
-  Map["Rectangle"] = Meshes.back();
-  Meshes.emplace_back(new GridMesh());
-  Map["Grid"] = Meshes.back();
+void MeshRegistry::Register(Mesh* M) {
+  Meshes.emplace_back(M);
+  Map[M->Name] = Meshes.back();
 }
 
 Mesh* MeshRegistry::GetMesh(std::string name) {

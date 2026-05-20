@@ -3,20 +3,14 @@
 //
 
 #pragma once
-#include "GameObject.h"
+#include "CubeObject.h"
 
 namespace z8
 {
-class RotateCube : public GameObject
+class RotateCube : public CubeObject
 {
-  POINT LastPos;
-  DirectX::XMFLOAT4X4 objConstants;
-
 public:
   RotateCube();
-  void Update(const DirectX::XMFLOAT4X4& View, const DirectX::XMFLOAT4X4&) override;
-  void* ConstBuf() override;
-  unsigned ConstBufSize() override;
   void OnMouseMove(MouseMovArgs) override;
 };
 }

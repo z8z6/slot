@@ -7,17 +7,22 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 namespace z8 {
 class Mesh;
 class MeshRegistry {
   std::unordered_map<std::string, Mesh *> Map;
+  MeshRegistry();
 public:
   std::vector<Mesh*> Meshes;
 
-  MeshRegistry();
+  MeshRegistry(const MeshRegistry&) = delete;
+  MeshRegistry& operator=(const MeshRegistry&) = delete;
+  MeshRegistry(MeshRegistry&&) = delete;
+  MeshRegistry& operator=(MeshRegistry&&) = delete;
 
-  void Prepare();
+  void Register(Mesh*);
   Mesh* GetMesh(std::string name);
 
   static MeshRegistry &Instance() {
@@ -25,4 +30,13 @@ public:
     return instance;
   }
 };
+
+template <typename MeshTy>
+class MeshRegister {
+public:
+  MeshRegister() {
+    MeshRegistry::Instance().Register(new MeshTy());
+  }
+};
+
 }

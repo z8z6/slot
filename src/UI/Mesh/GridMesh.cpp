@@ -3,10 +3,13 @@
 //
 
 #include "UI/Mesh/GridMesh.h"
+#include "UI/Mesh/MeshRegistry.h"
 #include <DirectXColors.h>
 
 using namespace z8;
 using namespace DirectX;
+
+static MeshRegister<GridMesh> R;
 
 z8::GridMesh::GridMesh(float width, float depth, unsigned m, unsigned n) {
   unsigned vertexCount = m * n;
@@ -48,5 +51,7 @@ z8::GridMesh::GridMesh(float width, float depth, unsigned m, unsigned n) {
       k += 6; // next quad
     }
   }
+
+  Name = "Grid";
 }
 

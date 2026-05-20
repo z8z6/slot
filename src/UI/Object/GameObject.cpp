@@ -5,7 +5,7 @@
 #include "UI/Object/GameObject.h"
 #include "UI/Material/DefaultMaterial.h"
 
-z8::GameObject::GameObject()
+z8::GameObject::GameObject(): Mesh(nullptr), Collider(nullptr), Material(new DefaultMaterial())
 {
-  Material = new DefaultMaterial();
+
 }

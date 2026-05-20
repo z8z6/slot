@@ -11,6 +11,8 @@ namespace z8
 {
 class DX12ConstBuf: public DX12Common
 {
+  unsigned SingleBufSize = 0;
+  unsigned StepSize = 0;
 public:
   ComPtr<ID3D12Resource> Buffer;
   char* ConstBufCPU;
@@ -18,7 +20,7 @@ public:
   unsigned DptSize = 0;
   D3D12_CPU_DESCRIPTOR_HANDLE Dpt;
   unsigned DptCount = 0;
-  unsigned StepSize = 0;
+
 
   DX12ConstBuf(DX12Render* R) : DX12Common(R){}
   ~DX12ConstBuf() override;
@@ -27,6 +29,7 @@ public:
   void InitBuffer();
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptor(int index) const;
   char* GetCPUOffset(unsigned index) const;
+  unsigned AlignSize(unsigned size) const;
 };
 
 

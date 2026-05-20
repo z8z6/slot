@@ -3,20 +3,12 @@
 //
 
 #pragma once
-#include "GameObject.h"
+#include "SimpleGameObject.h"
 
 namespace z8 {
-class GridObject : public GameObject {
-public:
-  void Update(const DirectX::XMFLOAT4X4 &View,
-              const DirectX::XMFLOAT4X4 &Proj) override;
-
-private:
-  DirectX::XMFLOAT4X4 objConstants;
+class GridObject : public SimpleGameObject {
 public:
   GridObject();
-  void *ConstBuf() override;
-  unsigned ConstBufSize() override;
 };
 
 }

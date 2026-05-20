@@ -3,3 +3,10 @@
 //
 
 #include "UI/Mesh/TriangleMesh.h"
+
+using namespace DirectX;
+using namespace z8;
+
+z8::TriangleMesh::TriangleMesh() {
+  Name = "Triangle";
+}

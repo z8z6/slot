@@ -3,3 +3,10 @@
 //
 
 #include "UI/Mesh/SphereMesh.h"
+
+using namespace DirectX;
+
+
+z8::SphereMesh::SphereMesh() {
+  Name = "Sphere";
+}

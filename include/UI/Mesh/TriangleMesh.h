@@ -7,6 +7,7 @@
 
 namespace z8 {
 class TriangleMesh : public Mesh{
-
+public:
+  TriangleMesh();
 };
 }

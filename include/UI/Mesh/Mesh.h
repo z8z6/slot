@@ -5,6 +5,8 @@
 #pragma once
 
 #include "Vertex.h"
+
+#include <string>
 #include <vector>
 
 /**
@@ -18,6 +20,7 @@ public:
   using IndexTy = uint16_t;
   std::vector<Vertex> V;
   std::vector<IndexTy> I;
+  std::string Name;
 
   Mesh() = default;
   virtual ~Mesh() = default;
