@@ -55,7 +55,12 @@ void z8::DX12Command::Reset()
 
 void z8::DX12Command::ResetWithPso()
 {
-  Ok(List->Reset(Allocator.Get(), Render->PSO.Pipe.Get()));
+  if(GetAsyncKeyState('1') & 0x8000) {
+    Ok(List->Reset(Allocator.Get(), Render->PSO.WireFrame.Get()));
+  }
+  else {
+    Ok(List->Reset(Allocator.Get(), Render->PSO.Pipe.Get()));
+  }
 }
 
 void z8::DX12Command::CloseAndExecute()

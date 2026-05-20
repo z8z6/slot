@@ -9,7 +9,7 @@
 #include "UI/Object/CubeObject.h"
 #include "UI/Object/FirstPersonCamera.h"
 #include "UI/Object/GridObject.h"
-#include "UI/Object/RotateCube.h"
+#include "UI/Object/SphereObject.h"
 
 using namespace z8;
 
@@ -32,8 +32,8 @@ void z8::GameApplication::PrepareScene() {
     c->Transform.Scale.z *= 2;
     Objects.push_back(c);
   }
-  auto* g = new RotateCube();
-  Objects.push_back(g);
+  // auto* g = new SphereObject();
+  // Objects.push_back(g);
   // auto* g = new GridObject();
   // Objects.push_back(g);
 }

@@ -43,6 +43,11 @@ void DX12PipelineState::Init()
   PD.SampleDesc.Quality = Render->Msaa.GetMsaaQuality();
   PD.DSVFormat = Render->DepthStencil.Format;
   Ok(Ctx->Device->CreateGraphicsPipelineState(&PD, IID_PPV_ARGS(&Pipe)));
+
+  // 线框模式绘制
+  auto WD = PD;
+  WD.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+  Ok(Ctx->Device->CreateGraphicsPipelineState(&WD, IID_PPV_ARGS(&WireFrame)));
 }
 
 ID3D12PipelineState *DX12PipelineState::Get() const {

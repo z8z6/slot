@@ -13,6 +13,7 @@ namespace z8
 class DX12PipelineState : public DX12Common{
 public:
   ComPtr<ID3D12PipelineState> Pipe;
+  ComPtr<ID3D12PipelineState> WireFrame;
   std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
 
   DX12PipelineState(DX12Render* R);

@@ -8,7 +8,8 @@
 namespace z8 {
 class SphereMesh : public Mesh{
 public:
-  SphereMesh();
+  SphereMesh(float radius = 10, unsigned numSubdivisions = 6);
+  void Subdivide();
 };
 }
 
