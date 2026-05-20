@@ -10,6 +10,10 @@ namespace z8
 {
 class DX12Command : public DX12Common
 {
+  enum {
+    Default,
+    WireFrame
+  } PSOTy = WireFrame;
 public:
   ComPtr<ID3D12CommandQueue> Queue;
   ComPtr<ID3D12CommandAllocator> Allocator;
@@ -25,5 +29,6 @@ public:
   void Reset();
   void ResetWithPso();
   void CloseAndExecute();
+  void UpdatePSOTy();
 };
 }

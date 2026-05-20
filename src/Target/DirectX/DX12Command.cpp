@@ -55,10 +55,11 @@ void z8::DX12Command::Reset()
 
 void z8::DX12Command::ResetWithPso()
 {
-  if(GetAsyncKeyState('1') & 0x8000) {
+  UpdatePSOTy();
+  if(PSOTy == WireFrame) {
     Ok(List->Reset(Allocator.Get(), Render->PSO.WireFrame.Get()));
   }
-  else {
+  if(PSOTy == Default)  {
     Ok(List->Reset(Allocator.Get(), Render->PSO.Pipe.Get()));
   }
 }
@@ -70,4 +71,11 @@ void z8::DX12Command::CloseAndExecute()
   // 执行渲染命令
   ID3D12CommandList* cmdsLists[] = { List.Get() };
   Queue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+}
+
+void z8::DX12Command::UpdatePSOTy() {
+  if(GetAsyncKeyState('1') & 0x8000)
+    PSOTy = Default;
+  if(GetAsyncKeyState('2') & 0x8000)
+    PSOTy = WireFrame;
 }
