@@ -3,15 +3,15 @@
 //
 
 #include "UI/Object/SimpleGameObject.h"
+#include "UI/Object/Camera.h"
 
 using namespace z8;
 using namespace DirectX;
 
 
-void SimpleGameObject::Update(const XMFLOAT4X4 &View,
-                              const XMFLOAT4X4 &Proj) {
+void SimpleGameObject::Update(Camera* C, Timer* T) {
   Transform.UpdateWorld();
-  Transform.UpdateWorldViewProj(View, Proj);
+  Transform.UpdateWorldViewProj(C->GetView(), C->GetProj());
   XMMATRIX wvp = XMLoadFloat4x4(&Transform.WorldViewProj);
   XMStoreFloat4x4(&Const, XMMatrixTranspose(wvp));
 }

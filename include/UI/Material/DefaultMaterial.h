@@ -13,8 +13,8 @@ namespace z8
 struct  DefaultMaterial : public Material {
   DefaultMaterial()
   {
-    V = DX12ShaderRegistry::Instance().GetShader("DV");
-    P = DX12ShaderRegistry::Instance().GetShader("DP");
+    V = DX12ShaderRegistry::Instance().GetShader("Default_V");
+    P = DX12ShaderRegistry::Instance().GetShader("Default_P");
 
     assert(V && P);
   }

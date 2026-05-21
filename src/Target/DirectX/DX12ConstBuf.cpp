@@ -31,6 +31,7 @@ void z8::DX12ConstBuf::InitDescriptor()
   Ok(Ctx->Device->CreateDescriptorHeap(&CD, IID_PPV_ARGS(DptHeap.GetAddressOf())));
   // 描述符
   Dpt = DptHeap->GetCPUDescriptorHandleForHeapStart();
+  GlobalConst::Index = DptCount - 1;
 }
 
 void z8::DX12ConstBuf::InitBuffer()
@@ -58,6 +59,11 @@ void z8::DX12ConstBuf::InitBuffer()
     D3D12_CONSTANT_BUFFER_VIEW_DESC CD;
     CD.BufferLocation = cbAddress;
     CD.SizeInBytes = StepSize;
+
+    // 通用数据
+    if (i == GlobalConst::Index) {
+      CD.SizeInBytes = AlignSize(sizeof(GlobalConst));
+    }
 
     auto Handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(DptHeap->GetCPUDescriptorHandleForHeapStart());
     Handle.Offset(i, DptSize);

@@ -4,7 +4,6 @@
 
 #include "UI/Object/RotateCube.h"
 #include <iostream>
-#include "UI/Material/RotateCubeMaterial.h"
 #include "UI/Mesh/MeshRegistry.h"
 #include "Util/Math.h"
 
@@ -18,7 +17,6 @@ RotateCube::RotateCube()
   Transform.Radius = 5.0f;
 
   Transform.UpdateCartesian();
-  Material = new RotateCubeMaterial();
 }
 
 

@@ -3,6 +3,7 @@ cbuffer cbPerObject : register(b0)
 	float4x4 gWorldViewProj;
 };
 
+
 struct VertexIn
 {
 	float3 PosL  : POSITION;

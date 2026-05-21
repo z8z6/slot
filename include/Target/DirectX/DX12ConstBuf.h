@@ -32,5 +32,11 @@ public:
   unsigned AlignSize(unsigned size) const;
 };
 
+struct GlobalConst {
+  float TimeCost;
+  float TimeTotal;
+
+  inline static unsigned Index = 0;
+};
 
 }

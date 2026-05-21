@@ -33,27 +33,15 @@ D3D12_SHADER_BYTECODE DX12Shader::GetByteCode() const
   return {static_cast<BYTE*>(ByteCode->GetBufferPointer()), ByteCode->GetBufferSize()};
 }
 
-DX12ShaderRegistry::DX12ShaderRegistry()
-{
-  Prepare();
+
+void DX12ShaderRegistry::Register(Shader s) {
+  Shaders.emplace_back(s.FileName, s.Name + "_V", "VS", "vs_5_0");
+  Shaders.back().Compile();
+  Shaders.emplace_back(s.FileName, s.Name + "_P", "PS", "ps_5_0");
+  Shaders.back().Compile();
 }
 
-void DX12ShaderRegistry::Prepare()
-{
-  Shaders.emplace_back(L"shader\\Default.hlsl", "DV", "VS", "vs_5_0");
-  Shaders.emplace_back(L"shader\\Default.hlsl", "DP", "PS", "ps_5_0");
-
-  Shaders.emplace_back(L"shader\\Missing.hlsl", "MissingV", "VS", "vs_5_0");
-  Shaders.emplace_back(L"shader\\Missing.hlsl", "MissingP", "PS", "ps_5_0");
-
-  Shaders.emplace_back(L"shader\\Cube.hlsl", "CubeV", "VS", "vs_5_0");
-  Shaders.emplace_back(L"shader\\Cube.hlsl", "CubeP", "PS", "ps_5_0");
-
-  for (auto& Shader : Shaders)
-    Shader.Compile();
-}
-
-DX12Shader* DX12ShaderRegistry::GetShader(std::string name)
+DX12Shader * DX12ShaderRegistry::GetShader(std::string name)
 {
   for (auto& Shader : Shaders)
   {

@@ -8,13 +8,15 @@
 
 namespace z8
 {
+class Camera;
+class Timer;
 class Object {
 public:
   Transform Transform;
 
   virtual ~Object() = default;
 
-  virtual void Update(const DirectX::XMFLOAT4X4& View, const DirectX::XMFLOAT4X4&Proj) {}
+  virtual void Update(Camera*, Timer*) {}
   virtual void OnMouseUp(MouseMovArgs) {}
   virtual void OnMouseMove(MouseMovArgs) {}
   virtual void OnMouseDown(MouseMovArgs) {}

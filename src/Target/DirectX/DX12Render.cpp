@@ -52,9 +52,12 @@ void z8::DX12Render::Update()
 {
   GetCamera()->UpdateView();
   for (auto& O : RenderObjects) {
-    O.Object->Update(GetCamera()->GetView(), GetCamera()->GetProj());
+    O.Object->Update(GetCamera(), GetTimer());
     memcpy(ConstBuf.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
   }
+  GlobalConst.TimeCost = GetTimer()->TimeCost;
+  GlobalConst.TimeTotal = GetTimer()->TimeTotal;
+  memcpy(ConstBuf.GetCPUOffset(GlobalConst::Index), &GlobalConst, sizeof(GlobalConst));
 }
 
 void z8::DX12Render::Draw()
@@ -80,8 +83,12 @@ void z8::DX12Render::Draw()
 
   RootSignature.Bind();
 
+  // 第二个槽是寄存器 b1
+  Cmd.List->SetGraphicsRootDescriptorTable(1, ConstBuf.GetGPUDescriptor(GlobalConst::Index));
+
   for (auto& O : RenderObjects) {
     MeshManager.Bind();
+    // 第一个槽是寄存器 b0
     Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuf.GetGPUDescriptor(O.ConstBufIndex));
     Cmd.List->DrawIndexedInstanced(O.SubMesh->IndexCount,
     1, O.SubMesh->StartIndexLocation,
@@ -139,4 +146,8 @@ Camera * DX12Render::GetCamera() const
 
 Window* DX12Render::GetWindow() const {
   return &App->Window;
+}
+
+Timer *DX12Render::GetTimer() const {
+  return &App->Timer;
 }

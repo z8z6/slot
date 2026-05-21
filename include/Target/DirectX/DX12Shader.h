@@ -4,8 +4,10 @@
 
 #pragma once
 #include "DX12Common.h"
-#include <d3dcommon.h>
+#include "UI/Shader/Shader.h"
+
 #include <d3d12.h>
+#include <d3dcommon.h>
 #include <string>
 #include <vector>
 
@@ -26,11 +28,11 @@ public:
 
 class DX12ShaderRegistry
 {
+  DX12ShaderRegistry() = default;
 public:
   std::vector<DX12Shader> Shaders;
 
-  DX12ShaderRegistry();
-  void Prepare();
+  void Register(Shader s);
   DX12Shader* GetShader(std::string name);
 
   static DX12ShaderRegistry& Instance()
@@ -39,5 +41,14 @@ public:
     return instance;
   }
 };
+
+template <typename ShaderTy>
+class DX12ShaderRegister {
+public:
+  DX12ShaderRegister() {
+    DX12ShaderRegistry::Instance().Register(ShaderTy());
+  }
+};
+
 }
 
