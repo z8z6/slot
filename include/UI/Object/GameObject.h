@@ -11,11 +11,14 @@ namespace z8
 class Mesh;
 class Material;
 class Collider;
+class Shader;
 class GameObject : public Object{
 public:
   Mesh* Mesh;
   Material* Material;
   Collider* Collider;
+  Shader* PixelShader;
+  Shader* VertexShader;
 
   GameObject();
 

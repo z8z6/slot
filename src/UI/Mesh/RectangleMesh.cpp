@@ -12,10 +12,12 @@ using namespace z8;
 static MeshRegister<RectangleMesh> R;
 
 z8::RectangleMesh::RectangleMesh() {
-  V = {Vertex({{-1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
-       Vertex({{-1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
-       Vertex({{+1.0f, +1.0f, 0.0f}, XMFLOAT4(Color::Black_1)}),
-       Vertex({{+1.0f, -1.0f, 0.0f}, XMFLOAT4(Color::Black_1)})};
+  V = {
+    Vertex(-1.0f, -1.0f, 0.0f),
+       Vertex(-1.0f, +1.0f, 0.0f),
+       Vertex(+1.0f, +1.0f, 0.0f),
+       Vertex(+1.0f, -1.0f, 0.0f)
+  };
 
   I = {// front face
        0, 1, 2,

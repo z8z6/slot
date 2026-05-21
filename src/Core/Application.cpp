@@ -9,12 +9,14 @@
 #include <ostream>
 
 #include "Core/Event.h"
+#include "UI/Light/ParallelLight.h"
 #include "UI/Object/Camera.h"
 #include "UI/Object/RotateCube.h"
 #include "UI/Phys/Collider.h"
 
 using namespace z8;
 using namespace std;
+
 
 z8::Application::Application() {
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
@@ -24,6 +26,7 @@ z8::Application::Application() {
 
 void Application::Init() {
   Camera = new z8::Camera();
+  Light = new ParallelLight();
   PrepareScene();
   Render = Render::CreateRender(this);
   Render->Init();

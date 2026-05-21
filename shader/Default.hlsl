@@ -3,17 +3,17 @@ cbuffer cbPerObject : register(b0)
 	float4x4 gWorldViewProj;
 };
 
-
 struct VertexIn
 {
-	float3 PosL  : POSITION;
-    float4 Color : COLOR;
+	float3 PosL    : POSITION;
+    float3 NormalL : NORMAL;
 };
 
 struct VertexOut
 {
-	float4 PosH  : SV_POSITION;
-    float4 Color : COLOR;
+	float4 PosH    : SV_POSITION;
+    float3 PosW    : POSITION;
+    float3 NormalW : NORMAL;
 };
 
 VertexOut VS(VertexIn vin)

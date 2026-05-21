@@ -15,6 +15,7 @@ namespace z8
 class Render;
 class GameObject;
 class Camera;
+class Light;
 class Application {
 public:
   Window Window;
@@ -22,6 +23,7 @@ public:
   Timer Timer;
   std::vector<GameObject*> Objects;
   Camera* Camera;
+  Light* Light;
 
   Application();
   virtual ~Application() = default;

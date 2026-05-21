@@ -2,15 +2,14 @@
 // Created by zhou_zhengming on 2026/5/12.
 //
 #pragma once
+#include <DirectXMath.h>
 
 namespace z8
 {
-class DX12Shader;
-
 class Material {
 public:
-  DX12Shader* V;
-  DX12Shader* P;
+  DirectX::XMFLOAT4 Albedo;
+  DirectX::XMFLOAT3 FresnelR0;
 
   Material() = default;
   virtual ~Material() = default;

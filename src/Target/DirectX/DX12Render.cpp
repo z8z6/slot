@@ -151,3 +151,6 @@ Window* DX12Render::GetWindow() const {
 Timer *DX12Render::GetTimer() const {
   return &App->Timer;
 }
+Light *DX12Render::GetLight() const {
+  return App->Light;
+}

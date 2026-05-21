@@ -21,6 +21,7 @@ namespace z8 {
 class Camera;
 class Window;
 class Timer;
+class Light;
 class Application;
 
 // 这个类是每个窗口独立的
@@ -56,6 +57,7 @@ public:
   Camera* GetCamera() const;
   Window* GetWindow() const;
   Timer* GetTimer() const;
+  Light* GetLight() const;
 };
 
 }

@@ -7,9 +7,15 @@
 
 using namespace z8;
 
-static DX12ShaderRegister<TimeShader> R;
+static DX12ShaderRegister<TimePixelShader> P;
+static DX12ShaderRegister<TimeVertexShader> V;
 
-TimeShader::TimeShader() {
-  Name = "Time";
+TimePixelShader::TimePixelShader() {
+  Name = "Time_P";
+  FileName = L"shader/Time.hlsl";
+}
+
+TimeVertexShader::TimeVertexShader() {
+  Name = "Time_V";
   FileName = L"shader/Time.hlsl";
 }

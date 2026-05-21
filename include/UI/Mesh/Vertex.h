@@ -10,19 +10,10 @@ namespace z8 {
 class Vertex {
 public:
   DirectX::XMFLOAT3 Pos;
-  DirectX::XMFLOAT4 Color;
+  DirectX::XMFLOAT3 Normal;
 
   Vertex() = default;
-};
-
-class VertexGroup {
-public:
-  uint16_t a;
-  uint16_t b;
-  uint16_t c;
-
-  VertexGroup() = default;
-  constexpr VertexGroup(uint16_t _a, uint16_t _b, uint16_t _c) noexcept
-  : a(_a), b(_b), c(_c) {}
+  Vertex(DirectX::XMFLOAT3 P) : Pos(P), Normal() {}
+  Vertex(float x, float y, float z) : Pos(x,y,z), Normal() {}
 };
 }

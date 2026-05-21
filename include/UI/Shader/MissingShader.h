@@ -6,7 +6,10 @@
 #include "Shader.h"
 
 namespace z8 {
-struct MissingShader : public Shader {
-  MissingShader();
+struct MissingPixelShader : public PixelShader {
+  MissingPixelShader();
+};
+struct MissingVertexShader : public VertexShader {
+  MissingVertexShader();
 };
 }
