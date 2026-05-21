@@ -55,6 +55,13 @@ void FirstPersonCamera::OnKeyDown(KeyArgs Args) {
     Transform.Position.x += rightX * SpeedX;
     Transform.Position.z += rightZ * SpeedZ;
     break;
+  case VK_SPACE:
+    Transform.Position.y += SpeedY;
+    break;
+  // @todo 长按失效
+  case VK_SHIFT:
+    Transform.Position.y -= SpeedY;
+    break;
   }
   UpdateTarget();
 }

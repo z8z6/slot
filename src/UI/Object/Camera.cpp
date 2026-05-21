@@ -14,7 +14,8 @@ Camera::Camera()
 Target(0,0,0),
 Up(0,1,0)
 {
-  Transform.Position.z = -20;
+  Transform.Position.y = 2;
+  Transform.Position.z = -40;
   UpdateView();
 }
 

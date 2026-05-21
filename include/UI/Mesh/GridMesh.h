@@ -8,7 +8,7 @@
 namespace z8 {
 class GridMesh : public Mesh{
 public:
-  GridMesh(float width = 20, float depth = 20, unsigned m = 5, unsigned n = 5);
+  GridMesh(float width = 100, float depth = 100, unsigned m = 101, unsigned n = 101);
 };
 
 }

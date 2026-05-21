@@ -12,6 +12,7 @@ public:
   const float SensitivityY = 0.08f;
   const float SpeedX = 1.0f;
   const float SpeedZ = 1.0f;
+  const float SpeedY = 0.2f;
 
   void OnMouseMove(MouseMovArgs) override;
   void OnKeyDown(KeyArgs) override;
