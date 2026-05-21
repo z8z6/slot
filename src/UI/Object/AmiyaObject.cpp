@@ -3,7 +3,6 @@
 //
 
 #include "UI/Object/AmiyaObject.h"
-
 #include "UI/Mesh/MeshRegistry.h"
 
 z8::AmiyaObject::AmiyaObject() {

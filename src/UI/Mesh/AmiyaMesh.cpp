@@ -9,7 +9,7 @@
 
 using namespace z8;
 
-static MeshRegister<AmiyaMesh> R;
+// static MeshRegister<AmiyaMesh> R;
 
 z8::AmiyaMesh::AmiyaMesh() {
   Mesh M = ObjMeshImporter::Parse("mesh/Amiya/Amiya.obj");
