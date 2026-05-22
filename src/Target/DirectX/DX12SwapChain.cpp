@@ -35,6 +35,7 @@ void z8::DX12SwapChain::Init()
   SD.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
   // SwapChain 创建依赖 CmdQueue
+  // @todo Flip 模型不支持 MSAA
   ComPtr<IDXGISwapChain> SwapChain0;
   Ok(Ctx->Factory->CreateSwapChain(Render->Cmd.Queue.Get(), &SD, SwapChain0.GetAddressOf()));
   Ok(SwapChain0.As(&SwapChain));

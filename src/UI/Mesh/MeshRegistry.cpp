@@ -11,6 +11,7 @@ MeshRegistry::MeshRegistry() = default;
 
 void MeshRegistry::Register(Mesh* M) {
   Meshes.emplace_back(M);
+  M->ComputeNormals();
   Map[M->Name] = Meshes.back();
 }
 

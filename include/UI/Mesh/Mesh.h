@@ -29,5 +29,6 @@ public:
   unsigned VElemSize() const { return sizeof(Vertex); }
   unsigned ISize() const { return I.size() * sizeof(IndexTy); }
   unsigned ICount() const { return I.size(); }
+  void ComputeNormals();
 };
-}
+} // namespace z8
