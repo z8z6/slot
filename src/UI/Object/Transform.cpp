@@ -11,8 +11,7 @@ using namespace z8;
 
 Transform::Transform()
     : Position{0, 0, 0}, Rotation{0, 0, 0}, Scale{1, 1, 1}, Radius(0.0f),
-      Theta(0.0f), Phi(0.0f), World(Math::Identity4x4),
-      WorldViewProj(Math::Identity4x4) {}
+      Theta(0.0f), Phi(0.0f), World(Math::Identity4x4) {}
 
 void Transform::UpdateWorld() {
   // 顺序：缩放 -> 旋转 -> 平移 (DX标准变换顺序)
@@ -29,16 +28,6 @@ void Transform::UpdateWorld() {
   XMMATRIX world = scale * rot * translate;
   XMStoreFloat4x4(&World, world);
 }
-
-void Transform::UpdateWorldViewProj(const XMFLOAT4X4 &View,
-                                    const XMFLOAT4X4 &Proj) {
-  XMMATRIX world = XMLoadFloat4x4(&World);
-  XMMATRIX view = XMLoadFloat4x4(&View);
-  XMMATRIX proj = XMLoadFloat4x4(&Proj);
-  XMMATRIX wvp = world * view * proj;
-  XMStoreFloat4x4(&WorldViewProj, wvp);
-}
-
 
 void Transform::UpdateCartesian() {
   // 球坐标系转直角坐标系公式（标准 3D 数学公式）

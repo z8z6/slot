@@ -21,7 +21,6 @@ public:
   D3D12_CPU_DESCRIPTOR_HANDLE Dpt;
   unsigned DptCount = 0;
 
-
   DX12ConstBuf(DX12Render* R) : DX12Common(R){}
   ~DX12ConstBuf() override;
 
@@ -31,12 +30,4 @@ public:
   char* GetCPUOffset(unsigned index) const;
   unsigned AlignSize(unsigned size) const;
 };
-
-struct GlobalConst {
-  float TimeCost;
-  float TimeTotal;
-
-  inline static unsigned Index = 0;
-};
-
 }

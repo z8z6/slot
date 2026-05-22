@@ -10,7 +10,6 @@ using namespace DirectX;
 
 void z8::UIObject::Update(Camera* C, Timer* T) {
   Transform.UpdateWorld();
-  Transform.UpdateWorldViewProj(C->GetView(), C->GetProj());
-  XMMATRIX wvp = XMLoadFloat4x4(&Transform.WorldViewProj);
-  XMStoreFloat4x4(&Const, XMMatrixTranspose(wvp));
+  XMMATRIX w = XMLoadFloat4x4(&Transform.World);
+  XMStoreFloat4x4(&Const, XMMatrixTranspose(w));
 }

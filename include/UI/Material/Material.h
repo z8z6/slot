@@ -3,11 +3,13 @@
 //
 #pragma once
 #include <DirectXMath.h>
+#include <string>
 
 namespace z8
 {
 class Material {
 public:
+  std::string Name;
   DirectX::XMFLOAT4 Albedo;
   DirectX::XMFLOAT3 FresnelR0;
 

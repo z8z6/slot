@@ -37,6 +37,13 @@ void Camera::UpdateProj(float aspect)
   XMStoreFloat4x4(&Proj, P);
 }
 
+void Camera::UpdateViewProj() {
+  XMMATRIX view = XMLoadFloat4x4(&View);
+  XMMATRIX proj = XMLoadFloat4x4(&Proj);
+  XMMATRIX vp = view * proj;
+  XMStoreFloat4x4(&ViewProj, vp);
+}
+
 void Camera::UpdateTarget() {
   // 欧拉角转弧度
   float yaw   = XMConvertToRadians(Transform.Rotation.y);

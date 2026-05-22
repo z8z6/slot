@@ -51,13 +51,12 @@ void z8::DX12Render::Init()
 void z8::DX12Render::Update()
 {
   GetCamera()->UpdateView();
+  GetCamera()->UpdateViewProj();
   for (auto& O : RenderObjects) {
     O.Object->Update(GetCamera(), GetTimer());
     memcpy(ConstBuf.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
   }
-  GlobalConst.TimeCost = GetTimer()->TimeCost;
-  GlobalConst.TimeTotal = GetTimer()->TimeTotal;
-  memcpy(ConstBuf.GetCPUOffset(GlobalConst::Index), &GlobalConst, sizeof(GlobalConst));
+  GlobalConst.Update(this);
 }
 
 void z8::DX12Render::Draw()
@@ -84,7 +83,7 @@ void z8::DX12Render::Draw()
   RootSignature.Bind();
 
   // 第二个槽是寄存器 b1
-  Cmd.List->SetGraphicsRootDescriptorTable(1, ConstBuf.GetGPUDescriptor(GlobalConst::Index));
+  Cmd.List->SetGraphicsRootDescriptorTable(1, ConstBuf.GetGPUDescriptor(DX12GlobalConst::Index));
 
   for (auto& O : RenderObjects) {
     MeshManager.Bind();

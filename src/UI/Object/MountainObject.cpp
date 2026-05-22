@@ -9,5 +9,5 @@
 using namespace z8;
 
 z8::MountainObject::MountainObject() {
-  Mesh = MeshRegistry::Instance().GetMesh("Mountain");
+  Mesh = MeshRegistry::Instance().Get("Mountain");
 }

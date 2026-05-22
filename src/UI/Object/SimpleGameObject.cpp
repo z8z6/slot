@@ -8,10 +8,10 @@
 using namespace z8;
 using namespace DirectX;
 
-
+// HLSL默认使用列主序矩阵，DirectXMath 库默认使用行主序矩阵
+// 二者存储顺序相反，必须通过转置统一
 void SimpleGameObject::Update(Camera* C, Timer* T) {
   Transform.UpdateWorld();
-  Transform.UpdateWorldViewProj(C->GetView(), C->GetProj());
-  XMMATRIX wvp = XMLoadFloat4x4(&Transform.WorldViewProj);
-  XMStoreFloat4x4(&Const, XMMatrixTranspose(wvp));
+  XMMATRIX w = XMLoadFloat4x4(&Transform.World);
+  XMStoreFloat4x4(&Const, XMMatrixTranspose(w));
 }

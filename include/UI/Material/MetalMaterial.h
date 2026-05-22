@@ -8,9 +8,8 @@
 
 namespace z8
 {
-struct  DefaultMaterial : public Material {
-  DefaultMaterial()
-  {
+struct  MetalMaterial : public Material {
+  MetalMaterial(){
 
   }
 };

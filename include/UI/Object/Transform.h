@@ -29,7 +29,6 @@ struct Transform
   DirectX::XMFLOAT3 Scale;     // 缩放
 
   DirectX::XMFLOAT4X4 World;
-  DirectX::XMFLOAT4X4 WorldViewProj;
 
   Transform();
 
@@ -39,9 +38,6 @@ struct Transform
   // 从直角坐标更新球坐标
   void UpdateSpherical();
   void UpdateWorld();
-  void UpdateWorldViewProj(
-    const DirectX::XMFLOAT4X4& View,
-    const DirectX::XMFLOAT4X4& Proj);
 
 };
 std::ostream& operator<<(std::ostream& o, const DirectX::XMFLOAT3& F);

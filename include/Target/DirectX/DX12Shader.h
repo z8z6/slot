@@ -29,7 +29,7 @@ public:
   std::unordered_map<std::string, Shader *> Shaders;
 
   void Register(Shader* s);
-  Shader* GetShader(std::string name);
+  Shader* Get(std::string name);
 
   static DX12ShaderRegistry& Instance()
   {

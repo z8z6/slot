@@ -11,5 +11,5 @@ using namespace z8;
 
 z8::CubeObject::CubeObject()
 {
-  Mesh = MeshRegistry::Instance().GetMesh("Cube");
+  Mesh = MeshRegistry::Instance().Get("Cube");
 }

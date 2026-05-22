@@ -14,7 +14,7 @@ void MeshRegistry::Register(Mesh* M) {
   Map[M->Name] = Meshes.back();
 }
 
-Mesh* MeshRegistry::GetMesh(std::string name) {
+Mesh* MeshRegistry::Get(std::string name) {
   if (!Map.count(name)) return nullptr;
   return Map[name];
 }

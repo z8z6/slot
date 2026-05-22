@@ -40,7 +40,7 @@ void DX12ShaderRegistry::Register(Shader* s) {
 }
 
 
-Shader * DX12ShaderRegistry::GetShader(std::string name)  {
+Shader * DX12ShaderRegistry::Get(std::string name)  {
   if (!Shaders.count(name)) return nullptr;
   return Shaders[name];
 }

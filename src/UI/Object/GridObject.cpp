@@ -9,6 +9,6 @@ using namespace z8;
 using namespace DirectX;
 
 GridObject::GridObject() {
-  Mesh = MeshRegistry::Instance().GetMesh("Grid");
+  Mesh = MeshRegistry::Instance().Get("Grid");
 }
 

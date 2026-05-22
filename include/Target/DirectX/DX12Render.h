@@ -7,6 +7,7 @@
 #include "DX12Common.h"
 #include "DX12ConstBuf.h"
 #include "DX12DepthStencil.h"
+#include "DX12GlobalConst.h"
 #include "DX12MeshManager.h"
 #include "DX12Msaa.h"
 #include "DX12PipelineState.h"
@@ -42,7 +43,7 @@ public:
   DX12RenderTarget RenderTarget;
   DX12ConstBuf ConstBuf;
   DX12MeshManager MeshManager;
-  GlobalConst GlobalConst;
+  DX12GlobalConst GlobalConst;
 
   std::vector<DX12RenderObject> RenderObjects;
 
