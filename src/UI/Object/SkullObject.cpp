@@ -8,5 +8,5 @@
 using namespace z8;
 
 z8::SkullObject::SkullObject() {
-  Mesh = MeshRegistry::Instance().GetMesh("Skull");
+  Mesh = MeshRegistry::Instance().Get("Skull");
 }

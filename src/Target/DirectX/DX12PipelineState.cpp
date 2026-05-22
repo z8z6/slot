@@ -22,7 +22,7 @@ void DX12PipelineState::Init()
   InputLayout =
   {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-    {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+    {"NORMAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
   };
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC PD;
@@ -30,8 +30,8 @@ void DX12PipelineState::Init()
   PD.InputLayout = {InputLayout.data(), static_cast<UINT>(InputLayout.size())};
   PD.pRootSignature = Render->RootSignature.Get();
   // @todo
-  PD.VS = Render->RenderObjects[0].Object->Material->V->GetByteCode();
-  PD.PS = Render->RenderObjects[0].Object->Material->P->GetByteCode();
+  PD.VS = Render->RenderObjects[0].Object->VertexShader->Binary->GetByteCode();
+  PD.PS = Render->RenderObjects[0].Object->PixelShader->Binary->GetByteCode();
   PD.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   PD.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
   PD.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);

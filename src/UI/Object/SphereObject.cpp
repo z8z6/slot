@@ -6,5 +6,5 @@
 #include "UI/Mesh/MeshRegistry.h"
 
 z8::SphereObject::SphereObject() {
-  Mesh = MeshRegistry::Instance().GetMesh("Sphere");
+  Mesh = MeshRegistry::Instance().Get("Sphere");
 }

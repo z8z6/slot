@@ -7,6 +7,7 @@
 #include "DX12Common.h"
 #include "DX12ConstBuf.h"
 #include "DX12DepthStencil.h"
+#include "DX12GlobalConst.h"
 #include "DX12MeshManager.h"
 #include "DX12Msaa.h"
 #include "DX12PipelineState.h"
@@ -21,6 +22,7 @@ namespace z8 {
 class Camera;
 class Window;
 class Timer;
+class Light;
 class Application;
 
 // 这个类是每个窗口独立的
@@ -41,7 +43,7 @@ public:
   DX12RenderTarget RenderTarget;
   DX12ConstBuf ConstBuf;
   DX12MeshManager MeshManager;
-  GlobalConst GlobalConst;
+  DX12GlobalConst GlobalConst;
 
   std::vector<DX12RenderObject> RenderObjects;
 
@@ -56,6 +58,7 @@ public:
   Camera* GetCamera() const;
   Window* GetWindow() const;
   Timer* GetTimer() const;
+  Light* GetLight() const;
 };
 
 }

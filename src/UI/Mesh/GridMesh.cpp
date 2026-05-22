@@ -30,7 +30,7 @@ z8::GridMesh::GridMesh(float width, float depth, unsigned m, unsigned n) {
     for (unsigned j = 0; j < n; ++j) {
       float x = -halfWidth + j * dx;
 
-      V[i * n + j] = {XMFLOAT3(x, 0.1f, z), XMFLOAT4(Colors::White)};
+      V[i * n + j] = {x, 0.1f, z};
     }
   }
 

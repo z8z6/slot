@@ -6,8 +6,11 @@
 #include "Shader.h"
 
 namespace z8 {
-struct DefaultShader : public Shader {
-  DefaultShader();
+struct DefaultPixelShader : public PixelShader {
+  DefaultPixelShader();
+};
+struct DefaultVertexShader : public VertexShader {
+  DefaultVertexShader();
 };
 }
 

@@ -23,7 +23,7 @@ public:
   MeshRegistry& operator=(MeshRegistry&&) = delete;
 
   void Register(Mesh*);
-  Mesh* GetMesh(std::string name);
+  Mesh* Get(std::string name);
 
   static MeshRegistry &Instance() {
     static MeshRegistry instance;

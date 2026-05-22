@@ -6,10 +6,8 @@
 
 using namespace z8;
 
-DX12Shader::DX12Shader(std::wstring filename, std::string name, std::string entry, std::string target)
-  : Filename(filename), Name(name), Entry(entry), Target(target)
-{
-}
+DX12Shader::DX12Shader(Shader* s) : S(s){}
+
 
 void DX12Shader::Compile()
 {
@@ -19,8 +17,8 @@ void DX12Shader::Compile()
 #endif
 
   ComPtr<ID3DBlob> errors;
-  HRESULT hr = D3DCompileFromFile(Filename.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-          Entry.c_str(), Target.c_str(), compileFlags, 0, &ByteCode, &errors);
+  HRESULT hr = D3DCompileFromFile(S->FileName.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+          S->Entry.c_str(), S->Target.c_str(), compileFlags, 0, &ByteCode, &errors);
 
   if(errors != nullptr)
     OutputDebugStringA(static_cast<char *>(errors->GetBufferPointer()));
@@ -34,19 +32,15 @@ D3D12_SHADER_BYTECODE DX12Shader::GetByteCode() const
 }
 
 
-void DX12ShaderRegistry::Register(Shader s) {
-  Shaders.emplace_back(s.FileName, s.Name + "_V", "VS", "vs_5_0");
-  Shaders.back().Compile();
-  Shaders.emplace_back(s.FileName, s.Name + "_P", "PS", "ps_5_0");
-  Shaders.back().Compile();
+void DX12ShaderRegistry::Register(Shader* s) {
+  auto* B = new DX12Shader(s);
+  B->Compile();
+  s->Binary = B;
+  Shaders[s->Name] = s;
 }
 
-DX12Shader * DX12ShaderRegistry::GetShader(std::string name)
-{
-  for (auto& Shader : Shaders)
-  {
-    if(Shader.Name == name)
-      return &Shader;
-  }
-  return nullptr;
+
+Shader * DX12ShaderRegistry::Get(std::string name)  {
+  if (!Shaders.count(name)) return nullptr;
+  return Shaders[name];
 }

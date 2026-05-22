@@ -19,6 +19,11 @@ Up(0,1,0)
   UpdateView();
 }
 
+void Camera::Update(Timer *) {
+  UpdateView();
+  UpdateViewProj();
+}
+
 void Camera::UpdateView()
 {
   XMVECTOR pos = XMVectorSet(Transform.Position.x, Transform.Position.y, Transform.Position.z, 1.0f);
@@ -35,6 +40,13 @@ void Camera::UpdateProj(float aspect)
 {
   XMMATRIX P = XMMatrixPerspectiveFovLH(XMConvertToRadians(Fov), aspect, Near, Far);
   XMStoreFloat4x4(&Proj, P);
+}
+
+void Camera::UpdateViewProj() {
+  XMMATRIX view = XMLoadFloat4x4(&View);
+  XMMATRIX proj = XMLoadFloat4x4(&Proj);
+  XMMATRIX vp = view * proj;
+  XMStoreFloat4x4(&ViewProj, vp);
 }
 
 void Camera::UpdateTarget() {

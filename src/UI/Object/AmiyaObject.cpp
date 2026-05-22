@@ -6,5 +6,5 @@
 #include "UI/Mesh/MeshRegistry.h"
 
 z8::AmiyaObject::AmiyaObject() {
-  Mesh = MeshRegistry::Instance().GetMesh("Amiya");
+  Mesh = MeshRegistry::Instance().Get("Amiya");
 }

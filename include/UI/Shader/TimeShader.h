@@ -6,7 +6,10 @@
 #include "Shader.h"
 
 namespace z8 {
-struct TimeShader : public Shader {
-  TimeShader();
+struct TimePixelShader : public PixelShader {
+  TimePixelShader();
+};
+struct TimeVertexShader : public VertexShader {
+  TimeVertexShader();
 };
 }

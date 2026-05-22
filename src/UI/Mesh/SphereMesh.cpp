@@ -37,7 +37,7 @@ z8::SphereMesh::SphereMesh(float radius, unsigned numSubdivisions) {
   I.assign(&k[0], &k[60]);
 
   for (unsigned i = 0; i < 12; ++i)
-    V[i] = {pos[i], XMFLOAT4(Colors::White)};
+    V[i] = pos[i];
 
   for (unsigned i = 0; i < numSubdivisions; ++i)
     Subdivide();
@@ -77,11 +77,8 @@ void SphereMesh::Subdivide() {
     Vertex v2 = CV[CI[i * 3 + 2]];
 
     Vertex m0 = MeshGenerator::MidPoint(v0, v1);
-    m0.Color = XMFLOAT4(Colors::White);
     Vertex m1 = MeshGenerator::MidPoint(v1, v2);
-    m1.Color = XMFLOAT4(Colors::White);
     Vertex m2 = MeshGenerator::MidPoint(v0, v2);
-    m2.Color = XMFLOAT4(Colors::White);
 
     V.push_back(v0); // 0
     V.push_back(v1); // 1

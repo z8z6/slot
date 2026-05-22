@@ -16,7 +16,7 @@ public:
 
   virtual ~Object() = default;
 
-  virtual void Update(Camera*, Timer*) {}
+  virtual void Update(Timer*) {}
   virtual void OnMouseUp(MouseMovArgs) {}
   virtual void OnMouseMove(MouseMovArgs) {}
   virtual void OnMouseDown(MouseMovArgs) {}

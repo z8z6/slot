@@ -27,7 +27,7 @@ Mesh z8::ObjMeshImporter::Parse(std::string FileName) {
     if (type == "v") {
       float x, y, z;
       iss >> x >> y >> z;
-      M.V.push_back({{x, y, z}, XMFLOAT4(Colors::White)});
+      M.V.emplace_back(x, y, z);
     }
     // 解析面 f（只取顶点索引）
     else if (type == "f") {

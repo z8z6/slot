@@ -13,14 +13,15 @@ using namespace DirectX;
 static MeshRegister<CubeMesh> R;
 
 CubeMesh::CubeMesh() {
-  V = {Vertex({{-1.0f, -1.0f, -1.0f}, XMFLOAT4(Colors::White)}),
-       Vertex({{-1.0f, +1.0f, -1.0f}, XMFLOAT4(Colors::Black)}),
-       Vertex({{+1.0f, +1.0f, -1.0f}, XMFLOAT4(Colors::Red)}),
-       Vertex({{+1.0f, -1.0f, -1.0f}, XMFLOAT4(Colors::Green)}),
-       Vertex({{-1.0f, -1.0f, +1.0f}, XMFLOAT4(Colors::Blue)}),
-       Vertex({{-1.0f, +1.0f, +1.0f}, XMFLOAT4(Colors::Yellow)}),
-       Vertex({{+1.0f, +1.0f, +1.0f}, XMFLOAT4(Colors::Cyan)}),
-       Vertex({{+1.0f, -1.0f, +1.0f}, XMFLOAT4(Colors::Magenta)})};
+  V = {Vertex(-1.0f, -1.0f, -1.0f),
+       Vertex(-1.0f, +1.0f, -1.0f),
+       Vertex(+1.0f, +1.0f, -1.0f),
+       Vertex(+1.0f, -1.0f, -1.0f),
+       Vertex(-1.0f, -1.0f, +1.0f),
+       Vertex(-1.0f, +1.0f, +1.0f),
+       Vertex(+1.0f, +1.0f, +1.0f),
+       Vertex(+1.0f, -1.0f, +1.0f)
+  };
 
   I = {// front face
        0, 1, 2,

@@ -7,9 +7,15 @@
 
 using namespace z8;
 
-static DX12ShaderRegister<MissingShader> R;
+static DX12ShaderRegister<MissingPixelShader> P;
+static DX12ShaderRegister<MissingVertexShader> V;
 
-z8::MissingShader::MissingShader() {
-  Name = "Missing";
+z8::MissingPixelShader::MissingPixelShader() {
+  Name = "Missing_P";
+  FileName = L"shader/Missing.hlsl";
+}
+
+z8::MissingVertexShader::MissingVertexShader() {
+  Name = "Missing_V";
   FileName = L"shader/Missing.hlsl";
 }

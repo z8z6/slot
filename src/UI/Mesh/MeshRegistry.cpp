@@ -11,10 +11,11 @@ MeshRegistry::MeshRegistry() = default;
 
 void MeshRegistry::Register(Mesh* M) {
   Meshes.emplace_back(M);
+  M->ComputeNormals();
   Map[M->Name] = Meshes.back();
 }
 
-Mesh* MeshRegistry::GetMesh(std::string name) {
+Mesh* MeshRegistry::Get(std::string name) {
   if (!Map.count(name)) return nullptr;
   return Map[name];
 }

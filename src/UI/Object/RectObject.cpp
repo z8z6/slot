@@ -11,5 +11,5 @@ using namespace DirectX;
 
 RectObject::RectObject()
 {
-  Mesh = MeshRegistry::Instance().GetMesh("Rect");
+  Mesh = MeshRegistry::Instance().Get("Rect");
 }
