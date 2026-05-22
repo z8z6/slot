@@ -50,10 +50,9 @@ void z8::DX12Render::Init()
 
 void z8::DX12Render::Update()
 {
-  GetCamera()->UpdateView();
-  GetCamera()->UpdateViewProj();
+  GetCamera()->Update(GetTimer());
   for (auto& O : RenderObjects) {
-    O.Object->Update(GetCamera(), GetTimer());
+    O.Object->Update(GetTimer());
     memcpy(ConstBuf.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
   }
   GlobalConst.Update(this);

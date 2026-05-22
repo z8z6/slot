@@ -7,7 +7,7 @@
 
 namespace z8
 {
-class Camera : public Object{
+class Camera : public Object {
 private:
   DirectX::XMFLOAT3 Target;
   DirectX::XMFLOAT3 Up;
@@ -23,6 +23,7 @@ public:
   DirectX::XMFLOAT4X4& GetView() { return View; }
   DirectX::XMFLOAT4X4& GetProj() { return Proj; }
   DirectX::XMFLOAT4X4& GetViewProj() { return ViewProj; }
+  void Update(Timer *) override;
   void UpdateView();
   void UpdateProj(float aspect);
   void UpdateViewProj();

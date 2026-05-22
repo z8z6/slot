@@ -11,11 +11,11 @@ using namespace z8;
 using namespace DirectX;
 
 void DX12GlobalConst::Update(DX12Render* R) {
-  TimeCost = R->GetTimer()->TimeCost;
-  TimeTotal = R->GetTimer()->TimeTotal;
-
   XMMATRIX vp = XMLoadFloat4x4(&R->GetCamera()->GetViewProj());
   XMStoreFloat4x4(&ViewProj, XMMatrixTranspose(vp));
+
+  TimeCost = R->GetTimer()->TimeCost;
+  TimeTotal = R->GetTimer()->TimeTotal;
 
   memcpy(R->ConstBuf.GetCPUOffset(Index), this, sizeof(DX12GlobalConst));
 }

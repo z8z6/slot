@@ -9,7 +9,7 @@ namespace z8
 {
 class UIObject : public GameObjectImpl<DirectX::XMFLOAT4X4>{
 public:
-  void Update(Camera*, Timer*) override;
+  void Update(Timer*) override;
 };
 }
 

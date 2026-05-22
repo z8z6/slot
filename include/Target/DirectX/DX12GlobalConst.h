@@ -7,10 +7,11 @@
 
 namespace z8 {
 class DX12Render;
+// 必须注意对齐，GPU侧的类布局可能不一致
 struct  DX12GlobalConst {
+  DirectX::XMFLOAT4X4A ViewProj;
   float TimeCost;
   float TimeTotal;
-  DirectX::XMFLOAT4X4 ViewProj;
 
   inline static unsigned Index = 0;
   void Update(DX12Render* R);

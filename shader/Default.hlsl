@@ -7,9 +7,9 @@ cbuffer cbPerObject : register(b0)
 
 cbuffer cbPass : register(b1)
 {
+    float4x4 ViewProj;
     float TimeCost;
     float TimeTotal;
-    float4x4 ViewProj;
 };
 
 struct VertexIn
@@ -27,7 +27,7 @@ struct VertexOut
 
 VertexOut VS(VertexIn vin)
 {
-	VertexOut vout = (VertexOut)0.0f;
+	VertexOut vout;
 
     float4 posW = mul(float4(vin.LocalPositon, 1.0f), World);
     vout.WorldPositon = posW.xyz;
