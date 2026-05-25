@@ -33,16 +33,16 @@ ComPtr<ID3D12Resource> DX12UploadBuf::Upload(const void* Src, UINT64 Size)
     nullptr,
     IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
 
-  D3D12_SUBRESOURCE_DATA subResourceData = {};
-  subResourceData.pData = Src;
-  subResourceData.RowPitch = Size;
-  subResourceData.SlicePitch = subResourceData.RowPitch;
+  D3D12_SUBRESOURCE_DATA SD = {};
+  SD.pData = Src;
+  SD.RowPitch = Size;
+  SD.SlicePitch = SD.RowPitch;
 
   auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
     D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
   Render->Cmd.List->ResourceBarrier(1, &Barrier);
   UpdateSubresources<1>(Render->Cmd.List.Get(), defaultBuffer.Get(),
-    Buffer.Get(), 0, 0, 1, &subResourceData);
+    Buffer.Get(), 0, 0, 1, &SD);
   auto Barrier1 = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
     D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
   Render->Cmd.List->ResourceBarrier(1, &Barrier1);

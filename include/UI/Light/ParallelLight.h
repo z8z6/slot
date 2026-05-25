@@ -7,9 +7,6 @@
 
 namespace z8 {
 class ParallelLight : public Light{
-public:
-  DirectX::XMFLOAT3 Direction;
-  ParallelLight();
 };
 }
 

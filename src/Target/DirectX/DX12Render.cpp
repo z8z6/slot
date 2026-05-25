@@ -21,7 +21,7 @@ using namespace z8;
 
 z8::DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), SwapChain(this), Msaa(this), PSO(this), RootSignature(this),
-      DepthStencil(this), RenderTarget(this), ConstBuf(this), MeshManager(this) {
+      DepthStencil(this), RenderTarget(this), ConstBuf(this), MeshManager(this), MaterialManager(this) {
   Ctx = &DX12Device::Instance();
 }
 
@@ -41,6 +41,7 @@ void z8::DX12Render::Init()
   ConstBuf.InitBuffer();
   RootSignature.Init();
   MeshManager.Init();
+  MaterialManager.Init();
   InitObject();
   PSO.Init();
 
@@ -81,12 +82,14 @@ void z8::DX12Render::Draw()
 
   RootSignature.Bind();
 
-  // 第二个槽是寄存器 b1
-  Cmd.List->SetGraphicsRootDescriptorTable(1, ConstBuf.GetGPUDescriptor(DX12GlobalConst::Index));
+  // 寄存器 b1
+  Cmd.List->SetGraphicsRootConstantBufferView(1, MaterialManager.ConstBuf->GetGPUVirtualAddress());
+  // 寄存器 b2
+  Cmd.List->SetGraphicsRootDescriptorTable(2, ConstBuf.GetGPUDescriptor(DX12GlobalConst::Index));
 
   for (auto& O : RenderObjects) {
     MeshManager.Bind();
-    // 第一个槽是寄存器 b0
+    // 寄存器 b0
     Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuf.GetGPUDescriptor(O.ConstBufIndex));
     Cmd.List->DrawIndexedInstanced(O.SubMesh->IndexCount,
     1, O.SubMesh->StartIndexLocation,

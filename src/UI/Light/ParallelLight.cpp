@@ -6,6 +6,3 @@
 
 using namespace z8;
 
-ParallelLight::ParallelLight() : Direction(1,0,1) {
-
-}

@@ -17,21 +17,26 @@ z8::DX12RootSignature::DX12RootSignature(DX12Render* R) : DX12Common(R)
 void DX12RootSignature::Init()
 {
   // 创建两个寄存器槽
-  CD3DX12_ROOT_PARAMETER slotRootParameter[2];
+  CD3DX12_ROOT_PARAMETER slotRootParameter[3];
 
   // 寄存器 b0
-  CD3DX12_DESCRIPTOR_RANGE cbvTable0;
-  cbvTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+  CD3DX12_DESCRIPTOR_RANGE c0;
+  c0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 
   // 寄存器 b1
-  CD3DX12_DESCRIPTOR_RANGE cbvTable1;
-  cbvTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+  CD3DX12_DESCRIPTOR_RANGE c1;
+  c1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
 
-  slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable0);
-  slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable1);
+  // 寄存器 b2
+  CD3DX12_DESCRIPTOR_RANGE c2;
+  c2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
+
+  slotRootParameter[0].InitAsDescriptorTable(1, &c0);
+  slotRootParameter[1].InitAsDescriptorTable(1, &c1);
+  slotRootParameter[2].InitAsDescriptorTable(1, &c2);
 
   // A root signature is an array of root parameters.
-  CD3DX12_ROOT_SIGNATURE_DESC RD(2, slotRootParameter, 0,
+  CD3DX12_ROOT_SIGNATURE_DESC RD(3, slotRootParameter, 0,
     nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
   // create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer

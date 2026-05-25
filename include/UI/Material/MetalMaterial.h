@@ -8,9 +8,9 @@
 
 namespace z8
 {
-struct  MetalMaterial : public Material {
+struct MetalMaterial : public Material {
   MetalMaterial(){
-
+    Name = "Metal";
   }
 };
 }
