@@ -18,7 +18,8 @@ target_link_libraries(
         dxgi.lib
         d3d12.lib
         dxguid.lib
-        d3dcompiler.lib
+        d3dcompiler.lib #fxc
+        dxcompiler.lib  #dxc
 )
 
 set_target_properties(slot PROPERTIES

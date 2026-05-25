@@ -18,7 +18,8 @@ class DX12Shader {
 public:
   ComPtr<ID3DBlob> ByteCode;
   DX12Shader(Shader* s);
-  void Compile();
+  void CompileByFxc();
+  void CompileByDxc();
   D3D12_SHADER_BYTECODE GetByteCode() const;
 };
 

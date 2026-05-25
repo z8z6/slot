@@ -5,6 +5,7 @@
 #include "Core/GameApplication.h"
 
 #include "Target/Render.h"
+#include "UI/Light/ParallelLight.h"
 #include "UI/Object/AmiyaObject.h"
 #include "UI/Object/Camera.h"
 #include "UI/Object/CubeObject.h"
@@ -19,6 +20,10 @@ using namespace DirectX;
 
 void GameApplication::Init() {
   Camera = new FirstPersonCamera();
+  Light = new ParallelLight();
+  Light->Transform.Position = { 0, 2, -5};
+  Light->Direction = { 0.57735f, -0.57735f, 0.57735f };
+
   PrepareScene();
   Render = Render::CreateRender(this);
   Render->Init();

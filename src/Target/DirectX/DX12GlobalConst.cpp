@@ -5,6 +5,7 @@
 #include "Target/DirectX/DX12GlobalConst.h"
 #include "Core/Timer.h"
 #include "Target/DirectX/DX12Render.h"
+#include "UI/Light/Light.h"
 #include "UI/Object/Camera.h"
 
 using namespace z8;
@@ -13,6 +14,14 @@ using namespace DirectX;
 void DX12GlobalConst::Update(DX12Render* R) {
   XMMATRIX vp = XMLoadFloat4x4(&R->GetCamera()->GetViewProj());
   XMStoreFloat4x4(&ViewProj, XMMatrixTranspose(vp));
+
+  AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+  Camera = R->GetCamera()->Transform.Position;
+
+  Light = {};
+  Light.Position = R->GetLight()->Transform.Position;
+  Light.Strength = R->GetLight()->Color;
+  Light.Direction = R->GetLight()->Direction;
 
   TimeCost = R->GetTimer()->TimeCost;
   TimeTotal = R->GetTimer()->TimeTotal;
