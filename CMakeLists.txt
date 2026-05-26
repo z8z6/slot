@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_compile_definitions(UNICODE _UNICODE)
 add_compile_options("/utf-8")
 
+add_subdirectory(third/yoga)
+
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp include/*.h third/*.h)
 
 add_executable(slot ${SOURCE_FILES})
@@ -20,6 +22,7 @@ target_link_libraries(
         dxguid.lib
         d3dcompiler.lib #fxc
         dxcompiler.lib  #dxc
+        yogacore
 )
 
 set_target_properties(slot PROPERTIES
