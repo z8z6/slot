@@ -8,15 +8,14 @@ bringing developers an efficient and reliable native interface development solut
 
 ## Env
 
+```shell
+git submodule update --init --recursive
+```
+
 1. Visual Studio 2022
 2. DirectX 12
 3. yoga
 
-```shell
-git submodule add https://github.com/facebook/yoga.git third/yoga
-cd third/yoga
-git checkout main
-```
 
 ## Document
 

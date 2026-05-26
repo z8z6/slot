@@ -6,6 +6,7 @@ add_compile_definitions(UNICODE _UNICODE)
 add_compile_options("/utf-8")
 
 add_subdirectory(third/yoga)
+add_subdirectory(third/slang)
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp include/*.h third/*.h)
 
@@ -23,6 +24,7 @@ target_link_libraries(
         d3dcompiler.lib #fxc
         dxcompiler.lib  #dxc
         yogacore
+        slang
 )
 
 set_target_properties(slot PROPERTIES
