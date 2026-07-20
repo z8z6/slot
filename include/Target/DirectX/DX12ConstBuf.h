@@ -9,6 +9,9 @@
 
 namespace z8
 {
+/**
+ * @brief 常量缓冲区
+ */
 class DX12ConstBuf: public DX12Common
 {
   unsigned SingleBufSize = 0;
@@ -27,7 +30,9 @@ public:
   void InitDescriptor();
   void InitBuffer();
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptor(int index) const;
+  // 根据索引获取常量缓冲区的指针
   char* GetCPUOffset(unsigned index) const;
-  unsigned AlignSize(unsigned size) const;
+  // 返回 256 字节对齐的缓冲区大小
+  static unsigned AlignedSize(unsigned size);
 };
 }

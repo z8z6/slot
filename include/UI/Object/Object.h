@@ -10,6 +10,9 @@ namespace z8
 {
 class Camera;
 class Timer;
+/**
+ * 物体基类
+ */
 class Object {
 public:
   Transform Transform;

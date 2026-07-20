@@ -12,10 +12,12 @@ using namespace z8;
 using namespace DirectX;
 
 void DX12GlobalConst::Update(DX12Render* R) {
+  // 投影矩阵
   XMMATRIX vp = XMLoadFloat4x4(&R->GetCamera()->GetViewProj());
   XMStoreFloat4x4(&ViewProj, XMMatrixTranspose(vp));
 
   AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+  // 相机
   Camera = R->GetCamera()->Transform.Position;
 
   Light = {};
@@ -26,5 +28,10 @@ void DX12GlobalConst::Update(DX12Render* R) {
   TimeCost = R->GetTimer()->TimeCost;
   TimeTotal = R->GetTimer()->TimeTotal;
 
+  // 写入常量缓冲区
   memcpy(R->ConstBuf.GetCPUOffset(Index), this, sizeof(DX12GlobalConst));
+}
+
+unsigned DX12GlobalConst::AlignedSize() {
+  return DX12ConstBuf::AlignedSize(sizeof(DX12GlobalConst));
 }

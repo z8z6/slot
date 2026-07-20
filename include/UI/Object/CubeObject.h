@@ -6,6 +6,9 @@
 
 namespace z8
 {
+/**
+ * @brief 立方体物体
+ */
 class CubeObject : public SimpleGameObject{
 public:
   CubeObject();

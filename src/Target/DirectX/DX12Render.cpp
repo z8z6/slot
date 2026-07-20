@@ -77,19 +77,20 @@ void z8::DX12Render::Draw()
 
   RenderTarget.Bind();
 
+  // 设置常量缓冲区的描述符堆
   ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
   Cmd.List->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
   RootSignature.Bind();
 
-  // 寄存器 b1
+  // 寄存器 b1: 物体材质常量
   Cmd.List->SetGraphicsRootConstantBufferView(1, MaterialManager.ConstBuf->GetGPUVirtualAddress());
-  // 寄存器 b2
+  // 寄存器 b2: 全局常量
   Cmd.List->SetGraphicsRootDescriptorTable(2, ConstBuf.GetGPUDescriptor(DX12GlobalConst::Index));
 
   for (auto& O : RenderObjects) {
     MeshManager.Bind();
-    // 寄存器 b0
+    // 寄存器 b0: 物体位置常量
     Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuf.GetGPUDescriptor(O.ConstBufIndex));
     Cmd.List->DrawIndexedInstanced(O.SubMesh->IndexCount,
     1, O.SubMesh->StartIndexLocation,

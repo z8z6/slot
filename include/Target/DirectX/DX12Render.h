@@ -52,7 +52,9 @@ public:
   DX12Render(Application* app);
 
   void Init() override;
+  // 每帧绘制前调用，更新物体状态
   void Update() override;
+  // 绘制物体
   void Draw() override;
   void Resize() override;
 

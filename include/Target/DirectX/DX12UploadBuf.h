@@ -9,6 +9,9 @@
 
 namespace z8
 {
+/**
+ * @brief DX12 上传堆
+ */
 class DX12UploadBuf: public DX12Common
 {
 public:

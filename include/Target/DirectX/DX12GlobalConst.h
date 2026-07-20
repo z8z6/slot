@@ -17,7 +17,10 @@ struct DX12Light {
   float p2;
 };
 
-// 必须注意对齐，GPU侧的类布局可能不一致
+/**
+ * @brief CPU 侧全局常量
+ * @note 必须注意对齐，GPU侧的类布局可能不一致
+ **/
 struct  DX12GlobalConst {
   DirectX::XMFLOAT4X4A ViewProj;
   DX12Light Light;
@@ -28,6 +31,7 @@ struct  DX12GlobalConst {
 
   inline static unsigned Index = 0;
   void Update(DX12Render* R);
+  static unsigned AlignedSize();
 };
 
 
