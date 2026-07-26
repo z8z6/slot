@@ -16,44 +16,35 @@ z8::DX12RootSignature::DX12RootSignature(DX12Render* R) : DX12Common(R)
 
 void DX12RootSignature::Init()
 {
-  // 创建两个寄存器槽
+  // 创建寄存器槽
   CD3DX12_ROOT_PARAMETER slotRootParameter[3];
 
-  // 寄存器 b0
+  // 常量寄存器 b0
   CD3DX12_DESCRIPTOR_RANGE c0;
   c0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 
-  // 寄存器 b1
-  CD3DX12_DESCRIPTOR_RANGE c1;
-  c1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-
-  // 寄存器 b2
+  // 常量寄存器 b2
   CD3DX12_DESCRIPTOR_RANGE c2;
   c2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
 
+  // 描述符表
   slotRootParameter[0].InitAsDescriptorTable(1, &c0);
-  slotRootParameter[1].InitAsDescriptorTable(1, &c1);
+  // 根描述符，对应一个 64 位 GPU 地址
+  slotRootParameter[1].InitAsConstantBufferView(1);
   slotRootParameter[2].InitAsDescriptorTable(1, &c2);
 
-  // A root signature is an array of root parameters.
-  CD3DX12_ROOT_SIGNATURE_DESC RD(3, slotRootParameter, 0,
+  CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC RD(3, slotRootParameter, 0,
     nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
-  // create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
-  ComPtr<ID3DBlob> serializedRootSig = nullptr;
-  ComPtr<ID3DBlob> errorBlob = nullptr;
-  Ok(D3D12SerializeRootSignature(&RD, D3D_ROOT_SIGNATURE_VERSION_1,
-    serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf()));
-
-  if (errorBlob != nullptr)
-  {
-    ::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-  }
+  ComPtr<ID3DBlob> RootSig = nullptr;
+  ComPtr<ID3DBlob> err = nullptr;
+  Ok(D3D12SerializeVersionedRootSignature(&RD,RootSig.GetAddressOf(), err.GetAddressOf()));
+  if (err != nullptr) OutputDebugStringA(static_cast<char *>(err->GetBufferPointer()));
 
   Ok(Ctx->Device->CreateRootSignature(
     0,
-    serializedRootSig->GetBufferPointer(),
-    serializedRootSig->GetBufferSize(),
+    RootSig->GetBufferPointer(),
+    RootSig->GetBufferSize(),
     IID_PPV_ARGS(RootSignature.GetAddressOf())));
 }
 

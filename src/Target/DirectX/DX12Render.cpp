@@ -51,12 +51,15 @@ void z8::DX12Render::Init()
 
 void z8::DX12Render::Update()
 {
+  // 1. 更新相机坐标
   GetCamera()->Update(GetTimer());
+  // 2. 更新全局常量
+  GlobalConst.Update(this);
+  // 3. 更新物体数据
   for (auto& O : RenderObjects) {
     O.Object->Update(GetTimer());
     memcpy(ConstBuf.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
   }
-  GlobalConst.Update(this);
 }
 
 void z8::DX12Render::Draw()
@@ -88,6 +91,7 @@ void z8::DX12Render::Draw()
   // 寄存器 b2: 全局常量
   Cmd.List->SetGraphicsRootDescriptorTable(2, ConstBuf.GetGPUDescriptor(DX12GlobalConst::Index));
 
+  // 依次绘制各个物体
   for (auto& O : RenderObjects) {
     MeshManager.Bind();
     // 寄存器 b0: 物体位置常量

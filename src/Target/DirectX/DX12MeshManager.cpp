@@ -55,8 +55,11 @@ void DX12MeshManager::Init()
 
 void DX12MeshManager::Bind() const
 {
+  // 指定顶点缓冲区
   Render->Cmd.List->IASetVertexBuffers(0, 1, &Vv);
+  // 指定顶点索引缓冲区
   Render->Cmd.List->IASetIndexBuffer(&Iv);
+  // 指定顶点组合方式为三角形列表
   Render->Cmd.List->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
