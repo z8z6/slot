@@ -5,6 +5,7 @@
 #pragma once
 
 #include "DX12Common.h"
+#include "DX12UploadBuffer.h"
 #include "d3d12.h"
 
 namespace z8
@@ -12,20 +13,18 @@ namespace z8
 /**
  * @brief 常量缓冲区
  */
-class DX12ConstBuf: public DX12Common
+class DX12ConstBuffer: public DX12Common
 {
   unsigned SingleBufSize = 0;
   unsigned StepSize = 0;
 public:
-  ComPtr<ID3D12Resource> Buffer;
-  char* ConstBufCPU;
+  DX12UploadBuffer Buffer;
   ComPtr<ID3D12DescriptorHeap> DptHeap;
   unsigned DptSize = 0;
   D3D12_CPU_DESCRIPTOR_HANDLE Dpt;
   unsigned DptCount = 0;
 
-  DX12ConstBuf(DX12Render* R) : DX12Common(R){}
-  ~DX12ConstBuf() override;
+  DX12ConstBuffer(DX12Render* R);
 
   void InitDescriptor();
   void InitBuffer();

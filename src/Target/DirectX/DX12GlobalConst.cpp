@@ -29,9 +29,9 @@ void DX12GlobalConst::Update(DX12Render* R) {
   TimeTotal = R->GetTimer()->TimeTotal;
 
   // 写入常量缓冲区
-  memcpy(R->ConstBuf.GetCPUOffset(Index), this, sizeof(DX12GlobalConst));
+  memcpy(R->ConstBuffer.GetCPUOffset(Index), this, sizeof(DX12GlobalConst));
 }
 
 unsigned DX12GlobalConst::AlignedSize() {
-  return DX12ConstBuf::AlignedSize(sizeof(DX12GlobalConst));
+  return DX12ConstBuffer::AlignedSize(sizeof(DX12GlobalConst));
 }

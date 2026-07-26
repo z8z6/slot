@@ -3,15 +3,14 @@
 //
 
 #include "Target/DirectX/DX12MeshManager.h"
-#include <d3dcompiler.h>
 #include "UI/Mesh/MeshRegistry.h"
 #include "Target/DirectX/DX12Render.h"
 #include "UI/Mesh/Mesh.h"
-#include "UI/Object/GameObject.h"
+
 
 using namespace z8;
 
-DX12MeshManager::DX12MeshManager(DX12Render* R) : DX12Common(R), VBufUpload(R), IBufUpload(R)
+DX12MeshManager::DX12MeshManager(DX12Render* R) : DX12Common(R), VBuf(R), IBuf(R)
 {
 }
 
@@ -35,20 +34,17 @@ void DX12MeshManager::Init()
 {
   UnifyMesh();
 
-  Ok(D3DCreateBlob(MergeMesh.VSize(), &VBufCPU));
-  CopyMemory(VBufCPU->GetBufferPointer(),MergeMesh.V.data(), MergeMesh.VSize());
+  VBuf.Init(MergeMesh.VSize());
+  VBuf.Update(MergeMesh.V.data());
+  IBuf.Init(MergeMesh.ISize());
+  IBuf.Update(MergeMesh.I.data());
 
-  Ok(D3DCreateBlob(MergeMesh.ISize(), &IBufCPU));
-  CopyMemory(IBufCPU->GetBufferPointer(), MergeMesh.I.data(), MergeMesh.ISize());
 
-  VBufGPU = VBufUpload.Upload(MergeMesh.V.data(), MergeMesh.VSize());
-  IBufGPU = IBufUpload.Upload(MergeMesh.I.data(), MergeMesh.ISize());
-
-  Vv.BufferLocation = VBufGPU->GetGPUVirtualAddress();
+  Vv.BufferLocation = VBuf.DefaultBuffer->GetGPUVirtualAddress();
   Vv.StrideInBytes = MergeMesh.VElemSize();
   Vv.SizeInBytes = MergeMesh.VSize();
 
-  Iv.BufferLocation = IBufGPU->GetGPUVirtualAddress();
+  Iv.BufferLocation = IBuf.DefaultBuffer->GetGPUVirtualAddress();
   Iv.Format = FormatIBuf;
   Iv.SizeInBytes = MergeMesh.ISize();
 }

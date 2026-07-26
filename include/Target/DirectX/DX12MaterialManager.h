@@ -4,12 +4,13 @@
 
 #pragma once
 #include "DX12Common.h"
-#include "DX12UploadBuf.h"
+#include "DX12DefaultBuffer.h"
 #include <DirectXMath.h>
 
 
 namespace z8 {
 class Material;
+
 struct DX12Material {
   DirectX::XMFLOAT4 Albedo;
   DirectX::XMFLOAT3 FresnelR0;
@@ -17,10 +18,10 @@ struct DX12Material {
 
   DX12Material(Material* M);
 };
+
 class DX12MaterialManager : public DX12Common{
 public:
-  DX12UploadBuf UploadBuf;
-  ComPtr<ID3D12Resource> ConstBuf;
+  DX12DefaultBuffer Buffer;
 
   DX12MaterialManager(DX12Render* R);
   void Init();

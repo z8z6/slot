@@ -21,7 +21,7 @@ using namespace z8;
 
 z8::DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), SwapChain(this), Msaa(this), PSO(this), RootSignature(this),
-      DepthStencil(this), RenderTarget(this), ConstBuf(this), MeshManager(this), MaterialManager(this) {
+      DepthStencil(this), RenderTarget(this), ConstBuffer(this), MeshManager(this), MaterialManager(this) {
   Ctx = &DX12Device::Instance();
 }
 
@@ -32,13 +32,13 @@ void z8::DX12Render::Init()
   SwapChain.Init();
   RenderTarget.InitDescriptor();
   DepthStencil.InitDescriptor();
-  ConstBuf.InitDescriptor();
+  ConstBuffer.InitDescriptor();
 
   Resize();
 
   Cmd.Reset();
 
-  ConstBuf.InitBuffer();
+  ConstBuffer.InitBuffer();
   RootSignature.Init();
   MeshManager.Init();
   MaterialManager.Init();
@@ -58,7 +58,7 @@ void z8::DX12Render::Update()
   // 3. 更新物体数据
   for (auto& O : RenderObjects) {
     O.Object->Update(GetTimer());
-    memcpy(ConstBuf.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
+    memcpy(ConstBuffer.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
   }
 }
 
@@ -81,21 +81,21 @@ void z8::DX12Render::Draw()
   RenderTarget.Bind();
 
   // 设置常量缓冲区的描述符堆
-  ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuf.DptHeap.Get()};
+  ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuffer.DptHeap.Get()};
   Cmd.List->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
   RootSignature.Bind();
 
   // 寄存器 b1: 物体材质常量
-  Cmd.List->SetGraphicsRootConstantBufferView(1, MaterialManager.ConstBuf->GetGPUVirtualAddress());
+  Cmd.List->SetGraphicsRootConstantBufferView(1, MaterialManager.Buffer.DefaultBuffer->GetGPUVirtualAddress());
   // 寄存器 b2: 全局常量
-  Cmd.List->SetGraphicsRootDescriptorTable(2, ConstBuf.GetGPUDescriptor(DX12GlobalConst::Index));
+  Cmd.List->SetGraphicsRootDescriptorTable(2, ConstBuffer.GetGPUDescriptor(DX12GlobalConst::Index));
 
   // 依次绘制各个物体
   for (auto& O : RenderObjects) {
     MeshManager.Bind();
     // 寄存器 b0: 物体位置常量
-    Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuf.GetGPUDescriptor(O.ConstBufIndex));
+    Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuffer.GetGPUDescriptor(O.ConstBufIndex));
     Cmd.List->DrawIndexedInstanced(O.SubMesh->IndexCount,
     1, O.SubMesh->StartIndexLocation,
     O.SubMesh->BaseVertexLocation, 0);

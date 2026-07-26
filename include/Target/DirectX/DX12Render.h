@@ -5,7 +5,7 @@
 
 #include "DX12Command.h"
 #include "DX12Common.h"
-#include "DX12ConstBuf.h"
+#include "DX12ConstBuffer.h"
 #include "DX12DepthStencil.h"
 #include "DX12GlobalConst.h"
 #include "DX12MaterialManager.h"
@@ -42,7 +42,7 @@ public:
   DX12RootSignature RootSignature;
   DX12DepthStencil DepthStencil;
   DX12RenderTarget RenderTarget;
-  DX12ConstBuf ConstBuf;
+  DX12ConstBuffer ConstBuffer;
   DX12MeshManager MeshManager;
   DX12MaterialManager MaterialManager;
   DX12GlobalConst GlobalConst;
