@@ -6,6 +6,7 @@
 #include <iosfwd>
 
 /**
+ * @brief 世界矩阵
  * 描述坐标系，左手坐标系
  * 使用 DirectX12 坐标系的描述
  * 1. +X: 右，+Y: 上， +Z: 屏幕里

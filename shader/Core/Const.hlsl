@@ -1,0 +1,24 @@
+#include "Light/Phong.hlsl"
+
+cbuffer cbPerObject : register(b0)
+{
+	float4x4 World;
+};
+
+cbuffer cbMaterial : register(b1)
+{
+	float4 gAlbedo;
+    float3 gFresnelR0;
+    float  gRough;
+};
+
+cbuffer cbPass : register(b2)
+{
+    float4x4 ViewProj;
+    Light gLight;
+    float4 AmbientLight;
+    float3 Camera;
+    float TimeCost;
+    float TimeTotal;
+};
+

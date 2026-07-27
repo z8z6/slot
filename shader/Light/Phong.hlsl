@@ -1,18 +1,4 @@
-struct Light {
-  float3 Position;
-  float p0;
-  float3 Color;
-  float p1;
-  float3 Direction;
-  float p2;
-};
-
-struct Material
-{
-   float4 Albedo;
-   float3 FresnelR0;
-   float Shininess;
-};
+#include "Light/Light.hlsl"
 
 float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
 {
@@ -61,4 +47,3 @@ float4 ComputeLighting(
     float3 result = ComputeDirectionalLight(L, mat, normal, toEye);
     return float4(result, 0.0f);
 }
-

@@ -3,18 +3,18 @@
 //
 
 #include "Target/DirectX/DX12Render.h"
+#include "../../../include/UI/Object/GameObject/GameObject.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Shader.h"
-#include "UI/Object/GameObject.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
 #include <dxgi1_4.h>
 
+#include "../../../include/UI/Object/Camera/Camera.h"
 #include "UI/Mesh/Mesh.h"
-#include "UI/Object/Camera.h"
 
 using namespace DirectX;
 using namespace z8;

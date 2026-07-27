@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "GameObject.h"
+#include "UI/Object/GameObject/GameObject.h"
 
 namespace z8
 {
@@ -14,6 +14,7 @@ namespace z8
  */
 class UIObject : public GameObjectImpl<DirectX::XMFLOAT4X4>{
 public:
+  UIObject();
   void Update(Timer*) override;
 };
 }

@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/19.
 //
 
-#include "UI/Object/FirstPersonCamera.h"
+#include "UI/Object/Camera/FirstPersonCamera.h"
 #include "Util/Math.h"
 #include <ostream>
 

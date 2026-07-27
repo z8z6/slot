@@ -8,10 +8,10 @@
 #include <iostream>
 #include <ostream>
 
+#include "UI/Object/Camera/Camera.h"
+#include "UI/Object/GameObject/RotateCube.h"
 #include "Core/Event.h"
 #include "UI/Light/ParallelLight.h"
-#include "UI/Object/Camera.h"
-#include "UI/Object/RotateCube.h"
 #include "UI/Phys/Collider.h"
 
 using namespace z8;

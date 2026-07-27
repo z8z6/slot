@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "UIObject.h"
+#include "../UIObject/UIObject.h"
 
 namespace z8
 {

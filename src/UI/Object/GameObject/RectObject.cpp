@@ -1,7 +1,7 @@
 //
 // Created by zhou_zhengming on 2026/5/15.
 //
-#include "UI/Object/RectObject.h"
+#include "UI/Object/GameObject/RectObject.h"
 
 #include "UI/Mesh/MeshRegistry.h"
 #include "UI/Mesh/RectangleMesh.h"

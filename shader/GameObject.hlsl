@@ -1,26 +1,4 @@
-#include "Light.hlsl"
-
-cbuffer cbPerObject : register(b0)
-{
-	float4x4 World;
-};
-
-cbuffer cbMaterial : register(b1)
-{
-	float4 gAlbedo;
-    float3 gFresnelR0;
-    float  gRough;
-};
-
-cbuffer cbPass : register(b2)
-{
-    float4x4 ViewProj;
-    Light gLight;
-    float4 AmbientLight;
-    float3 Camera;
-    float TimeCost;
-    float TimeTotal;
-};
+#include "Core/Const.hlsl"
 
 struct VertexIn
 {
@@ -35,6 +13,8 @@ struct VertexOut
     float3 WorldNormal      : NORMAL;
 };
 
+
+// 计算在世界矩阵下，各个顶点和法线的坐标
 VertexOut VS(VertexIn vin)
 {
 	VertexOut vout;

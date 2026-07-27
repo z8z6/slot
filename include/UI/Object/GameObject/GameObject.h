@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Object.h"
+#include "../Object.h"
 
 namespace z8
 {

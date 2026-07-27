@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/15.
 //
 
-#include "UI/Object/Camera.h"
+#include "UI/Object/Camera/Camera.h"
 
 #include <utility>
 

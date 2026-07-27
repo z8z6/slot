@@ -17,6 +17,8 @@ DX12MeshManager::DX12MeshManager(DX12Render* R) : DX12Common(R), VBuf(R), IBuf(R
 void DX12MeshManager::UnifyMesh()
 {
   SubMeshes.clear();
+  // 将注册过的所有 Mesh 拼成一个 Mesh
+  // 同一种 Mesh 只会出现一次
   for (auto* M : MeshRegistry::Instance().Meshes) {
     DX12SubMesh SubMesh;
     SubMesh.IndexCount = M->I.size();

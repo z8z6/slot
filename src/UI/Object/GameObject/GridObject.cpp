@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/19.
 //
 
-#include "UI/Object/GridObject.h"
+#include "UI/Object/GameObject/GridObject.h"
 #include "UI/Mesh/MeshRegistry.h"
 
 using namespace z8;

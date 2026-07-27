@@ -2,10 +2,10 @@
 // Created by zhou_zhengming on 2026/5/13.
 //
 
-#include "UI/Object/RotateCube.h"
-#include <iostream>
+#include "UI/Object/GameObject/RotateCube.h"
 #include "UI/Mesh/MeshRegistry.h"
 #include "Util/Math.h"
+#include <iostream>
 
 using namespace z8;
 using namespace DirectX;

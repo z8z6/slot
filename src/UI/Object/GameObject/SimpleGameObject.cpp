@@ -2,8 +2,8 @@
 // Created by zhou_zhengming on 2026/5/20.
 //
 
-#include "UI/Object/SimpleGameObject.h"
-#include "UI/Object/Camera.h"
+#include "UI/Object/GameObject/SimpleGameObject.h"
+#include "UI/Object/Camera/Camera.h"
 
 using namespace z8;
 using namespace DirectX;

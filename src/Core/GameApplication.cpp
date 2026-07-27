@@ -4,16 +4,16 @@
 
 #include "Core/GameApplication.h"
 
+#include "UI/Object/Camera/Camera.h"
+#include "UI/Object/GameObject/AmiyaObject.h"
+#include "UI/Object/GameObject/CubeObject.h"
+#include "UI/Object/GameObject/GridObject.h"
+#include "UI/Object/GameObject/SkullObject.h"
 #include "Target/Render.h"
 #include "UI/Light/ParallelLight.h"
-#include "UI/Object/AmiyaObject.h"
-#include "UI/Object/Camera.h"
-#include "UI/Object/CubeObject.h"
-#include "UI/Object/FirstPersonCamera.h"
-#include "UI/Object/GridObject.h"
-#include "UI/Object/MountainObject.h"
-#include "UI/Object/SkullObject.h"
-#include "UI/Object/SphereObject.h"
+#include "UI/Object/Camera/FirstPersonCamera.h"
+#include "UI/Object/GameObject/MountainObject.h"
+#include "UI/Object/GameObject/SphereObject.h"
 
 using namespace z8;
 using namespace DirectX;
