@@ -34,7 +34,7 @@ void Application::Init() {
 }
 
 void Application::PrepareScene() {
-  Objects.push_back(new RotateCube());
+  GOs.push_back(new RotateCube());
 }
 
 
@@ -187,30 +187,30 @@ void z8::Application::ShowFrame() const {
 
 void Application::OnMouseMove(MouseMovArgs Args)
 {
-  for (auto* O : Objects)
+  for (auto* O : GOs)
     O->OnMouseMove(Args);
   Camera->OnMouseMove(Args);
 }
 
 void Application::OnMouseDown(MouseMovArgs Args)
 {
-  for (auto* O : Objects)
+  for (auto* O : GOs)
     O->OnMouseDown(Args);
 }
 
 void Application::OnMouseUp(MouseMovArgs Args)
 {
-  for (auto* O : Objects)
+  for (auto* O : GOs)
     O->OnMouseUp(Args);
 }
 
 void Application::OnKeyDown(KeyArgs Args) {
-  for (auto* O : Objects)
+  for (auto* O : GOs)
     O->OnKeyDown(Args);
   Camera->OnKeyDown(Args);
 }
 
 void Application::OnKeyUp(KeyArgs Args) {
-  for (auto* O : Objects)
+  for (auto* O : GOs)
     O->OnKeyUp(Args);
 }

@@ -38,7 +38,8 @@ public:
   DX12Command Cmd;
   DX12SwapChain SwapChain;
   DX12Msaa Msaa;
-  DX12PipelineState PSO;
+  DX12PipelineState GOPipe;
+  DX12PipelineState UOPipe;
   DX12RootSignature RootSignature;
   DX12DepthStencil DepthStencil;
   DX12RenderTarget RenderTarget;
@@ -49,7 +50,7 @@ public:
 
   std::vector<DX12RenderObject> RenderObjects;
 
-  DX12Render(Application* app);
+  explicit DX12Render(Application* app);
 
   void Init() override;
   // 每帧绘制前调用，更新物体状态

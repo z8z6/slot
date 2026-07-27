@@ -20,7 +20,7 @@ void z8::DX12ConstBuffer::InitDescriptor()
   // 单个描述符大小
   DptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
   // 描述符个数： 每个物体的常量 + 全局常量
-  DptCount = Render->App->Objects.size() + 1;
+  DptCount = Render->App->GOs.size() + 1;
 
   D3D12_DESCRIPTOR_HEAP_DESC CD;
   CD.NumDescriptors = DptCount;

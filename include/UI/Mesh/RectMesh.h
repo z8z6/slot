@@ -6,8 +6,8 @@
 #include "Mesh.h"
 
 namespace z8 {
-struct RectangleMesh : public Mesh{
-  RectangleMesh();
+struct RectMesh : public Mesh{
+  RectMesh();
 };
 }
 

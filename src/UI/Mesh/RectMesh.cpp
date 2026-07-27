@@ -2,16 +2,16 @@
 // Created by zhou_zhengming on 2026/5/11.
 //
 
-#include "UI/Mesh/RectangleMesh.h"
-#include "Util/Color.h"
 #include "UI/Mesh/MeshRegistry.h"
+#include "UI/Mesh/RectMesh.h"
+#include "Util/Color.h"
 
 using namespace DirectX;
 using namespace z8;
 
-static MeshRegister<RectangleMesh> R;
+static MeshRegister<RectMesh> R;
 
-z8::RectangleMesh::RectangleMesh() {
+z8::RectMesh::RectMesh() {
   V = {
     Vertex(-1.0f, -1.0f, 0.0f),
        Vertex(-1.0f, +1.0f, 0.0f),

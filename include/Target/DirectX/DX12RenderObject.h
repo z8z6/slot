@@ -6,13 +6,14 @@
 
 namespace z8 {
 class GameObject;
-class DX12SubMesh;
+struct DX12SubMesh;
+
 class DX12RenderObject {
 public:
   GameObject* Object;
   DX12SubMesh* SubMesh;
   unsigned ConstBufIndex;
 
-  DX12RenderObject(GameObject* O);
+  explicit DX12RenderObject(GameObject* O);
 };
 } // namespace z8

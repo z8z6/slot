@@ -4,21 +4,30 @@
 
 #pragma once
 #include "DX12Common.h"
+#include "UI/Object/GameObject/GameObject.h"
 #include "d3d12.h"
+
 #include <vector>
 
 namespace z8
 {
+class GameObject;
 // 每一种 Shader 都需要对应一个 PSO
 class DX12PipelineState : public DX12Common{
+  enum {
+    Default,
+    WireFrame
+  } PSOTy = WireFrame;
 public:
-  ComPtr<ID3D12PipelineState> Pipe;
-  ComPtr<ID3D12PipelineState> WireFrame;
+  ComPtr<ID3D12PipelineState> NormalPipe;
+  ComPtr<ID3D12PipelineState> WireFramePipe;
   std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
 
   DX12PipelineState(DX12Render* R);
 
-  void Init();
+  void Init(GameObject* O);
+  void UpdatePSOTy();
+  void Set();
   ID3D12PipelineState* Get() const;
   ID3D12PipelineState* operator->() const;
 };

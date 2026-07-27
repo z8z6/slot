@@ -3,7 +3,7 @@
 //
 
 #include "UI/Mesh/MeshRegistry.h"
-#include "UI/Mesh/RectangleMesh.h"
+#include "UI/Mesh/RectMesh.h"
 
 using namespace z8;
 

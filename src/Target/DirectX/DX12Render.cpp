@@ -15,13 +15,15 @@
 
 #include "../../../include/UI/Object/Camera/Camera.h"
 #include "UI/Mesh/Mesh.h"
+#include "UI/Object/UIObject/UIObject.h"
 
 using namespace DirectX;
 using namespace z8;
 
 z8::DX12Render::DX12Render(Application* app)
-    : App(app), Cmd(this), SwapChain(this), Msaa(this), PSO(this), RootSignature(this),
-      DepthStencil(this), RenderTarget(this), ConstBuffer(this), MeshManager(this), MaterialManager(this) {
+    : App(app), Cmd(this), SwapChain(this), Msaa(this), GOPipe(this), UOPipe(this),
+      RootSignature(this), DepthStencil(this), RenderTarget(this),
+      ConstBuffer(this), MeshManager(this), MaterialManager(this) {
   Ctx = &DX12Device::Instance();
 }
 
@@ -43,7 +45,8 @@ void z8::DX12Render::Init()
   MeshManager.Init();
   MaterialManager.Init();
   InitObject();
-  PSO.Init();
+  GOPipe.Init(App->GOs[0]);
+  UOPipe.Init(App->UOs[0]);
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
@@ -66,7 +69,8 @@ void z8::DX12Render::Draw()
 {
   Ok(Cmd.Allocator->Reset());
   // 绑定渲染流水线
-  Cmd.ResetWithPso();
+  Cmd.Reset();
+  GOPipe.Set();
 
   RenderTarget.Transition(false);
 
@@ -136,7 +140,7 @@ void DX12Render::Resize()
 
 void DX12Render::InitObject() {
   unsigned i = 0;
-  for (auto* O : App->Objects) {
+  for (auto* O : App->GOs) {
     DX12RenderObject RO(O);
     RO.ConstBufIndex = i;
     RO.SubMesh = MeshManager.GetSubMesh(O->Mesh);

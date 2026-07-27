@@ -53,17 +53,6 @@ void z8::DX12Command::Reset()
   Ok(List->Reset(Allocator.Get(), nullptr));
 }
 
-void z8::DX12Command::ResetWithPso()
-{
-  UpdatePSOTy();
-  if(PSOTy == WireFrame) {
-    Ok(List->Reset(Allocator.Get(), Render->PSO.WireFrame.Get()));
-  }
-  if(PSOTy == Default)  {
-    Ok(List->Reset(Allocator.Get(), Render->PSO.Pipe.Get()));
-  }
-}
-
 void z8::DX12Command::CloseAndExecute()
 {
   Ok(List->Close());
@@ -73,9 +62,3 @@ void z8::DX12Command::CloseAndExecute()
   Queue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 }
 
-void z8::DX12Command::UpdatePSOTy() {
-  if(GetAsyncKeyState('1') & 0x8000)
-    PSOTy = Default;
-  if(GetAsyncKeyState('2') & 0x8000)
-    PSOTy = WireFrame;
-}

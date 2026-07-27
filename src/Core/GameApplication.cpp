@@ -4,16 +4,12 @@
 
 #include "Core/GameApplication.h"
 
-#include "UI/Object/Camera/Camera.h"
-#include "UI/Object/GameObject/AmiyaObject.h"
-#include "UI/Object/GameObject/CubeObject.h"
-#include "UI/Object/GameObject/GridObject.h"
-#include "UI/Object/GameObject/SkullObject.h"
 #include "Target/Render.h"
 #include "UI/Light/ParallelLight.h"
+#include "UI/Object/Camera/Camera.h"
 #include "UI/Object/Camera/FirstPersonCamera.h"
-#include "UI/Object/GameObject/MountainObject.h"
-#include "UI/Object/GameObject/SphereObject.h"
+#include "UI/Object/GameObject/CubeObject.h"
+#include "UI/Object/UIObject/RectUIObject.h"
 
 using namespace z8;
 using namespace DirectX;
@@ -37,12 +33,8 @@ void z8::GameApplication::PrepareScene() {
     c->Transform.Scale.x *= 2;
     c->Transform.Scale.y *= 5;
     c->Transform.Scale.z *= 2;
-    Objects.push_back(c);
+    GOs.push_back(c);
   }
-  // auto* g = new SkullObject();
-  // g->Transform.Rotation.x = XMConvertToRadians(-90.0f);
-  // g->Transform.Rotation.y = XMConvertToRadians(180.0f);
-  // Objects.push_back(g);
-  // auto* g = new MountainObject();
-  // Objects.push_back(g);
+
+  UOs.push_back(new RectUIObject());
 }

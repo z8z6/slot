@@ -14,6 +14,7 @@ namespace z8
 {
 class Render;
 class GameObject;
+class UIObject;
 class Camera;
 class Light;
 class Application {
@@ -21,7 +22,8 @@ public:
   Window Window;
   Render* Render;
   Timer Timer;
-  std::vector<GameObject*> Objects;
+  std::vector<GameObject*> GOs;
+  std::vector<UIObject*> UOs;
   Camera* Camera;
   Light* Light;
 
