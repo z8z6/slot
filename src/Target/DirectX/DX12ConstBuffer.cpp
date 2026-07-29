@@ -11,16 +11,16 @@
 #include "Target/DirectX/DX12Render.h"
 #include "d3dx12.h"
 
-z8::DX12ConstBuffer::DX12ConstBuffer(DX12Render *R)
-: DX12Common(R), Buffer(R){}
 
+z8::DX12ConstBuffer::DX12ConstBuffer(DX12RenderBatch *B)
+: DX12Common(B->Render), Batch(B), Buffer(B->Render){}
 
 void z8::DX12ConstBuffer::InitDescriptor()
 {
   // 单个描述符大小
   DptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
   // 描述符个数： 每个物体的常量 + 全局常量
-  DptCount = Render->App->GOs.size() + 1;
+  DptCount = Batch->ROs.size() + 1;
 
   D3D12_DESCRIPTOR_HEAP_DESC CD;
   CD.NumDescriptors = DptCount;
@@ -31,13 +31,12 @@ void z8::DX12ConstBuffer::InitDescriptor()
   Ok(Ctx->Device->CreateDescriptorHeap(&CD, IID_PPV_ARGS(DptHeap.GetAddressOf())));
   // CPU 侧起始描述符
   Dpt = DptHeap->GetCPUDescriptorHandleForHeapStart();
-  // 全局常量位于最后一个索引
-  DX12GlobalConst::Index = DptCount - 1;
 }
 
 void z8::DX12ConstBuffer::InitBuffer()
 {
   // 计算单个缓冲区大小
+  // 每个物体的世界坐标
   SingleBufSize = sizeof(DirectX::XMFLOAT4X4);
   StepSize = AlignedSize(SingleBufSize);
   // 计算总缓冲区的大小
@@ -54,7 +53,7 @@ void z8::DX12ConstBuffer::InitBuffer()
     CD.SizeInBytes = StepSize;
 
     // 最后一个缓冲区是全局常量
-    if (i == DX12GlobalConst::Index) {
+    if (i == GetGlobalConstIndex()) {
       CD.SizeInBytes = DX12GlobalConst::AlignedSize();
     }
 

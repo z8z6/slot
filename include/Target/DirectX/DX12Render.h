@@ -5,14 +5,13 @@
 
 #include "DX12Command.h"
 #include "DX12Common.h"
-#include "DX12ConstBuffer.h"
 #include "DX12DepthStencil.h"
 #include "DX12GlobalConst.h"
 #include "DX12MaterialManager.h"
 #include "DX12MeshManager.h"
 #include "DX12Msaa.h"
 #include "DX12PipelineState.h"
-#include "DX12RenderObject.h"
+#include "DX12RenderBatch.h"
 #include "DX12RenderTarget.h"
 #include "DX12RootSignature.h"
 #include "DX12SwapChain.h"
@@ -38,17 +37,17 @@ public:
   DX12Command Cmd;
   DX12SwapChain SwapChain;
   DX12Msaa Msaa;
-  DX12PipelineState GOPipe;
-  DX12PipelineState UOPipe;
-  DX12RootSignature RootSignature;
+
   DX12DepthStencil DepthStencil;
   DX12RenderTarget RenderTarget;
-  DX12ConstBuffer ConstBuffer;
+
   DX12MeshManager MeshManager;
   DX12MaterialManager MaterialManager;
   DX12GlobalConst GlobalConst;
+  DX12RootSignature RootSignature;
 
-  std::vector<DX12RenderObject> RenderObjects;
+  DX12RenderBatch GOBatch;
+  DX12RenderBatch UOBatch;
 
   explicit DX12Render(Application* app);
 
@@ -59,7 +58,6 @@ public:
   void Draw() override;
   void Resize() override;
 
-  void InitObject();
   Camera* GetCamera() const;
   Window* GetWindow() const;
   Timer* GetTimer() const;

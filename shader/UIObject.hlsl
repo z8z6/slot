@@ -4,12 +4,14 @@ struct VertexIn
 {
 	float3 LocalPositon     : POSITION;
     float3 LocalNormal      : NORMAL;
+    float2 TexC             : TEXCOORD;
 };
 
 struct VertexOut
 {
 	float4 PosH  : SV_POSITION;
     float4 Color : COLOR;
+    float2 TexC  : TEXCOORD;
 };
 
 // 计算在世界矩阵下，各个顶点和法线的坐标

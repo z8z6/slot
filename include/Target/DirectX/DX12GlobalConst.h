@@ -29,9 +29,11 @@ struct  DX12GlobalConst {
   float TimeCost;
   float TimeTotal;
 
-  inline static unsigned Index = 0;
   void Update(DX12Render* R);
   static unsigned AlignedSize();
+
+private:
+  void WriteToBuffer(DX12Render* R) const;
 };
 
 

@@ -10,8 +10,7 @@
 
 #include "Event.h"
 
-namespace z8
-{
+namespace z8 {
 class Render;
 class GameObject;
 class UIObject;
@@ -20,12 +19,12 @@ class Light;
 class Application {
 public:
   Window Window;
-  Render* Render;
+  Render *Render;
   Timer Timer;
-  std::vector<GameObject*> GOs;
-  std::vector<UIObject*> UOs;
-  Camera* Camera;
-  Light* Light;
+  std::vector<GameObject *> GOs;
+  std::vector<GameObject *> UOs;
+  Camera *Camera;
+  Light *Light;
 
   Application();
   virtual ~Application() = default;
@@ -33,7 +32,7 @@ public:
   virtual void Init();
   LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
 
-  inline static std::vector<Application*> Apps;
+  inline static std::vector<Application *> Apps;
   // 所有 App 都在这个方法中处理
   static int Run();
   static LRESULT CALLBACK FakeMsgHandler(HWND, UINT, WPARAM, LPARAM);
@@ -47,10 +46,4 @@ private:
   void OnKeyDown(KeyArgs);
   void OnKeyUp(KeyArgs);
 };
-}
-
-
-
-
-
-
+} // namespace z8

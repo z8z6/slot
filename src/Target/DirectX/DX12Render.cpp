@@ -3,27 +3,24 @@
 //
 
 #include "Target/DirectX/DX12Render.h"
-#include "../../../include/UI/Object/GameObject/GameObject.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Shader.h"
+#include "UI/Object/Camera/Camera.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
 #include <dxgi1_4.h>
 
-#include "../../../include/UI/Object/Camera/Camera.h"
-#include "UI/Mesh/Mesh.h"
-#include "UI/Object/UIObject/UIObject.h"
 
 using namespace DirectX;
 using namespace z8;
 
-z8::DX12Render::DX12Render(Application* app)
-    : App(app), Cmd(this), SwapChain(this), Msaa(this), GOPipe(this), UOPipe(this),
-      RootSignature(this), DepthStencil(this), RenderTarget(this),
-      ConstBuffer(this), MeshManager(this), MaterialManager(this) {
+DX12Render::DX12Render(Application* app)
+    : App(app), Cmd(this), SwapChain(this), Msaa(this), RootSignature(this),
+      GOBatch(this), UOBatch(this), DepthStencil(this), RenderTarget(this),
+      MeshManager(this), MaterialManager(this) {
   Ctx = &DX12Device::Instance();
 }
 
@@ -34,19 +31,20 @@ void z8::DX12Render::Init()
   SwapChain.Init();
   RenderTarget.InitDescriptor();
   DepthStencil.InitDescriptor();
-  ConstBuffer.InitDescriptor();
+
+  // GOBatch.Buffer.InitDescriptor();
+  // UOBatch.Buffer.InitDescriptor();
 
   Resize();
 
   Cmd.Reset();
 
-  ConstBuffer.InitBuffer();
   RootSignature.Init();
   MeshManager.Init();
   MaterialManager.Init();
-  InitObject();
-  GOPipe.Init(App->GOs[0]);
-  UOPipe.Init(App->UOs[0]);
+
+  GOBatch.Init(App->GOs);
+  UOBatch.Init(App->UOs);
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
@@ -59,10 +57,8 @@ void z8::DX12Render::Update()
   // 2. 更新全局常量
   GlobalConst.Update(this);
   // 3. 更新物体数据
-  for (auto& O : RenderObjects) {
-    O.Object->Update(GetTimer());
-    memcpy(ConstBuffer.GetCPUOffset(O.ConstBufIndex), O.Object->ConstBuf(), O.Object->ConstBufSize());
-  }
+  GOBatch.Update();
+  UOBatch.Update();
 }
 
 void z8::DX12Render::Draw()
@@ -70,7 +66,6 @@ void z8::DX12Render::Draw()
   Ok(Cmd.Allocator->Reset());
   // 绑定渲染流水线
   Cmd.Reset();
-  GOPipe.Set();
 
   RenderTarget.Transition(false);
 
@@ -84,26 +79,10 @@ void z8::DX12Render::Draw()
 
   RenderTarget.Bind();
 
-  // 设置常量缓冲区的描述符堆
-  ID3D12DescriptorHeap* descriptorHeaps[] = {ConstBuffer.DptHeap.Get()};
-  Cmd.List->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
   RootSignature.Bind();
 
-  // 寄存器 b1: 物体材质常量
-  Cmd.List->SetGraphicsRootConstantBufferView(1, MaterialManager.Buffer.DefaultBuffer->GetGPUVirtualAddress());
-  // 寄存器 b2: 全局常量
-  Cmd.List->SetGraphicsRootDescriptorTable(2, ConstBuffer.GetGPUDescriptor(DX12GlobalConst::Index));
-
-  // 依次绘制各个物体
-  for (auto& O : RenderObjects) {
-    MeshManager.Bind();
-    // 寄存器 b0: 物体位置常量
-    Cmd.List->SetGraphicsRootDescriptorTable(0, ConstBuffer.GetGPUDescriptor(O.ConstBufIndex));
-    Cmd.List->DrawIndexedInstanced(O.SubMesh->IndexCount,
-    1, O.SubMesh->StartIndexLocation,
-    O.SubMesh->BaseVertexLocation, 0);
-  }
+  GOBatch.Draw();
+  // UOBatch.Draw();
 
   RenderTarget.Transition();
 
@@ -138,16 +117,6 @@ void DX12Render::Resize()
   GetCamera()->UpdateProj(GetWindow()->AspectRatio());
 }
 
-void DX12Render::InitObject() {
-  unsigned i = 0;
-  for (auto* O : App->GOs) {
-    DX12RenderObject RO(O);
-    RO.ConstBufIndex = i;
-    RO.SubMesh = MeshManager.GetSubMesh(O->Mesh);
-    RenderObjects.push_back(RO);
-    ++i;
-  }
-}
 
 Camera * DX12Render::GetCamera() const
 {

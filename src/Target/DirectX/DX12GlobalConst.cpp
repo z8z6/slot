@@ -29,9 +29,19 @@ void DX12GlobalConst::Update(DX12Render* R) {
   TimeTotal = R->GetTimer()->TimeTotal;
 
   // 写入常量缓冲区
-  memcpy(R->ConstBuffer.GetCPUOffset(Index), this, sizeof(DX12GlobalConst));
+  WriteToBuffer(R);
 }
 
 unsigned DX12GlobalConst::AlignedSize() {
   return DX12ConstBuffer::AlignedSize(sizeof(DX12GlobalConst));
+}
+
+void DX12GlobalConst::WriteToBuffer(DX12Render* R) const {
+  auto index = R->GOBatch.Buffer.GetGlobalConstIndex();
+  auto offset = R->GOBatch.Buffer.GetCPUOffset(index);
+  memcpy(offset, this, sizeof(DX12GlobalConst));
+
+  index = R->UOBatch.Buffer.GetGlobalConstIndex();
+  offset = R->UOBatch.Buffer.GetCPUOffset(index);
+  memcpy(offset, this, sizeof(DX12GlobalConst));
 }

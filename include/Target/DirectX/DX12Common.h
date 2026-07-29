@@ -27,15 +27,16 @@ class DX12SwapChain;
 class DX12Command;
 class DX12RenderTarget;
 class DX12DepthStencil;
+class DX12RenderBatch;
 template<typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 class DX12Common
 {
-protected:
+public:
   DX12Device* Ctx;
   DX12Render* Render;
-public:
+
   DX12Common(DX12Render*);
   virtual ~DX12Common() = default;
 };

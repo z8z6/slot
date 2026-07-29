@@ -4,6 +4,7 @@ struct VertexIn
 {
 	float3 LocalPositon     : POSITION;
     float3 LocalNormal      : NORMAL;
+    float2 TexC             : TEXCOORD;
 };
 
 struct VertexOut
@@ -11,6 +12,7 @@ struct VertexOut
 	float4 SVPositon        : SV_POSITION;
     float3 WorldPositon     : POSITION;
     float3 WorldNormal      : NORMAL;
+    float2 TexC             : TEXCOORD;
 };
 
 
@@ -25,6 +27,7 @@ VertexOut VS(VertexIn vin)
     // @todo 非归一化变化需要转置逆矩阵
     float3x3 normalMatrix = (float3x3)World;
     vout.WorldNormal = mul(vin.LocalNormal, normalMatrix);
+    vout.TexC = vin.TexC;
     return vout;
 }
 

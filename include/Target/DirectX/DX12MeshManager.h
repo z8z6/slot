@@ -32,7 +32,6 @@ public:
   D3D12_VERTEX_BUFFER_VIEW Vv;
   D3D12_INDEX_BUFFER_VIEW Iv;
 
-
   DXGI_FORMAT FormatIBuf = DXGI_FORMAT_R16_UINT;
   std::unordered_map<Mesh*, DX12SubMesh> SubMeshes;
 
