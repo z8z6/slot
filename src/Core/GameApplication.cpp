@@ -5,6 +5,7 @@
 #include "Core/GameApplication.h"
 
 #include "Target/Render.h"
+#include "UI/Layout/RectNode.h"
 #include "UI/Light/ParallelLight.h"
 #include "UI/Object/Camera/Camera.h"
 #include "UI/Object/Camera/FirstPersonCamera.h"
@@ -36,5 +37,6 @@ void z8::GameApplication::PrepareScene() {
     GOs.push_back(c);
   }
 
-  UOs.push_back(new RectUIObject());
+  Layout.Add();
+  Layout.Add();
 }

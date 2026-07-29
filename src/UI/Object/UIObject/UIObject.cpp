@@ -2,9 +2,9 @@
 // Created by zhou_zhengming on 2026/5/17.
 //
 
-#include "../../../../include/UI/Object/UIObject/UIObject.h"
+#include "UI/Object/UIObject/UIObject.h"
 
-#include "../../../../include/UI/Object/Camera/Camera.h"
+#include "UI/Object/Camera/Camera.h"
 #include "Target/DirectX/DX12Shader.h"
 #include "UI/Shader/UIObjectShader.h"
 

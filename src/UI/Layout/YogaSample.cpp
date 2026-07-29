@@ -12,11 +12,11 @@ void init() {
   YGNodeRef child0 = YGNodeNew();
   YGNodeStyleSetFlexGrow(child0, 1.0f);
   YGNodeStyleSetMargin(child0, YGEdgeRight, 10.0f);
-  YGNodeInsertChild(root, child0, 0.0f);
+  YGNodeInsertChild(root, child0, 0);
 
   YGNodeRef child1 = YGNodeNew();
   YGNodeStyleSetFlexGrow(child1, 1.0f);
-  YGNodeInsertChild(root, child1, 1.0f);
+  YGNodeInsertChild(root, child1, 1);
 
   float left = YGNodeLayoutGetLeft(child0);
   float height = YGNodeLayoutGetHeight(child0);

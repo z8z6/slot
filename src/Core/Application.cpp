@@ -18,9 +18,11 @@ using namespace z8;
 using namespace std;
 
 
-z8::Application::Application() {
-  SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-  SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(FakeMsgHandler));
+z8::Application::Application() : Layout(this) {
+  SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA,
+                    reinterpret_cast<LONG_PTR>(this));
+  SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC,
+                    reinterpret_cast<LONG_PTR>(FakeMsgHandler));
   Application::Apps.push_back(this);
 }
 
@@ -51,6 +53,7 @@ int z8::Application::Run() {
       for (auto* App : Apps) {
         App->Timer.Tick();
         App->ShowFrame();
+        App->Layout.Update();
         App->Render->Update();
         App->Render->Draw();
       }
@@ -90,6 +93,7 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     Window.Height = HIWORD(lParam);
     // std::cerr << Window.Width << " | " << Window.Height << std::endl;
     if(wParam == SIZE_MINIMIZED) return 0;
+    Layout.Resize();
     Render->Resize();
     return 0;
 
@@ -101,6 +105,7 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
     // Here we reset everything based on the new window dimensions.
   case WM_EXITSIZEMOVE:
+    Layout.Resize();
     Render->Resize();
     return 0;
 

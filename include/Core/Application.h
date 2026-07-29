@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Event.h"
+#include "UI/Layout/Layout.h"
 
 namespace z8 {
 class Render;
@@ -22,7 +23,7 @@ public:
   Render *Render;
   Timer Timer;
   std::vector<GameObject *> GOs;
-  std::vector<GameObject *> UOs;
+  ui::Layout Layout;
   Camera *Camera;
   Light *Light;
 

@@ -3,11 +3,11 @@
 //
 
 #pragma once
-#include "../UIObject/UIObject.h"
+#include "SimpleGameObject.h"
 
 namespace z8
 {
-class RectObject : public UIObject
+class RectObject : public SimpleGameObject
 {
 public:
   RectObject();

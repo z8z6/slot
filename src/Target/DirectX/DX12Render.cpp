@@ -44,7 +44,7 @@ void z8::DX12Render::Init()
   MaterialManager.Init();
 
   GOBatch.Init(App->GOs);
-  UOBatch.Init(App->UOs);
+  UOBatch.Init(App->Layout.UOs);
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
@@ -82,7 +82,7 @@ void z8::DX12Render::Draw()
   RootSignature.Bind();
 
   GOBatch.Draw();
-  // UOBatch.Draw();
+  UOBatch.Draw();
 
   RenderTarget.Transition();
 
