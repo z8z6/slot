@@ -26,6 +26,8 @@ struct  DX12GlobalConst {
   DX12Light Light;
   DirectX::XMFLOAT4 AmbientLight;
   DirectX::XMFLOAT3 Camera;
+  float p0;
+  DirectX::XMFLOAT2 ScreenSize;
   float TimeCost;
   float TimeTotal;
 

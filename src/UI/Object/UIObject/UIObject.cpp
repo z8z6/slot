@@ -16,11 +16,11 @@ z8::UIObject::UIObject() {
   VertexShader = DX12ShaderRegistry::Instance().Get(UIObjectVertexShader().Name);
 }
 
-void UIObject::SetPosition(float x, float y) {
+void UIObject::SetPosition(float x, float y, float w, float h) {
   // 默认网格原点在中心，且变长为 0.5
   // 将左上角坐标转为中心坐标
-  Transform.Position.x = x + 0.5f;
-  Transform.Position.y = y + 0.5f;
+  Transform.Position.x = x + w / 2;
+  Transform.Position.y = y + h / 2;
 }
 
 void UIObject::SetScale(float x, float y) {

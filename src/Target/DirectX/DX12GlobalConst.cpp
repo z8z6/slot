@@ -5,6 +5,7 @@
 #include "Target/DirectX/DX12GlobalConst.h"
 #include "../../../include/UI/Object/Camera/Camera.h"
 #include "Core/Timer.h"
+#include "Core/Window.h"
 #include "Target/DirectX/DX12Render.h"
 #include "UI/Light/Light.h"
 
@@ -24,6 +25,9 @@ void DX12GlobalConst::Update(DX12Render* R) {
   Light.Position = R->GetLight()->Transform.Position;
   Light.Strength = R->GetLight()->Color;
   Light.Direction = R->GetLight()->Direction;
+
+  ScreenSize.x = static_cast<float>(R->GetWindow()->Width);
+  ScreenSize.y = static_cast<float>(R->GetWindow()->Height);
 
   TimeCost = R->GetTimer()->TimeCost;
   TimeTotal = R->GetTimer()->TimeTotal;

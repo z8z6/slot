@@ -15,7 +15,7 @@ namespace z8
 class UIObject : public GameObjectImpl<DirectX::XMFLOAT4X4>{
 public:
   UIObject();
-  void SetPosition(float x, float y);
+  void SetPosition(float x, float y, float w, float h);
   void SetScale(float x, float y);
   void Update(Timer*) override;
 };

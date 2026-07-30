@@ -17,7 +17,7 @@ private:
 
   inline static float Near = 1.0f;
   inline static float Far = 1000.0f;
-  inline static float Fov = 45.0f;
+  inline static float Fov = 120.0f;
 public:
   Camera();
   DirectX::XMFLOAT4X4& GetView() { return View; }

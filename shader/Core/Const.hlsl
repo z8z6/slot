@@ -18,6 +18,8 @@ cbuffer cbPass : register(b2)
     Light gLight;
     float4 AmbientLight;
     float3 Camera;
+    float p5;
+    float2 ScreenSize;
     float TimeCost;
     float TimeTotal;
 };
