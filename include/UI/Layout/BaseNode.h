@@ -17,6 +17,8 @@ public:
 
   BaseNode();
   virtual ~BaseNode();
+  size_t GetChildCount() const;
+  void AddChild(BaseNode *child) const;
 };
 
 }

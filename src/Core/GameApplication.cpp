@@ -13,6 +13,7 @@
 #include "UI/Object/UIObject/RectUIObject.h"
 
 using namespace z8;
+using namespace z8::ui;
 using namespace DirectX;
 
 void GameApplication::Init() {
@@ -27,7 +28,7 @@ void GameApplication::Init() {
   Window.Open();
 }
 
-void z8::GameApplication::PrepareScene() {
+void GameApplication::PrepareScene() {
   for (int i = -2; i < 3; i++) {
     auto* c = new CubeObject();
     c->Transform.Position.x = 10.0f * i;
@@ -37,6 +38,9 @@ void z8::GameApplication::PrepareScene() {
     GOs.push_back(c);
   }
 
-  Layout.Add();
-  Layout.Add();
+  for (int i = 0; i < 3; i++) {
+    auto* N = new RectNode();
+    Layout.Root->AddChild(N);
+    Layout.Add(N);
+  }
 }

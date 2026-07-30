@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_compile_definitions(UNICODE _UNICODE)
 add_compile_options("/utf-8")
+add_definitions(-DNOMINMAX)
 
 add_subdirectory(third/yoga)
 

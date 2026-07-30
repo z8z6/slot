@@ -93,7 +93,7 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     Window.Height = HIWORD(lParam);
     // std::cerr << Window.Width << " | " << Window.Height << std::endl;
     if(wParam == SIZE_MINIMIZED) return 0;
-    Layout.Resize();
+    Layout.Update();
     Render->Resize();
     return 0;
 
@@ -105,7 +105,7 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
     // Here we reset everything based on the new window dimensions.
   case WM_EXITSIZEMOVE:
-    Layout.Resize();
+    Layout.Update();
     Render->Resize();
     return 0;
 

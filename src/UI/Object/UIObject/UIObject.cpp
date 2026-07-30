@@ -9,10 +9,24 @@
 #include "UI/Shader/UIObjectShader.h"
 
 using namespace DirectX;
+using namespace z8;
 
 z8::UIObject::UIObject() {
   PixelShader = DX12ShaderRegistry::Instance().Get(UIObjectPixelShader().Name);
   VertexShader = DX12ShaderRegistry::Instance().Get(UIObjectVertexShader().Name);
+}
+
+void UIObject::SetPosition(float x, float y) {
+  // 默认网格原点在中心，且变长为 0.5
+  // 将左上角坐标转为中心坐标
+  Transform.Position.x = x + 0.5f;
+  Transform.Position.y = y + 0.5f;
+}
+
+void UIObject::SetScale(float x, float y) {
+  // 默认原网格总长度为 1
+  Transform.Scale.x = x;
+  Transform.Scale.y = y;
 }
 
 void z8::UIObject::Update(Timer* T) {

@@ -24,7 +24,9 @@ public:
   explicit Layout(Application* App);
   void Add(BaseNode* Node = new RectNode);
   void Update();
-  void Resize();
+
+private:
+  void UpdateTree(YGNodeRef Node, float parentX, float parentY);
 };
 }
 

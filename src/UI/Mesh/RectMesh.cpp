@@ -11,15 +11,20 @@ using namespace z8;
 
 static MeshRegister<RectMesh> R;
 
+/**
+ * 1 -- 2
+ * |    |
+ * 0 -- 3
+ */
 z8::RectMesh::RectMesh() {
   V = {
-    Vertex(-1.0f, -1.0f, 0.0f),
-       Vertex(-1.0f, +1.0f, 0.0f),
-       Vertex(+1.0f, +1.0f, 0.0f),
-       Vertex(+1.0f, -1.0f, 0.0f)
+    Vertex(-0.5f, -0.5f, 0.0f),
+       Vertex(-0.5f, 0.5f, 0.0f),
+       Vertex(0.5f, 0.5f, 0.0f),
+       Vertex(0.5f, -0.5f, 0.0f)
   };
 
-  I = {// front face
+  I = {
        0, 1, 2,
        0, 2, 3};
 

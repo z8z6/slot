@@ -23,15 +23,37 @@ void Layout::Add(BaseNode *Node) {
 }
 
 void Layout::Update() {
-  float w = YGNodeLayoutGetWidth(Root->Node);
-  float h = YGNodeLayoutGetHeight(Root->Node);
+  auto w = static_cast<float>(App->Window.Width);
+  auto h = static_cast<float>(App->Window.Height);
+  // 计算整体布局
   YGNodeCalculateLayout(Root->Node, w, h, YGDirectionLTR);
+  // 更新节点树
+  UpdateTree(Root->Node, 0, 0);
+
 }
 
-void Layout::Resize() {
-  float w = static_cast<float>(App->Window.Width);
-  float h = static_cast<float>(App->Window.Height);
-  YGNodeStyleSetWidth(Root->Node, w);
-  YGNodeStyleSetHeight(Root->Node, h);
-  Update();
+
+void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY) {
+  auto N = static_cast<BaseNode *>(YGNodeGetContext(Node));
+
+  // 相对于父容器的位置
+  float x = YGNodeLayoutGetLeft(Node);
+  float y = YGNodeLayoutGetTop(Node);
+
+  // 长宽
+  float width = YGNodeLayoutGetWidth(Node);
+  float height = YGNodeLayoutGetHeight(Node);
+
+  // 计算绝对位置
+  float absX = parentX + x;
+  float absY = parentY + y;
+
+  // 应用位置和大小
+  N->O->SetPosition(absX, absY);
+  N->O->SetScale(width, height);
+
+  for (size_t i = 0; i < N->GetChildCount(); ++i) {
+    YGNodeRef child = YGNodeGetChild(Node, i);
+    UpdateTree(child, absX, absY);
+  }
 }
