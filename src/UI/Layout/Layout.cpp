@@ -55,14 +55,6 @@ void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY) {
   N->O->SetPosition(absX, absY, width, height);
   N->O->SetScale(width, height);
 
-  // left: 0, top: 0, width: 960, height: 540
-  // left: 0, top: 0, width: 960, height: 180
-  // left: 0, top: 180, width: 960, height: 180
-  // left: 0, top: 360, width: 960, height: 180
-
-  // std::cout << "left: " << absX << ", top: " << absY
-  // << ", width: " << width << ", height: " << height << std::endl;
-
   for (size_t i = 0; i < N->GetChildCount(); ++i) {
     YGNodeRef child = YGNodeGetChild(Node, i);
     UpdateTree(child, absX, absY);

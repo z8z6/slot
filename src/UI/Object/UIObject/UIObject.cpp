@@ -8,6 +8,9 @@
 #include "Target/DirectX/DX12Shader.h"
 #include "UI/Shader/UIObjectShader.h"
 
+#include <iostream>
+#include <ostream>
+
 using namespace DirectX;
 using namespace z8;
 
