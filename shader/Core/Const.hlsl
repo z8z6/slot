@@ -3,6 +3,7 @@
 cbuffer cbPerObject : register(b0)
 {
 	float4x4 World;
+    float4 ObjectColor;
 };
 
 cbuffer cbMaterial : register(b1)

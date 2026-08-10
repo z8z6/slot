@@ -15,8 +15,8 @@ using namespace DirectX;
 using namespace z8;
 
 z8::UIObject::UIObject() {
-  PixelShader = DX12ShaderRegistry::Instance().Get(UIObjectPixelShader().Name);
-  VertexShader = DX12ShaderRegistry::Instance().Get(UIObjectVertexShader().Name);
+  PixelShader = DX12ShaderRegistry::Instance().Get("UIObject_P");
+  VertexShader = DX12ShaderRegistry::Instance().Get("UIObject_V");
 }
 
 void UIObject::SetPosition(float x, float y, float w, float h) {
@@ -35,5 +35,5 @@ void UIObject::SetScale(float x, float y) {
 void z8::UIObject::Update(Timer* T) {
   Transform.UpdateWorld();
   XMMATRIX w = XMLoadFloat4x4(&Transform.World);
-  XMStoreFloat4x4(&Const, XMMatrixTranspose(w));
+  XMStoreFloat4x4(&Const.World, XMMatrixTranspose(w));
 }

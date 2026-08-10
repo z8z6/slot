@@ -39,12 +39,15 @@ void z8::DX12Render::Init()
 
   Cmd.Reset();
 
+  // 所有 Shader 在设备初始化阶段统一编译，静态注册阶段不执行文件 I/O。
+  DX12ShaderRegistry::Instance().CompileAll();
   RootSignature.Init();
   MeshManager.Init();
   MaterialManager.Init();
 
   GOBatch.Init(App->GOs);
   UOBatch.Init(App->Layout.UOs);
+  App->Layout.ConsumeTopologyDirty();
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
@@ -52,6 +55,9 @@ void z8::DX12Render::Init()
 
 void z8::DX12Render::Update()
 {
+  // 即时声明只在控件拓扑变化时重建 UI 常量缓冲；稳定帧复用原有 GPU 资源。
+  if (App->Layout.ConsumeTopologyDirty())
+    UOBatch.Init(App->Layout.UOs);
   // 1. 更新相机坐标
   GetCamera()->Update(GetTimer());
   // 2. 更新全局常量

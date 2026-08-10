@@ -9,7 +9,10 @@
 #include "Core/Application.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Render.h"
+#include "UI/Object/GameObject/GameObject.h"
 #include "d3dx12.h"
+
+#include <algorithm>
 
 
 z8::DX12ConstBuffer::DX12ConstBuffer(DX12RenderBatch *B)
@@ -28,16 +31,19 @@ void z8::DX12ConstBuffer::InitDescriptor()
   CD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
   CD.NodeMask = 0;
   // 创建描述符堆
-  Ok(Ctx->Device->CreateDescriptorHeap(&CD, IID_PPV_ARGS(DptHeap.GetAddressOf())));
+  // UI 拓扑变化会重建描述符堆，必须先释放旧 COM 引用。
+  Ok(Ctx->Device->CreateDescriptorHeap(
+      &CD, IID_PPV_ARGS(DptHeap.ReleaseAndGetAddressOf())));
   // CPU 侧起始描述符
   Dpt = DptHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
 void z8::DX12ConstBuffer::InitBuffer()
 {
-  // 计算单个缓冲区大小
-  // 每个物体的世界坐标
-  SingleBufSize = sizeof(DirectX::XMFLOAT4X4);
+  // 同一批次允许不同的对象常量结构，以最大结构作为统一步长，避免相邻槽覆盖。
+  SingleBufSize = 1;
+  for (const auto& object : Batch->ROs)
+    SingleBufSize = (std::max)(SingleBufSize, object.Object->ConstBufSize());
   StepSize = AlignedSize(SingleBufSize);
   // 计算总缓冲区的大小
   unsigned TotalSize = StepSize * (DptCount - 1) + DX12GlobalConst::AlignedSize();

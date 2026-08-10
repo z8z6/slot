@@ -5,6 +5,8 @@
 #pragma once
 #include "RectNode.h"
 
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace z8 {
@@ -22,10 +24,21 @@ public:
   BaseNode* Root;
 
   explicit Layout(Application* App);
-  void Add(BaseNode* Node = new RectNode);
+  ~Layout();
+
+  void SetRoot(std::unique_ptr<BaseNode> root);
+  void RebuildIndex();
+  BaseNode* Find(const std::string& key) const;
   void Update();
+  void Calculate(float width, float height);
+
+  void MarkTopologyDirty() { TopologyDirty = true; }
+  bool ConsumeTopologyDirty();
 
 private:
+  std::unique_ptr<BaseNode> RootOwner;
+  bool TopologyDirty = true;
+  void IndexTree(BaseNode* node);
   void UpdateTree(YGNodeRef Node, float parentX, float parentY);
 };
 }

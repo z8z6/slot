@@ -17,6 +17,8 @@ DX12RenderBatch::DX12RenderBatch(DX12Render *R)
 
 void DX12RenderBatch::Init(std::vector<GameObject *> &Os) {
   // 1. 初始化 RO
+  // 批次允许为空，UI 声明在运行时发生变化时可安全重建。
+  ROs.clear();
   unsigned i = 0;
   for (auto* O : Os) {
     DX12RenderObject RO(O);
@@ -29,7 +31,7 @@ void DX12RenderBatch::Init(std::vector<GameObject *> &Os) {
   // 2. 初始化常量缓冲区
   Buffer.InitDescriptor();
   Buffer.InitBuffer();
-  Pipe.Init(Os[0]);
+  if (!Os.empty()) Pipe.Init(Os[0]);
 }
 
 void DX12RenderBatch::Update() const {
@@ -40,6 +42,7 @@ void DX12RenderBatch::Update() const {
 }
 
 void DX12RenderBatch::Draw() {
+  if (ROs.empty()) return;
   Pipe.Set();
 
   // 设置常量缓冲区的描述符堆

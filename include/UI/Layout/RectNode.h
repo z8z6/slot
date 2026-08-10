@@ -9,6 +9,7 @@ namespace z8::ui {
 class RectNode : public BaseNode {
 public:
   RectNode();
+  const char* TypeName() const override { return "Rect"; }
 };
 
 }

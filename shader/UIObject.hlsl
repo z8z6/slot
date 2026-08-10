@@ -31,7 +31,7 @@ VertexOut VS(VertexIn vin)
     float4 posW = mul(float4(vin.LocalPositon, 1.0f), World);
     float2 ScreenPosition = posW.xy;
     vout.SVPosition = ScreenToNDC(ScreenPosition, ScreenSize);
-    vout.Color = float4(1.0f, 0.0f, 1.0f, 1.0f);
+    vout.Color = ObjectColor;
     return vout;
 }
 

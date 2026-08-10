@@ -6,6 +6,7 @@
 
 #include "Target/Render.h"
 #include "UI/Layout/RectNode.h"
+#include "UI/Declarative/ImmediateUI.h"
 #include "UI/Light/ParallelLight.h"
 #include "UI/Object/Camera/Camera.h"
 #include "UI/Object/Camera/FirstPersonCamera.h"
@@ -38,9 +39,20 @@ void GameApplication::PrepareScene() {
     GOs.push_back(c);
   }
 
-  for (int i = 0; i < 3; i++) {
-    auto* N = new RectNode();
-    Layout.Root->AddChild(N);
-    Layout.Add(N);
+  // ImGui 风格声明会生成并保留控件树；稳定 key 使后续重复声明能够复用控件。
+  ImmediateUI ui(Layout);
+  ui.BeginFrame();
+  UIStyle panelStyle;
+  panelStyle.Width = 360.0f;
+  panelStyle.Height = 240.0f;
+  panelStyle.Padding = 8.0f;
+  if (ui.BeginPanel("scene-panel", "Scene", panelStyle)) {
+    UIStyle itemStyle;
+    itemStyle.FlexGrow = 1.0f;
+    itemStyle.Margin = 4.0f;
+    ui.Rect("scene-item-1", itemStyle);
+    ui.Rect("scene-item-2", itemStyle);
+    ui.EndPanel();
   }
+  ui.EndFrame();
 }

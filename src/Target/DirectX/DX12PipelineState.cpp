@@ -7,6 +7,7 @@
 #include "Target/DirectX/DX12Render.h"
 #include "Target/DirectX/DX12Shader.h"
 #include "UI/Object/GameObject/GameObject.h"
+#include "UI/Object/UIObject/UIObject.h"
 #include "UI/Shader/Shader.h"
 #include "Util/Error.h"
 #include "d3d12.h"
@@ -37,6 +38,19 @@ void DX12PipelineState::Init(GameObject* O)
   PD.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   PD.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
   PD.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+  if (dynamic_cast<UIObject*>(O)) {
+    // UI 依靠声明顺序叠放；关闭深度并启用 alpha，避免同平面标题栏被背景遮挡。
+    PD.DepthStencilState.DepthEnable = false;
+    PD.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+    auto& blend = PD.BlendState.RenderTarget[0];
+    blend.BlendEnable = true;
+    blend.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+    blend.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+    blend.BlendOp = D3D12_BLEND_OP_ADD;
+    blend.SrcBlendAlpha = D3D12_BLEND_ONE;
+    blend.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+    blend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+  }
   PD.SampleMask = UINT_MAX;
   PD.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
   PD.NumRenderTargets = 1;

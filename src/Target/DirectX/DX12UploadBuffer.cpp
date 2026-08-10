@@ -12,10 +12,14 @@ DX12UploadBuffer::DX12UploadBuffer(DX12Render *R)
 : DX12Buffer(R), GPUBuffer(nullptr), CPUBuffer(nullptr) {}
 
 DX12UploadBuffer::~DX12UploadBuffer() {
-  GPUBuffer->Unmap(0, nullptr);
+  if (GPUBuffer) GPUBuffer->Unmap(0, nullptr);
 }
 
 void DX12UploadBuffer::Init(unsigned size) {
+  // 动态 UI 拓扑变化时常量上传区会重建；先解除旧映射再替换资源。
+  if (GPUBuffer) GPUBuffer->Unmap(0, nullptr);
+  CPUBuffer = nullptr;
+  GPUBuffer.Reset();
   auto Prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
   auto Desc = CD3DX12_RESOURCE_DESC::Buffer(size);
   // 创建 GPU 侧缓冲区

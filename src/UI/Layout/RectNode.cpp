@@ -9,5 +9,5 @@
 using namespace z8::ui;
 
 RectNode::RectNode() {
-  O = new RectUIObject();
+  SetObject(std::make_unique<RectUIObject>());
 }

@@ -8,7 +8,8 @@
 namespace z8 {
 class DX12Shader;
 struct Shader {
-  DX12Shader* Binary;
+  // Binary 由 DX12ShaderRegistry 统一拥有，在 CompileAll 后可用。
+  DX12Shader* Binary = nullptr;
   std::wstring FileName;
   std::string Name;
   std::string Target;
@@ -18,14 +19,14 @@ struct Shader {
 struct PixelShader: public Shader {
   PixelShader() {
     Entry = "PS";
-    Target = "ps_5_0";
+    Target = "ps_6_0";
   }
 };
 
 struct VertexShader: public Shader {
   VertexShader() {
     Entry = "VS";
-    Target = "vs_5_0";
+    Target = "vs_6_0";
   }
 };
 }

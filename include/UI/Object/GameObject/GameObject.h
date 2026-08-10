@@ -6,6 +6,8 @@
 
 #include "../Object.h"
 
+#include <memory>
+
 namespace z8
 {
 class Mesh;
@@ -30,9 +32,14 @@ public:
   Shader* VertexShader;
 
   GameObject();
+  ~GameObject() override;
 
   virtual void* ConstBuf() = 0;
   virtual unsigned ConstBufSize() = 0;
+
+protected:
+  // Default material is owned by the object; public Material is an observer used by rendering.
+  std::unique_ptr<z8::Material> OwnedMaterial;
 };
 
 /**

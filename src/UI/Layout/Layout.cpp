@@ -4,7 +4,6 @@
 
 #include "UI/Layout/Layout.h"
 
-#include "Core/Application.h"
 #include "UI/Layout/RectNode.h"
 #include "UI/Object/UIObject/RectUIObject.h"
 #include "yoga/YGNodeLayout.h"
@@ -15,23 +14,50 @@
 
 using namespace z8::ui;
 
-Layout::Layout(Application *App) : App(App) {
-  Add();
-  Root = Nodes[0];
+Layout::Layout(Application *App) : App(App), Root(nullptr) {
+  auto root = std::make_unique<BaseNode>();
+  root->Key = "Root";
+  SetRoot(std::move(root));
 }
 
-void Layout::Add(BaseNode *Node) {
-  Nodes.push_back(Node);
-  UOs.push_back(Node->O);
+Layout::~Layout() = default;
+
+void Layout::SetRoot(std::unique_ptr<BaseNode> root) {
+  RootOwner = std::move(root);
+  Root = RootOwner.get();
+  RebuildIndex();
 }
 
-void Layout::Update() {
-  auto w = static_cast<float>(App->Window.Width);
-  auto h = static_cast<float>(App->Window.Height);
+void Layout::IndexTree(BaseNode* node) {
+  if (!node) return;
+  Nodes.push_back(node);
+  if (node->GetUO()) UOs.push_back(node->GetUO());
+  for (const auto& child : node->GetChildren()) IndexTree(child.get());
+}
+
+void Layout::RebuildIndex() {
+  Nodes.clear();
+  UOs.clear();
+  IndexTree(Root);
+  TopologyDirty = true;
+}
+
+BaseNode* Layout::Find(const std::string& key) const {
+  for (auto* node : Nodes) if (node->Key == key) return node;
+  return nullptr;
+}
+
+bool Layout::ConsumeTopologyDirty() {
+  const bool result = TopologyDirty;
+  TopologyDirty = false;
+  return result;
+}
+
+void Layout::Calculate(float w, float h) {
   // 计算整体布局
-  YGNodeCalculateLayout(Root->Node, w, h, YGDirectionLTR);
+  YGNodeCalculateLayout(Root->GetYogaNode(), w, h, YGDirectionLTR);
   // 更新节点树
-  UpdateTree(Root->Node, 0, 0);
+  UpdateTree(Root->GetYogaNode(), 0, 0);
 
 }
 
@@ -52,8 +78,10 @@ void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY) {
   float absY = parentY + y;
 
   // 应用位置和大小
-  N->O->SetPosition(absX, absY, width, height);
-  N->O->SetScale(width, height);
+  if (N->GetUO()) {
+    N->GetUO()->SetPosition(absX, absY, width, height);
+    N->GetUO()->SetScale(width, height);
+  }
 
   for (size_t i = 0; i < N->GetChildCount(); ++i) {
     YGNodeRef child = YGNodeGetChild(Node, i);

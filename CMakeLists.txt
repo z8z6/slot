@@ -8,7 +8,8 @@ add_definitions(-DNOMINMAX)
 
 add_subdirectory(third/yoga)
 
-file(GLOB_RECURSE SOURCE_FILES src/*.cpp include/*.h third/*.h)
+# CONFIGURE_DEPENDS 让新增控件/声明层源文件自动进入目标，避免只增文件后链接缺符号。
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS src/*.cpp include/*.h third/*.h)
 
 add_executable(slot ${SOURCE_FILES})
 
@@ -35,5 +36,39 @@ add_custom_target(gen-docs
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Building HTML documentation with Doxygen"
 )
+
+option(SLOT_BUILD_TESTS "Build Slot architecture tests" ON)
+if(SLOT_BUILD_TESTS)
+    enable_testing()
+    include(GoogleTest)
+    file(GLOB_RECURSE SLOT_TEST_SOURCES CONFIGURE_DEPENDS tests/*.cpp)
+    # UI 测试按 Declarative、Controls、Layout 分类，且不创建窗口或 D3D12 Device。
+    add_executable(slot_ui_tests
+            ${SLOT_TEST_SOURCES}
+            src/UI/Declarative/ControlFactory.cpp
+            src/UI/Declarative/ImmediateUI.cpp
+            src/UI/Declarative/XamlLoader.cpp
+            src/UI/Layout/BaseNode.cpp
+            src/UI/Layout/Layout.cpp
+            src/UI/Layout/PanelNode.cpp
+            src/UI/Layout/RectNode.cpp
+            src/UI/Mesh/Mesh.cpp
+            src/UI/Mesh/MeshRegistry.cpp
+            src/UI/Object/GameObject/GameObject.cpp
+            src/UI/Object/Transform.cpp
+            src/UI/Object/UIObject/UIObject.cpp
+            src/UI/Object/UIObject/RectUIObject.cpp
+            src/Target/DirectX/DX12Shader.cpp
+            src/UI/Shader/GameObjectShader.cpp
+            src/UI/Shader/MissingShader.cpp
+            src/UI/Shader/TimeShader.cpp
+            src/UI/Shader/UIObjectShader.cpp)
+    target_include_directories(slot_ui_tests PRIVATE include third)
+    target_compile_definitions(slot_ui_tests PRIVATE
+            SLOT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(slot_ui_tests PRIVATE
+            d3dcompiler.lib dxcompiler.lib yogacore GTest::gtest_main)
+    gtest_discover_tests(slot_ui_tests)
+endif()
 
 # cmake .. -G "Visual Studio 18 2026"
