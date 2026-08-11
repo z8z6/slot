@@ -69,6 +69,11 @@ if(SLOT_BUILD_TESTS)
             src/UI/Layout/Layout.cpp
             src/UI/Layout/PanelNode.cpp
             src/UI/Layout/RectNode.cpp
+            src/UI/Layout/ScrollBarNode.cpp
+            src/UI/Property/IDraggable.cpp
+            src/UI/Property/IResizable.cpp
+            src/UI/Property/IScrollable.cpp
+            src/UI/Style/UITheme.cpp
             src/Material/Material.cpp
             src/Material/MetalMaterial.cpp
             src/Light/Light.cpp

@@ -42,12 +42,22 @@ BaseNode* ImmediateUI::Acquire(const std::string& type, const std::string& key) 
 }
 
 void ImmediateUI::ApplyStyle(BaseNode& node, const UIStyle& style) {
-  if (style.Width) YGNodeStyleSetWidth(node.GetYogaNode(), *style.Width);
-  if (style.Height) YGNodeStyleSetHeight(node.GetYogaNode(), *style.Height);
+  auto* panel = dynamic_cast<PanelNode*>(&node);
+  // Immediate UI 会逐帧重放初始样式；交互后的 Panel 几何必须优先，否则用户
+  // 刚完成的拖动或缩放会在下一次声明时被 Width/Height 覆盖。
+  const bool keepsInteractiveGeometry = panel && panel->HasInteractiveGeometry();
+  if (style.Width && !keepsInteractiveGeometry)
+    YGNodeStyleSetWidth(node.GetYogaNode(), *style.Width);
+  if (style.Height && !keepsInteractiveGeometry)
+    YGNodeStyleSetHeight(node.GetYogaNode(), *style.Height);
+  if (style.MinWidth) YGNodeStyleSetMinWidth(node.GetYogaNode(), *style.MinWidth);
+  if (style.MinHeight) YGNodeStyleSetMinHeight(node.GetYogaNode(), *style.MinHeight);
   if (style.FlexGrow) YGNodeStyleSetFlexGrow(node.GetYogaNode(), *style.FlexGrow);
   if (style.FlexShrink) YGNodeStyleSetFlexShrink(node.GetYogaNode(), *style.FlexShrink);
-  if (style.Margin) YGNodeStyleSetMargin(node.GetYogaNode(), YGEdgeAll, *style.Margin);
+  if (style.Margin && !keepsInteractiveGeometry)
+    YGNodeStyleSetMargin(node.GetYogaNode(), YGEdgeAll, *style.Margin);
   if (style.Padding) YGNodeStyleSetPadding(node.GetYogaNode(), YGEdgeAll, *style.Padding);
+  if (style.Color) node.SetColor(*style.Color);
   if (style.Direction) YGNodeStyleSetFlexDirection(node.GetYogaNode(), *style.Direction);
 }
 

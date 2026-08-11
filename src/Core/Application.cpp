@@ -5,17 +5,38 @@
 #include "Core/Application.h"
 #include "Target/Render.h"
 #include <WindowsX.h>
-#include <iostream>
 #include <ostream>
+#include <utility>
 
 #include "Object/Camera/Camera.h"
 #include "Object/GameObject/RotateCube.h"
 #include "Core/Event.h"
 #include "Light/ParallelLight.h"
+#include "Light/Light.h"
+#include "Object/Object.h"
 #include "Phys/Collider.h"
 
 using namespace z8;
 using namespace std;
+
+namespace {
+
+MouseButton GetMouseButton(UINT message, WPARAM wParam) {
+  switch (message) {
+  case WM_LBUTTONDOWN:
+  case WM_LBUTTONUP: return MouseButton::Left;
+  case WM_MBUTTONDOWN:
+  case WM_MBUTTONUP: return MouseButton::Middle;
+  case WM_RBUTTONDOWN:
+  case WM_RBUTTONUP: return MouseButton::Right;
+  case WM_XBUTTONDOWN:
+  case WM_XBUTTONUP:
+    return GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::X1
+                                                  : MouseButton::X2;
+  default: return MouseButton::None;
+  }
+}
+} // namespace
 
 
 z8::Application::Application() : Layout(this) {
@@ -23,6 +44,11 @@ z8::Application::Application() : Layout(this) {
                     reinterpret_cast<LONG_PTR>(this));
   SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC,
                     reinterpret_cast<LONG_PTR>(FakeMsgHandler));
+  RECT rect{};
+  if (GetWindowRect(Window.Wnd, &rect)) {
+    WindowX = rect.left;
+    WindowY = rect.top;
+  }
   Application::Apps.push_back(this);
 }
 
@@ -83,7 +109,7 @@ LRESULT z8::Application::FakeMsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
 }
 
 
-LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
+LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
                                   LPARAM lParam) {
   switch (Msg) {
     // WM_ACTIVATE is sent when the window is activated or deactivated.
@@ -93,26 +119,66 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
 
     return 0;
 
+  case WM_SETCURSOR:
+    if (LOWORD(lParam) == HTCLIENT) {
+      POINT point{};
+      GetCursorPos(&point);
+      ScreenToClient(Wnd, &point);
+      LPCWSTR cursorId = IDC_ARROW;
+      switch (Layout.GetMouseCursor(point.x, point.y)) {
+      case MouseCursor::SizeHorizontal: cursorId = IDC_SIZEWE; break;
+      case MouseCursor::SizeVertical: cursorId = IDC_SIZENS; break;
+      case MouseCursor::SizeDiagonalNorthwestSoutheast:
+        cursorId = IDC_SIZENWSE;
+        break;
+      case MouseCursor::SizeDiagonalNortheastSouthwest:
+        cursorId = IDC_SIZENESW;
+        break;
+      default: break;
+      }
+      // 使用系统 DPI 感知光标，避免自绘位图在不同缩放比例下模糊。
+      SetCursor(LoadCursorW(nullptr, cursorId));
+      return TRUE;
+    }
+    break;
+
     // WM_SIZE is sent when the user resizes the window.
-  case WM_SIZE:
+  case WM_SIZE: {
     Window.Width = LOWORD(lParam);
     Window.Height = HIWORD(lParam);
-    // std::cerr << Window.Width << " | " << Window.Height << std::endl;
-    if(wParam == SIZE_MINIMIZED) return 0;
+    if (wParam == SIZE_MINIMIZED) return 0;
     Layout.Update();
-    Render->Resize();
+    // 拖动边框时 WM_SIZE 会高频到达；退出模态循环后只重建一次 GPU 资源。
+    if (!InSizeMove && Render) Render->Resize();
     return 0;
+  }
 
+  case WM_MOVE: {
+    return 0;
+  }
+
+  case WM_MOVING: {
+    return TRUE;
+  }
+
+  case WM_SIZING: {
+    return TRUE;
+  }
     // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
   case WM_ENTERSIZEMOVE:
-
+    InSizeMove = true;
     return 0;
 
     // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
     // Here we reset everything based on the new window dimensions.
   case WM_EXITSIZEMOVE:
+    InSizeMove = false;
+    if (RECT rect{}; GetWindowRect(Wnd, &rect)) {
+      WindowX = rect.left;
+      WindowY = rect.top;
+    }
     Layout.Update();
-    Render->Resize();
+    if (Render) Render->Resize();
     return 0;
 
     // 关闭窗口
@@ -136,31 +202,72 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   case WM_LBUTTONDOWN:
   case WM_MBUTTONDOWN:
   case WM_RBUTTONDOWN:
-    OnMouseDown(MouseMovArgs(wParam, lParam));
+  case WM_XBUTTONDOWN: {
+    SetCapture(Wnd);
+    const int x = GET_X_LPARAM(lParam);
+    const int y = GET_Y_LPARAM(lParam);
+    OnMouseDown(MouseMovArgs(GET_KEYSTATE_WPARAM(wParam), lParam,
+                             HasMousePosition ? x - MouseX : 0,
+                             HasMousePosition ? y - MouseY : 0,
+                             GetMouseButton(Msg, wParam)));
+    MouseX = x;
+    MouseY = y;
+    HasMousePosition = true;
     return 0;
+  }
   case WM_LBUTTONUP:
   case WM_MBUTTONUP:
   case WM_RBUTTONUP:
-    OnMouseUp(MouseMovArgs(wParam, lParam));
+  case WM_XBUTTONUP: {
+    const int x = GET_X_LPARAM(lParam);
+    const int y = GET_Y_LPARAM(lParam);
+    const auto state = GET_KEYSTATE_WPARAM(wParam);
+    OnMouseUp(MouseMovArgs(state, lParam,
+                           HasMousePosition ? x - MouseX : 0,
+                           HasMousePosition ? y - MouseY : 0,
+                           GetMouseButton(Msg, wParam)));
+    MouseX = x;
+    MouseY = y;
+    HasMousePosition = true;
+    if ((state & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 |
+                  MK_XBUTTON2)) == 0 && GetCapture() == Wnd)
+      ReleaseCapture();
     return 0;
-  case WM_MOUSEMOVE:
-    OnMouseMove(MouseMovArgs(wParam, lParam));
+  }
+  case WM_MOUSEMOVE: {
+    const int x = GET_X_LPARAM(lParam);
+    const int y = GET_Y_LPARAM(lParam);
+    OnMouseMove(MouseMovArgs(wParam, lParam,
+                             HasMousePosition ? x - MouseX : 0,
+                             HasMousePosition ? y - MouseY : 0));
+    MouseX = x;
+    MouseY = y;
+    HasMousePosition = true;
     return 0;
+  }
+  case WM_MOUSEWHEEL: {
+    POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+    ScreenToClient(Wnd, &point);
+    OnMouseWheel({static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam)),
+                  point.x, point.y, GET_WHEEL_DELTA_WPARAM(wParam)});
+    return 0;
+  }
   case WM_KEYUP:
-    OnKeyUp(KeyArgs(wParam));
+    OnKeyUp(KeyArgs(wParam, lParam));
     return 0;
   case WM_KEYDOWN:
-    OnKeyDown(KeyArgs(wParam));
+    OnKeyDown(KeyArgs(wParam, lParam));
     return 0;
   case WM_SYSKEYDOWN:
     // 禁止系统处理
     if (wParam == VK_MENU || wParam == VK_F10)
       return 0;
-    OnKeyDown(KeyArgs(wParam));
+    OnKeyDown(KeyArgs(wParam, lParam));
     return 0;
   case WM_SYSKEYUP:
     if (wParam == VK_MENU) return 0;
-    break;
+    OnKeyUp(KeyArgs(wParam, lParam));
+    return 0;
     // 拦截系统命令（如 Alt+Space、Alt+Enter 等）
   case WM_SYSCOMMAND:
     // 菜单激活
@@ -169,6 +276,20 @@ LRESULT z8::Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     break;
   }
   return DefWindowProcW(Wnd, Msg, wParam, lParam);
+}
+
+template <typename Handler>
+void Application::ForEachObject(Handler&& handler) {
+  // 键盘和窗口事件没有指针目标，仍按对象集合广播。
+  for (auto* object : Layout.UOs) handler(*object);
+  ForEachSceneObject(std::forward<Handler>(handler));
+}
+
+template <typename Handler>
+void Application::ForEachSceneObject(Handler&& handler) {
+  for (auto* object : ActiveScene.GetGameObjects()) handler(*object);
+  if (auto* camera = ActiveScene.GetCamera()) handler(*camera);
+  if (auto* light = ActiveScene.GetLight()) handler(*light);
 }
 
 void z8::Application::ShowFrame() const {
@@ -198,30 +319,38 @@ void z8::Application::ShowFrame() const {
 
 void Application::OnMouseMove(MouseMovArgs Args)
 {
-  for (auto* O : ActiveScene.GetGameObjects())
-    O->OnMouseMove(Args);
-  ActiveScene.GetCamera()->OnMouseMove(Args);
+  const bool dragging = (Args.State & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON |
+                                       MK_XBUTTON1 | MK_XBUTTON2)) != 0;
+  if (dragging ? Layout.OnMouseDrag(Args) : Layout.OnMouseMove(Args)) return;
+  ForEachSceneObject([&](Object& object) {
+    object.OnMouseMove(Args);
+    if (dragging) object.OnMouseDrag(Args);
+  });
 }
 
 void Application::OnMouseDown(MouseMovArgs Args)
 {
-  for (auto* O : ActiveScene.GetGameObjects())
-    O->OnMouseDown(Args);
+  // 命中 UI 则返回
+  if (Layout.OnMouseDown(Args)) return;
+  ForEachSceneObject([&](Object& object) { object.OnMouseDown(Args); });
 }
 
 void Application::OnMouseUp(MouseMovArgs Args)
 {
-  for (auto* O : ActiveScene.GetGameObjects())
-    O->OnMouseUp(Args);
+  // 命中 UI 则返回
+  if (Layout.OnMouseUp(Args)) return;
+  ForEachSceneObject([&](Object& object) { object.OnMouseUp(Args); });
+}
+
+void Application::OnMouseWheel(MouseWheelArgs Args) {
+  // 命中 UI 则返回
+  Layout.OnMouseWheel(Args);
 }
 
 void Application::OnKeyDown(KeyArgs Args) {
-  for (auto* O : ActiveScene.GetGameObjects())
-    O->OnKeyDown(Args);
-  ActiveScene.GetCamera()->OnKeyDown(Args);
+  ForEachObject([&](Object& object) { object.OnKeyDown(Args); });
 }
 
 void Application::OnKeyUp(KeyArgs Args) {
-  for (auto* O : ActiveScene.GetGameObjects())
-    O->OnKeyUp(Args);
+  ForEachObject([&](Object& object) { object.OnKeyUp(Args); });
 }

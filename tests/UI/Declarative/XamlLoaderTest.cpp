@@ -10,7 +10,9 @@ TEST(XamlLoaderTest, BuildsPanelControlTree) {
     <?xml version="1.0"?>
     <UI Direction="Column">
       <Panel Id="tools" Title="Tools &amp; Scene" Width="300" Height="200"
-             TitleHeight="40" Padding="4">
+             TitleHeight="40" Padding="4" DragRegion="Anywhere"
+             Scrollable="true" HorizontalScrollEnabled="true"
+             HorizontalScrollBar="Auto" VerticalScrollBar="Visible">
         <Rect Id="content" FlexGrow="1" />
       </Panel>
     </UI>)";
@@ -22,6 +24,12 @@ TEST(XamlLoaderTest, BuildsPanelControlTree) {
   ASSERT_NE(panel, nullptr);
   EXPECT_EQ(panel->Title, "Tools & Scene");
   EXPECT_EQ(panel->ContentNode->GetChildCount(), 1U);
+  EXPECT_EQ(panel->GetDragProperties().Region, DragRegion::Anywhere);
+  EXPECT_TRUE(panel->GetScrollProperties().Horizontal);
+  EXPECT_EQ(panel->GetScrollProperties().HorizontalScrollBar,
+            ScrollBarVisibility::Auto);
+  EXPECT_EQ(panel->GetScrollProperties().VerticalScrollBar,
+            ScrollBarVisibility::Visible);
   EXPECT_NE(layout.Find("content"), nullptr);
 }
 

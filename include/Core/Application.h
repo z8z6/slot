@@ -38,10 +38,26 @@ public:
 private:
   virtual void PrepareScene();
   void ShowFrame() const;
+  /** 将事件发送给 UI、场景、相机和灯光中的每一个 Object。 */
+  template <typename Handler>
+  void ForEachObject(Handler&& handler);
+  /** 指针未被 UI 消费时，只向 3D 场景部分继续传播。 */
+  template <typename Handler>
+  void ForEachSceneObject(Handler&& handler);
+
   void OnMouseMove(MouseMovArgs);
   void OnMouseDown(MouseMovArgs);
   void OnMouseUp(MouseMovArgs);
+  void OnMouseWheel(MouseWheelArgs);
   void OnKeyDown(KeyArgs);
   void OnKeyUp(KeyArgs);
+
+  // 输入和模态尺寸循环状态必须按 Application 保存，多窗口之间不能互相污染。
+  int MouseX = 0;
+  int MouseY = 0;
+  int WindowX = 0;
+  int WindowY = 0;
+  bool HasMousePosition = false;
+  bool InSizeMove = false;
 };
 } // namespace z8

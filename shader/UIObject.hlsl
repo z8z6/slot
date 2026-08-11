@@ -12,6 +12,7 @@ struct VertexOut
 	float4 SVPosition  : SV_POSITION;
     float4 Color : COLOR;
     float2 TexC  : TEXCOORD;
+    float2 ScreenPosition : CLIPPOSITION;
 };
 
 // 将屏幕坐标转换为NDC坐标
@@ -32,11 +33,16 @@ VertexOut VS(VertexIn vin)
     float2 ScreenPosition = posW.xy;
     vout.SVPosition = ScreenToNDC(ScreenPosition, ScreenSize);
     vout.Color = ObjectColor;
+    vout.ScreenPosition = ScreenPosition;
     return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
+    // 视口裁剪在像素空间执行，滚动子项无需拆分几何或逐控件切换 scissor。
+    if (pin.ScreenPosition.x < ClipRect.x || pin.ScreenPosition.y < ClipRect.y ||
+        pin.ScreenPosition.x > ClipRect.z || pin.ScreenPosition.y > ClipRect.w)
+        discard;
     return pin.Color;
 }
 

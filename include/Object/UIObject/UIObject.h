@@ -11,6 +11,9 @@ namespace z8
 struct UIObjectConst {
   DirectX::XMFLOAT4X4 World;
   DirectX::XMFLOAT4 Color = {0.35f, 0.35f, 0.38f, 1.0f};
+  // left/top/right/bottom 像素裁剪框；由 Layout 逐层求交后写入。
+  DirectX::XMFLOAT4 ClipRect = {-100000.0f, -100000.0f,
+                                100000.0f, 100000.0f};
 };
 
 /**
@@ -24,6 +27,11 @@ public:
   void SetPosition(float x, float y, float w, float h);
   void SetScale(float x, float y);
   void SetColor(const DirectX::XMFLOAT4& color) { Const.Color = color; }
+  const DirectX::XMFLOAT4& GetColor() const { return Const.Color; }
+  void SetClipRect(const DirectX::XMFLOAT4& clipRect) {
+    Const.ClipRect = clipRect;
+  }
+  const DirectX::XMFLOAT4& GetClipRect() const { return Const.ClipRect; }
   void Update(Timer*) override;
 };
 }

@@ -4,6 +4,7 @@ cbuffer cbPerObject : register(b0)
 {
 	float4x4 World;
     float4 ObjectColor;
+    float4 ClipRect;
 };
 
 cbuffer cbMaterial : register(b1)

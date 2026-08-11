@@ -1,4 +1,4 @@
-#include "Scene/Scene.h"
+#include "Core/Scene.h"
 
 #include "Light/ParallelLight.h"
 #include "Object/Camera/Camera.h"

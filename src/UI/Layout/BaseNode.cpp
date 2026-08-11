@@ -5,6 +5,7 @@
 #include "UI/Layout/BaseNode.h"
 
 #include "Object/UIObject/UIObject.h"
+#include "UI/Style/UITheme.h"
 #include "yoga/node/Node.h"
 #include "yoga/YGNodeStyle.h"
 
@@ -39,7 +40,17 @@ BaseNode* BaseNode::GetChild(size_t index) const {
   return index < ChildNodes.size() ? ChildNodes[index].get() : nullptr;
 }
 
-BaseNode* BaseNode::AddChild(std::unique_ptr<BaseNode> child) {
+bool BaseNode::Contains(float x, float y) const {
+  return Visible && x >= LayoutX && y >= LayoutY &&
+         x <= LayoutX + LayoutWidth && y <= LayoutY + LayoutHeight &&
+         x >= VisibleClip.x && y >= VisibleClip.y &&
+         x <= VisibleClip.z && y <= VisibleClip.w;
+}
+bool BaseNode::Contains(MouseMovArgs args) const {
+  return Contains(static_cast<float>(args.X),static_cast<float>(args.Y));
+}
+
+BaseNode * BaseNode::AddChild(std::unique_ptr<BaseNode> child) {
   if (!child) return nullptr;
   child->Parent = this;
   auto* result = child.get();
@@ -62,6 +73,11 @@ const char* BaseNode::TypeName() const { return "UI"; }
 bool BaseNode::SetProperty(const std::string& name, const std::string& value) {
   const float number = std::strtof(value.c_str(), nullptr);
   if (name == "Id" || name == "Key" || name == "Name") Key = value;
+  else if (name == "Color") {
+    DirectX::XMFLOAT4 color;
+    if (!ParseUIColor(value, color)) return false;
+    return SetColor(color);
+  }
   else if (name == "Width") YGNodeStyleSetWidth(YogaNode, number);
   else if (name == "Height") YGNodeStyleSetHeight(YogaNode, number);
   else if (name == "MinWidth") YGNodeStyleSetMinWidth(YogaNode, number);
@@ -77,5 +93,11 @@ bool BaseNode::SetProperty(const std::string& name, const std::string& value) {
     else if (value == "Column") YGNodeStyleSetFlexDirection(YogaNode, YGFlexDirectionColumn);
     else return false;
   } else return false;
+  return true;
+}
+
+bool BaseNode::SetColor(const DirectX::XMFLOAT4& color) {
+  if (!UO) return false;
+  UO->SetColor(color);
   return true;
 }

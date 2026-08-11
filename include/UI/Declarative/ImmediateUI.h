@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <DirectXMath.h>
+
 #include "yoga/YGEnums.h"
 
 namespace z8::ui {
@@ -14,10 +16,13 @@ class Layout;
 struct UIStyle {
   std::optional<float> Width;
   std::optional<float> Height;
+  std::optional<float> MinWidth;
+  std::optional<float> MinHeight;
   std::optional<float> FlexGrow;
   std::optional<float> FlexShrink;
   std::optional<float> Margin;
   std::optional<float> Padding;
+  std::optional<DirectX::XMFLOAT4> Color;
   std::optional<YGFlexDirection> Direction;
 };
 

@@ -45,14 +45,20 @@ void DemoApplication::PrepareScene() {
   ui.BeginFrame();
   UIStyle panelStyle;
   panelStyle.Width = 360.0f;
-  panelStyle.Height = 240.0f;
-  panelStyle.Padding = 8.0f;
-  if (ui.BeginPanel("scene-panel", "Scene", panelStyle)) {
+  panelStyle.Height = 320.0f;
+  if (ui.BeginPanel("scene-panel", "Scrollable Scene Objects", panelStyle)) {
     UIStyle itemStyle;
-    itemStyle.FlexGrow = 1.0f;
+    itemStyle.Height = 48.0f;
+    itemStyle.FlexGrow = 0.0f;
+    itemStyle.FlexShrink = 0.0f;
     itemStyle.Margin = 4.0f;
-    ui.Rect("scene-item-1", itemStyle);
-    ui.Rect("scene-item-2", itemStyle);
+    for (int i = 0; i < 14; ++i) {
+      // 交替色块让滚动位移和视口裁剪在默认 Demo 中无需文字即可辨认。
+      itemStyle.Color = i % 2 == 0
+          ? XMFLOAT4{0.20f, 0.34f, 0.52f, 1.0f}
+          : XMFLOAT4{0.16f, 0.24f, 0.36f, 1.0f};
+      ui.Rect("scene-item-" + std::to_string(i), itemStyle);
+    }
     ui.EndPanel();
   }
   ui.EndFrame();

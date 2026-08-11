@@ -12,7 +12,10 @@
 namespace z8
 {
 class GameObject;
-// 每一种 Shader 都需要对应一个 PSO
+/**
+ * 每一种 Shader 都对应一个 PSO
+ * 应当尽可能复用根签名
+ */
 class DX12PipelineState : public DX12Common{
   enum {
     Default,
