@@ -46,7 +46,7 @@ TEST(PanelNodeTest, KeepsTitleAndContentAsInternalChildren) {
   ASSERT_NE(panel.ContentNode, nullptr);
   ASSERT_NE(panel.VerticalScrollBarNode, nullptr);
   ASSERT_NE(panel.VerticalScrollThumbNode, nullptr);
-  EXPECT_EQ(panel.GetChildCount(), 3U);
+  EXPECT_EQ(panel.GetChildSize(), 3U);
   EXPECT_EQ(panel.ContentHost(), panel.ContentNode);
   EXPECT_EQ(panel.ContentNode->Parent, panel.ScrollViewportNode);
 
@@ -54,7 +54,7 @@ TEST(PanelNodeTest, KeepsTitleAndContentAsInternalChildren) {
   auto* contentObserver = content.get();
   panel.ContentHost()->AddChild(std::move(content));
   EXPECT_EQ(panel.ContentNode->GetChild(0), contentObserver);
-  EXPECT_EQ(panel.TitleNode->GetChildCount(), 0U);
+  EXPECT_EQ(panel.TitleNode->GetChildSize(), 0U);
 }
 
 TEST(PanelNodeTest, ImplementsPropertyCapabilityInterfaces) {

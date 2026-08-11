@@ -1,11 +1,8 @@
 #pragma once
 
-#include "Core/Event.h"
 #include "UI/Property/IProperty.h"
 
 namespace z8::ui {
-
-class BaseNode;
 
 /** 拉伸命中区域；角落同时改变两个轴。 */
 enum class ResizeRegion {
@@ -28,35 +25,16 @@ struct ResizeProperty {
   float MinHeight = 80.0f;
 };
 
-/** 可拉伸能力 mixin，负责命中、光标、捕获状态和最小尺寸约束。 */
+/**
+ * 可拉伸能力的兼容查询接口；实际命中和手势状态由 ResizeBehavior 独占。
+ */
 class IResizable : public virtual IProperty {
 public:
-  virtual const ResizeProperty& GetResizeProperties() const {
-    return ResizeProperties;
-  }
-  virtual void SetResizeProperties(const ResizeProperty& properties) {
-    ResizeProperties = properties;
-  }
-  ResizeRegion HitTestResize(const BaseNode* node, MouseMovArgs args) const;
-  MouseCursor GetResizeCursor(const BaseNode* node, MouseMovArgs args) const;
-  bool IsResizing() const { return ActiveRegion != ResizeRegion::None; }
-  bool HasResizeGeometry() const { return InteractiveGeometry; }
-
-protected:
-  bool BeginResize(BaseNode* node, MouseMovArgs args);
-  bool UpdateResize(BaseNode* node, MouseMovArgs args);
-  bool EndResize();
-
-private:
-  static MouseCursor CursorForRegion(ResizeRegion region);
-
-  ResizeProperty ResizeProperties;
-  ResizeRegion ActiveRegion = ResizeRegion::None;
-  bool InteractiveGeometry = false;
-  float CurrentLeft = 0.0f;
-  float CurrentTop = 0.0f;
-  float CurrentWidth = 0.0f;
-  float CurrentHeight = 0.0f;
+  ~IResizable() override = default;
+  virtual const ResizeProperty &GetResizeProperties() const = 0;
+  virtual void SetResizeProperties(const ResizeProperty &properties) = 0;
+  virtual bool IsResizing() const = 0;
+  virtual bool HasResizeGeometry() const = 0;
 };
 
 } // namespace z8::ui

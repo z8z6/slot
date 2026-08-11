@@ -23,7 +23,7 @@ TEST(XamlLoaderTest, BuildsPanelControlTree) {
   auto* panel = dynamic_cast<PanelNode*>(layout.Find("tools"));
   ASSERT_NE(panel, nullptr);
   EXPECT_EQ(panel->Title, "Tools & Scene");
-  EXPECT_EQ(panel->ContentNode->GetChildCount(), 1U);
+  EXPECT_EQ(panel->ContentNode->GetChildSize(), 1U);
   EXPECT_EQ(panel->GetDragProperties().Region, DragRegion::Anywhere);
   EXPECT_TRUE(panel->GetScrollProperties().Horizontal);
   EXPECT_EQ(panel->GetScrollProperties().HorizontalScrollBar,

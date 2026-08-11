@@ -20,11 +20,22 @@ flowchart LR
 
 每个节点包含稳定 `Key`、父节点、可选 `UIObject` 和 Yoga Node。`ContentHost()` 决定声明的子控件实际进入哪里；普通容器返回自身，Panel 返回内部内容区。`Layout` 持有根节点，并生成两份非拥有索引：全部节点 `Nodes` 和可渲染对象 `UOs`。
 
-## 属性能力接口
+## Behavior 组合与属性能力接口
 
-`BaseNode` 实现属性根接口 `IProperty`，因此 XAML、即时声明和未来检查器只需面向统一的 `SetProperty` 协议。可选行为不继续堆进一个万能基类，而是拆成 `IDraggable`、`IResizable`、`IScrollable`；控件通过多继承组合自己真正支持的能力。属性值由 `DragProperty`、`ResizeProperty`、`ScrollProperty` 保存，接口同时维护手势或范围状态。
+`BaseNode` 实现属性根接口 `IProperty`，因此 XAML、即时声明和未来检查器只需面向统一的 `SetProperty` 协议。可选行为以 `unique_ptr<UIBehavior>` 挂载到节点，`DragBehavior`、`ResizeBehavior`、`ScrollBehavior` 分别独占自己的配置和运行时状态；宿主销毁时先取消捕获并释放行为，再释放其视觉子树和 Yoga 几何。
 
-这一区分保持三个边界：样式描述外观和盒模型，属性结构保存可序列化状态，能力接口定义控件支持的行为。Panel 同时实现三种能力；Rect 只实现通用属性接口。以后浮动工具栏可以只继承拖拽能力，列表则只继承滚动能力，无需继承 Panel。
+行为按优先级稳定排序。`ResizeBehavior` 高于 `DragBehavior`，所以标题栏边缘只会开始 Resize；同优先级保持声明顺序。按下结果使用 `Ignored/Handled/Capture` 三态，避免把“消费一次点击”和“捕获一段手势”混为同一个 `bool`。声明属性会自动遍历行为链，因此给普通 Rect 挂载 Drag 后，`Draggable`、`DragRegion` 立即可由 XAML/检查器设置，不需要修改 Rect 类型：
+
+```cpp
+auto rect = std::make_unique<z8::ui::RectNode>();
+auto* drag = rect->AddBehavior<z8::ui::DragBehavior>();
+z8::ui::DragProperty dragProperty;
+dragProperty.Region = z8::ui::DragRegion::Anywhere;
+drag->SetProperties(dragProperty);
+rect->AddBehavior<z8::ui::ResizeBehavior>();
+```
+
+`IDraggable`、`IResizable`、`IScrollable` 暂时保留为无状态兼容查询接口，`PanelNode` 将其调用转发给已挂载行为。新控件不需要继承这些接口；待检查器和外部调用方改为 `GetBehavior<T>()` 后可以删除这层兼容面。由此形成四个明确边界：Style 描述外观和盒模型，Property 是可序列化配置，Behavior 处理输入和短期状态，Control 只组装视觉树及行为。
 
 ## XAML 声明
 
@@ -128,23 +139,23 @@ Panel（可渲染背景，Column）
 
 标题栏、视口和滚动条是内部节点，调用者的子控件永远被重定向到 ContentNode，不会破坏复合控件结构。Panel 背景和标题栏使用不同对象颜色；UI PSO 关闭深度写入并启用 alpha，保证标题栏按声明顺序覆盖背景。`Title` 已作为控件语义保存，但项目尚无字体/字形渲染器，文字显示需在文字渲染模块完成后接入。
 
-Panel 默认允许拖动和缩放。左键拖动标题栏会把当前流式布局结果固化成 Yoga 绝对定位，随后更新 `left/top`；边缘和四角各有默认 6 像素的缩放命中区。指针位于边界时会显示对应的水平、垂直或对角系统缩放光标。缩放默认限制为 240×160，`MinWidth/MinHeight` 会同时更新交互限制和 Yoga 约束。可通过 `Draggable="false"`、`Resizable="false"` 或 `ResizeBorder` 调整行为。
+Panel 默认组装 Drag、Resize、Scroll 三个行为，但自身不再覆写鼠标事件或保存手势状态。左键拖动标题栏会把当前流式布局结果固化成 Yoga 绝对定位，随后更新 `left/top`；边缘和四角各有默认 6 像素的缩放命中区。指针位于边界时会显示对应的水平、垂直或对角系统缩放光标。缩放默认限制为 240×160，`MinWidth/MinHeight` 会同时更新交互限制和 Yoga 约束。可通过 `Draggable="false"`、`Resizable="false"` 或 `ResizeBorder` 调整行为。
 
 默认 `Drag.Region` 为 `TitleBar`。默认滚动总开关开启，仅允许垂直方向；水平滚动条为 `Hidden`，垂直滚动条为 `Auto`，滚轮步长为 40。Panel 根据内容范围计算并夹紧偏移；滚轮移动内容，轨道点击按一页移动，滑块拖拽通过指针捕获连续更新 value。`ScrollBarNode` 只管理 range/value 和滑块，不拥有内容，因而可被后续独立 ScrollView、列表和水平滚动复用。
 
 视口裁剪不会为每个子项反复切换 D3D12 scissor。布局遍历把父子裁剪矩形求交后写入每个 `UIObject` 常量，像素着色器在视口外丢弃像素；命中测试使用同一裁剪矩形，因此不可见内容也不会接收事件。这个方案优先保证当前逐对象渲染结构下的一致性，未来批处理器可再按相同 clip 合批并切换硬件 scissor。
 
-## 与 Unity / Unreal 的架构对应
+## 与 Unity / Qt 的架构对应
 
 当前设计采用两者共有的保留式、组合式思路，而不是复制引擎 API：
 
-- 与 Unity UI Toolkit 类似，稳定视觉树负责控件所有权，Yoga/Flexbox 负责布局，样式、事件和渲染各自保持边界；ScrollView 明确拆成 viewport、content container 和 scroller。
-- 与 Unreal Slate 类似，复杂控件由较小控件组合，属性与事件通过窄接口连接；滚动条消费经过夹紧的 offset/range，不反向依赖内容控件类型。
+- 与 Unity UI Toolkit 的 Manipulator 类似，Behavior 可附着到已有视觉节点，并在一段 Pointer 手势内捕获输入；控件类型不因 Drag、Resize 的排列组合而膨胀。稳定视觉树负责所有权，Yoga/Flexbox 负责布局，ScrollView 明确拆成 viewport、content container 和 scroller。
+- 与 Qt 的事件过滤/对象组合及 `QAbstractScrollArea` 类似，输入路由与具体控件实现分离，滚动容器通过 viewport、content、scrollbar 的窄协议协作。Slot 使用强类型 Behavior 代替全局事件过滤器，避免字符串事件和无约束 QObject 转型扩散到渲染核心。
 - Slot 保留 XAML 和即时声明两个前端，但二者只协调同一棵 `BaseNode` 树，运行时状态不会因为声明方式不同而分叉。
 
 下一阶段适合在现有边界上增加属性元数据（类型、默认值、序列化名）、伪状态样式、焦点/键盘导航和布局/绘制失效标记，而不是继续扩充 Panel 的职责。
 
-`Layout` 使用与渲染相同的绝对布局框做逆绘制顺序命中，事件从视觉目标向父节点冒泡。处理手势的节点会被捕获至鼠标抬起，因此指针移出 Panel 后拖动仍连续；命中 UI 的事件不会继续影响背后的相机或场景对象。
+`Layout` 使用与渲染相同的绝对布局框做逆绘制顺序命中，事件从视觉目标向父节点冒泡。节点先按优先级询问 Behavior，再调用旧控件事件钩子；捕获精确记录到开始手势的 Behavior。指针移出控件后拖动仍连续，声明式拓扑重建则主动发送 capture-lost 使状态机复位；命中 UI 的事件不会继续影响背后的相机或场景对象。
 
 ## 默认主题
 
@@ -181,7 +192,8 @@ ctest --test-dir cmake-build-debug --output-on-failure
 - `include/UI/Layout/BaseNode.h`、`src/UI/Layout/BaseNode.cpp`
 - `include/UI/Layout/PanelNode.h`、`src/UI/Layout/PanelNode.cpp`
 - `include/UI/Layout/ScrollBarNode.h`、`src/UI/Layout/ScrollBarNode.cpp`
-- `include/UI/Property/IProperty.h`、`IDraggable.h`、`IResizable.h`、`IScrollable.h`
+- `include/UI/Behavior`、`src/UI/Behavior`
+- `include/UI/Property/IProperty.h`、`IDraggable.h`、`IResizable.h`、`IScrollable.h`（兼容接口）
 - `include/UI/Style/UITheme.h`
 - `src/UI/Layout/Layout.cpp`、`LayoutApplication.cpp`
 - `src/Target/DirectX/DX12Render.cpp`、`DX12RenderBatch.cpp`

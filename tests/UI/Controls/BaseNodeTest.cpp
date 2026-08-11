@@ -24,7 +24,7 @@ TEST(BaseNodeTest, OwnsVisualAndChildren) {
     auto* childObserver = child.get();
     EXPECT_EQ(root.AddChild(std::move(child)), childObserver);
     EXPECT_EQ(childObserver->Parent, &root);
-    EXPECT_EQ(root.GetChildCount(), 1U);
+    EXPECT_EQ(root.GetChildSize(), 1U);
     EXPECT_EQ(YGNodeGetParent(childObserver->GetYogaNode()), root.GetYogaNode());
   }
   EXPECT_EQ(TrackingObject::DestructionCount, 1);
@@ -35,7 +35,7 @@ TEST(BaseNodeTest, RemovesOwnedChildSuffix) {
   root.AddChild(std::make_unique<BaseNode>());
   root.AddChild(std::make_unique<BaseNode>());
   root.RemoveChildrenFrom(1);
-  EXPECT_EQ(root.GetChildCount(), 1U);
+  EXPECT_EQ(root.GetChildSize(), 1U);
   EXPECT_NE(root.GetChild(0), nullptr);
   EXPECT_EQ(root.GetChild(1), nullptr);
 }

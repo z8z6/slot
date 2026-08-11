@@ -20,7 +20,7 @@ DX12RenderObject::DX12RenderObject(GameObject *O)
 DX12RenderBatch::DX12RenderBatch(DX12Render* render, bool preserveOrder)
     : DX12Common(render), Buffer(this), PreserveOrder(preserveOrder) {}
 
-void DX12RenderBatch::Init(std::vector<GameObject *> &Os) {
+void DX12RenderBatch::Init(const std::vector<GameObject *> &Os) {
   // 1. 初始化 RO
   // 批次允许为空，UI 声明在运行时发生变化时可安全重建。
   ROs.clear();

@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <memory>
 
 namespace z8 {
 class Application;
@@ -22,7 +23,7 @@ public:
   virtual void Draw() = 0;
   virtual void Resize() = 0;
 
-  static Render* CreateRender(Application* App, RenderType type = DirectX12);
+  static std::unique_ptr<Render> CreateRender(Application* App, RenderType type = DirectX12);
 };
 }
 

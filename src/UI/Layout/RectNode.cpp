@@ -11,7 +11,7 @@
 using namespace z8::ui;
 
 RectNode::RectNode() {
-  SetObject(std::make_unique<RectUIObject>());
+  UO = std::make_unique<RectUIObject>();
   const auto& style = UITheme::Modern().Rect;
   SetColor(style.Color);
   YGNodeStyleSetMargin(GetYogaNode(), YGEdgeAll, style.Margin);

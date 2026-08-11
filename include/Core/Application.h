@@ -17,7 +17,7 @@ class UIObject;
 class Application {
 public:
   Window Window;
-  Render *Render = nullptr;
+  std::unique_ptr<Render> Render;
   Timer Timer;
   ResourceManager Resources;
   Scene ActiveScene;

@@ -7,7 +7,7 @@
 namespace z8::ui {
 
 /** 滚动条方向；当前 Panel 使用 Vertical，接口预留水平 ScrollView。 */
-enum class UIScrollBarOrientation { Horizontal, Vertical };
+enum class ScrollBarOrientation { Horizontal, Vertical };
 
 /**
  * 独立滚动条复合控件。
@@ -18,16 +18,17 @@ enum class UIScrollBarOrientation { Horizontal, Vertical };
 class ScrollBarNode : public RectNode {
 public:
   RectNode* ThumbNode;
-  UIScrollBarOrientation Orientation;
+  ScrollBarOrientation Orientation;
   std::function<void(float)> ValueChanged;
 
   explicit ScrollBarNode(
-      UIScrollBarOrientation orientation = UIScrollBarOrientation::Vertical);
+      ScrollBarOrientation orientation = ScrollBarOrientation::Vertical);
 
   const char* TypeName() const override { return "ScrollBar"; }
   bool OnMouseDown(MouseMovArgs args) override;
   bool OnMouseDrag(MouseMovArgs args) override;
   bool OnMouseUp(MouseMovArgs args) override;
+  void OnPointerCaptureLost() override { DraggingThumb = false; }
   void OnLayoutUpdated() override;
 
   void SetMetrics(float viewportExtent, float contentExtent);

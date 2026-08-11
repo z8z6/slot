@@ -75,7 +75,7 @@ bool ImmediateUI::BeginPanel(const std::string& key, const std::string& title,
 void ImmediateUI::CloseScope() {
   if (ScopeStack.empty()) return;
   auto scope = ScopeStack.back();
-  if (scope.Host->GetChildCount() > scope.NextChild) {
+  if (scope.Host->GetChildSize() > scope.NextChild) {
     scope.Host->RemoveChildrenFrom(scope.NextChild);
     Changed = true;
   }

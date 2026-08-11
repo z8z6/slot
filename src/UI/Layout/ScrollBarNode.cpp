@@ -7,7 +7,7 @@
 
 using namespace z8::ui;
 
-ScrollBarNode::ScrollBarNode(UIScrollBarOrientation orientation)
+ScrollBarNode::ScrollBarNode(ScrollBarOrientation orientation)
     : ThumbNode(nullptr), Orientation(orientation) {
   const auto& style = UITheme::Modern().Panel;
   SetColor(style.ScrollBarColor);
@@ -23,7 +23,7 @@ ScrollBarNode::ScrollBarNode(UIScrollBarOrientation orientation)
   YGNodeStyleSetMargin(ThumbNode->GetYogaNode(), YGEdgeAll, 0.0f);
   YGNodeStyleSetMinWidth(ThumbNode->GetYogaNode(), 0.0f);
   YGNodeStyleSetMinHeight(ThumbNode->GetYogaNode(), 0.0f);
-  if (Orientation == UIScrollBarOrientation::Vertical) {
+  if (Orientation == ScrollBarOrientation::Vertical) {
     YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeLeft, 2.0f);
     YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeRight, 2.0f);
   } else {
@@ -51,9 +51,9 @@ bool ScrollBarNode::OnMouseDown(MouseMovArgs args) {
   if (args.Button != MouseButton::Left || !IsVisible()) return false;
   if (ThumbNode->Contains(static_cast<float>(args.X),
                           static_cast<float>(args.Y))) {
-    const float track = Orientation == UIScrollBarOrientation::Vertical
+    const float track = Orientation == ScrollBarOrientation::Vertical
         ? GetLayoutHeight() : GetLayoutWidth();
-    const float thumb = Orientation == UIScrollBarOrientation::Vertical
+    const float thumb = Orientation == ScrollBarOrientation::Vertical
         ? ThumbNode->GetLayoutHeight() : ThumbNode->GetLayoutWidth();
     const float travel = (std::max)(0.0f, track - thumb);
     DragScale = travel > 0.0f ? Maximum / travel : 0.0f;
@@ -62,9 +62,9 @@ bool ScrollBarNode::OnMouseDown(MouseMovArgs args) {
   }
   if (!Contains(static_cast<float>(args.X), static_cast<float>(args.Y)))
     return false;
-  const float pointer = Orientation == UIScrollBarOrientation::Vertical
+  const float pointer = Orientation == ScrollBarOrientation::Vertical
       ? static_cast<float>(args.Y) : static_cast<float>(args.X);
-  const float thumbStart = Orientation == UIScrollBarOrientation::Vertical
+  const float thumbStart = Orientation == ScrollBarOrientation::Vertical
       ? ThumbNode->GetLayoutY() : ThumbNode->GetLayoutX();
   SetValue(Value + (pointer < thumbStart ? -ViewportExtent : ViewportExtent));
   return true;
@@ -72,7 +72,7 @@ bool ScrollBarNode::OnMouseDown(MouseMovArgs args) {
 
 bool ScrollBarNode::OnMouseDrag(MouseMovArgs args) {
   if (!DraggingThumb) return false;
-  const float delta = Orientation == UIScrollBarOrientation::Vertical
+  const float delta = Orientation == ScrollBarOrientation::Vertical
       ? static_cast<float>(args.DeltaY) : static_cast<float>(args.DeltaX);
   SetValue(Value + delta * DragScale);
   return true;
@@ -86,7 +86,7 @@ bool ScrollBarNode::OnMouseUp(MouseMovArgs) {
 
 void ScrollBarNode::OnLayoutUpdated() {
   const auto& style = UITheme::Modern().Panel;
-  const float track = Orientation == UIScrollBarOrientation::Vertical
+  const float track = Orientation == ScrollBarOrientation::Vertical
       ? GetLayoutHeight() : GetLayoutWidth();
   // 最小滑块保证可操作性，但极小轨道仍必须夹紧，避免滑块越出控件裁剪区。
   const float thumb = ContentExtent > 0.0f
@@ -96,7 +96,7 @@ void ScrollBarNode::OnLayoutUpdated() {
       : track;
   const float travel = (std::max)(0.0f, track - thumb);
   const float position = Maximum > 0.0f ? travel * Value / Maximum : 0.0f;
-  if (Orientation == UIScrollBarOrientation::Vertical) {
+  if (Orientation == ScrollBarOrientation::Vertical) {
     YGNodeStyleSetHeight(ThumbNode->GetYogaNode(), thumb);
     YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeTop, position);
   } else {

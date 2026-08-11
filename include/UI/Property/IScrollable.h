@@ -18,32 +18,19 @@ struct ScrollProperty {
 };
 
 /**
- * 可滚动能力 mixin。
+ * 可滚动能力的兼容查询接口。
  *
- * 它拥有 offset/range 的状态不变量，但不知道 viewport、content 或滚动条的
- * 控件类型；派生控件通过 ScrollOffsetChanged 将偏移应用到自己的复合结构。
+ * offset/range 及视觉同步已经移入 ScrollBehavior；接口自身不再要求派生控件
+ * 实现回调，因此滚动能力可以独立挂载到其他复合控件。
  */
 class IScrollable : public virtual IProperty {
 public:
-  virtual const ScrollProperty& GetScrollProperties() const {
-    return ScrollProperties;
-  }
-  virtual void SetScrollProperties(const ScrollProperty& properties);
-  virtual float GetScrollOffsetY() const { return ScrollOffsetY; }
-  virtual float GetMaximumScrollOffsetY() const {
-    return MaximumScrollOffsetY;
-  }
-  virtual void SetScrollOffsetY(float offset);
-
-protected:
-  void SetVerticalScrollRange(float viewportExtent, float contentExtent);
-  bool ScrollVerticalBy(float delta);
-  virtual void ScrollOffsetChanged(float offset) = 0;
-
-private:
-  ScrollProperty ScrollProperties;
-  float ScrollOffsetY = 0.0f;
-  float MaximumScrollOffsetY = 0.0f;
+  ~IScrollable() override = default;
+  virtual const ScrollProperty &GetScrollProperties() const = 0;
+  virtual void SetScrollProperties(const ScrollProperty &properties) = 0;
+  virtual float GetScrollOffsetY() const = 0;
+  virtual float GetMaximumScrollOffsetY() const = 0;
+  virtual void SetScrollOffsetY(float offset) = 0;
 };
 
 } // namespace z8::ui

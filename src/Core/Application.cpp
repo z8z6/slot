@@ -55,7 +55,6 @@ z8::Application::Application() : Layout(this) {
 Application::~Application() {
   // 从 Apps 中移除
   std::erase(Apps, this);
-  delete Render;
 }
 
 void Application::Init() {
@@ -116,7 +115,6 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     // We pause the game when the window is deactivated and unpause it
     // when it becomes active.
   case WM_ACTIVATE:
-
     return 0;
 
   case WM_SETCURSOR:
@@ -281,7 +279,7 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
 template <typename Handler>
 void Application::ForEachObject(Handler&& handler) {
   // 键盘和窗口事件没有指针目标，仍按对象集合广播。
-  for (auto* object : Layout.UOs) handler(*object);
+  for (auto* object : Layout.GetUO()) handler(*object);
   ForEachSceneObject(std::forward<Handler>(handler));
 }
 

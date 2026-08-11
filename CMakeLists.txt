@@ -62,6 +62,9 @@ if(SLOT_BUILD_TESTS)
     # UI 测试按 Declarative、Controls、Layout 分类，且不创建窗口或 D3D12 Device。
     add_executable(slot_ui_tests
             ${SLOT_TEST_SOURCES}
+            src/UI/Behavior/DragBehavior.cpp
+            src/UI/Behavior/ResizeBehavior.cpp
+            src/UI/Behavior/ScrollBehavior.cpp
             src/UI/Declarative/ControlFactory.cpp
             src/UI/Declarative/ImmediateUI.cpp
             src/UI/Declarative/XamlLoader.cpp

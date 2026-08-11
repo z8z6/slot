@@ -45,7 +45,7 @@ public:
 
   explicit DX12RenderBatch(DX12Render* render, bool preserveOrder = false);
 
-  void Init(std::vector<GameObject*>& Os);
+  void Init(const std::vector<GameObject*>& Os);
   void Update() const;
   void Draw();
 

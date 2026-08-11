@@ -14,7 +14,9 @@ TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
   layout.RebuildIndex();
 
   EXPECT_EQ(layout.Nodes.size(), 2U);
-  EXPECT_EQ(layout.UOs.size(), 1U);
+  const auto objects = layout.GetUO();
+  ASSERT_EQ(objects.size(), 1U);
+  EXPECT_NE(objects.front(), nullptr);
   EXPECT_NE(layout.Find("content"), nullptr);
   EXPECT_TRUE(layout.ConsumeTopologyDirty());
   EXPECT_FALSE(layout.ConsumeTopologyDirty());

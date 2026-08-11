@@ -17,10 +17,13 @@ class GameObject;
 namespace z8::ui {
 class BaseNode;
 class Layout {
+  std::unique_ptr<BaseNode> RootOwner;
+  bool TopologyDirty = true;
+  BaseNode* CapturedTarget = nullptr;
+  BaseNode* CapturedHandler = nullptr;
 public:
   Application* App;
   std::vector<BaseNode*> Nodes;
-  std::vector<GameObject*> UOs;
   BaseNode* Root;
 
   explicit Layout(Application* App);
@@ -43,19 +46,23 @@ public:
 
   void MarkTopologyDirty() { TopologyDirty = true; }
   bool ConsumeTopologyDirty();
+  /**
+   * 按视觉树绘制顺序返回实际存在的 UI 对象。
+   *
+   * 纯布局节点没有 UIObject，必须在边界处过滤，调用方才能安全地把结果直接
+   * 交给渲染批次或事件广播，而不必重复进行空指针检查。
+   */
+  std::vector<GameObject *> GetUO() const;
 
 private:
-  std::unique_ptr<BaseNode> RootOwner;
-  bool TopologyDirty = true;
-  BaseNode* CapturedTarget = nullptr;
-  BaseNode* CapturedHandler = nullptr;
+
   void IndexTree(BaseNode* node);
+  void CancelTreeCaptures(BaseNode* node);
   BaseNode* HitTest(float x, float y) const;
   void UpdateTree(YGNodeRef Node, float parentX, float parentY,
                   const DirectX::XMFLOAT4& clip);
 };
 }
-
 
 
 

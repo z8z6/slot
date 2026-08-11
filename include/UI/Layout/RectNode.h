@@ -11,7 +11,6 @@ public:
   RectNode();
   const char* TypeName() const override { return "Rect"; }
 };
-
 }
 
 

@@ -3,10 +3,12 @@
 //
 #include "Target/Render.h"
 #include "Target/DirectX/DX12Render.h"
+#include "dxgi1_4.h"
 
 using namespace z8;
 
-Render* Render::CreateRender(Application* App, RenderType type)
+std::unique_ptr<Render> Render::CreateRender(Application *App,
+                                             RenderType type)
 {
-  return new DX12Render(App);
+  return std::make_unique<DX12Render>(App);
 }
