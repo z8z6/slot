@@ -10,12 +10,11 @@
 
 using namespace z8::ui;
 
-RectNode::RectNode() {
-  UO = std::make_unique<RectUIObject>();
-  const auto& style = UITheme::Modern().Rect;
+RectNode::RectNode() : VisualNode(std::make_unique<RectUIObject>()) {
+  const auto &style = UITheme::Modern().Rect;
   SetColor(style.Color);
-  YGNodeStyleSetMargin(GetYogaNode(), YGEdgeAll, style.Margin);
-  YGNodeStyleSetPadding(GetYogaNode(), YGEdgeAll, style.Padding);
-  YGNodeStyleSetMinWidth(GetYogaNode(), style.MinimumWidth);
-  YGNodeStyleSetMinHeight(GetYogaNode(), style.MinimumHeight);
+  YGNodeStyleSetMargin(Node, YGEdgeAll, style.Margin);
+  YGNodeStyleSetPadding(Node, YGEdgeAll, style.Padding);
+  YGNodeStyleSetMinWidth(Node, style.MinimumWidth);
+  YGNodeStyleSetMinHeight(Node, style.MinimumHeight);
 }

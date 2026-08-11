@@ -14,8 +14,8 @@ public:
   const float SpeedZ = 1.0f;
   const float SpeedY = 0.2f;
 
-  void OnMouseMove(MouseMovArgs) override;
-  void OnKeyDown(KeyArgs) override;
+  EventReply OnMouseMove(MouseMovArgs) override;
+  EventReply OnKeyDown(KeyArgs) override;
 };
 }
 

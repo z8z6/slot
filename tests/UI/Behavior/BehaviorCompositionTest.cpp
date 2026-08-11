@@ -32,20 +32,20 @@ TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
   auto *resize = rect->AddBehavior<ResizeBehavior>();
   DragProperty dragProperties;
   dragProperties.Region = DragRegion::Anywhere;
-  drag->SetProperties(dragProperties);
+  drag->Properties = dragProperties;
 
-  YGNodeStyleSetWidth(rect->GetYogaNode(), 200.0f);
-  YGNodeStyleSetHeight(rect->GetYogaNode(), 120.0f);
-  YGNodeStyleSetFlexGrow(rect->GetYogaNode(), 0.0f);
-  YGNodeStyleSetFlexShrink(rect->GetYogaNode(), 0.0f);
-  YGNodeStyleSetMargin(rect->GetYogaNode(), YGEdgeAll, 0.0f);
+  YGNodeStyleSetWidth(rect->Node, 200.0f);
+  YGNodeStyleSetHeight(rect->Node, 120.0f);
+  YGNodeStyleSetFlexGrow(rect->Node, 0.0f);
+  YGNodeStyleSetFlexShrink(rect->Node, 0.0f);
+  YGNodeStyleSetMargin(rect->Node, YGEdgeAll, 0.0f);
   layout.Root->AddChild(std::move(rect));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
 
   ASSERT_EQ(observer->GetBehavior<DragBehavior>(), drag);
   ASSERT_EQ(observer->GetBehavior<ResizeBehavior>(), resize);
-  ASSERT_EQ(observer->GetBehaviors().front().get(),
+  ASSERT_EQ(observer->Behaviors.front().get(),
             static_cast<UIBehavior *>(resize));
 
   // 角落同时命中 Drag 和 Resize；优先级使 Resize 独占捕获，不会移动左上角。
@@ -55,12 +55,12 @@ TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
   ASSERT_TRUE(layout.OnMouseDrag(PointerArgs(219, 129, 20, 10)));
   ASSERT_TRUE(layout.OnMouseUp(PointerArgs(219, 129)));
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_FLOAT_EQ(observer->GetLayoutWidth(), 220.0f);
-  EXPECT_FLOAT_EQ(observer->GetLayoutHeight(), 130.0f);
+  EXPECT_FLOAT_EQ(observer->Width, 220.0f);
+  EXPECT_FLOAT_EQ(observer->Height, 130.0f);
 
   // 属性链也由挂载关系组成，无需给 RectNode 增加 Drag 专用分支。
   EXPECT_TRUE(observer->SetProperty("Draggable", "false"));
-  EXPECT_FALSE(drag->GetProperties().Enabled);
+  EXPECT_FALSE(drag->Properties.Enabled);
   EXPECT_TRUE(observer->RemoveBehavior(drag));
   EXPECT_EQ(observer->GetBehavior<DragBehavior>(), nullptr);
 }
@@ -72,10 +72,10 @@ TEST(BehaviorCompositionTest, CancelsGestureWhenTopologyChanges) {
   auto *drag = rect->AddBehavior<DragBehavior>();
   DragProperty properties;
   properties.Region = DragRegion::Anywhere;
-  drag->SetProperties(properties);
-  YGNodeStyleSetWidth(rect->GetYogaNode(), 100.0f);
-  YGNodeStyleSetHeight(rect->GetYogaNode(), 100.0f);
-  YGNodeStyleSetMargin(rect->GetYogaNode(), YGEdgeAll, 0.0f);
+  drag->Properties = properties;
+  YGNodeStyleSetWidth(rect->Node, 100.0f);
+  YGNodeStyleSetHeight(rect->Node, 100.0f);
+  YGNodeStyleSetMargin(rect->Node, YGEdgeAll, 0.0f);
   layout.Root->AddChild(std::move(rect));
   layout.RebuildIndex();
   layout.Calculate(400.0f, 300.0f);

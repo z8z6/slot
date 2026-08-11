@@ -279,7 +279,7 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
 template <typename Handler>
 void Application::ForEachObject(Handler&& handler) {
   // 键盘和窗口事件没有指针目标，仍按对象集合广播。
-  for (auto* object : Layout.GetUO()) handler(*object);
+  for (auto* object : Layout.CollectVisualObjects()) handler(*object);
   ForEachSceneObject(std::forward<Handler>(handler));
 }
 

@@ -6,29 +6,30 @@
 #include <algorithm>
 
 using namespace z8::ui;
+using z8::EventReply;
 
 ScrollBarNode::ScrollBarNode(ScrollBarOrientation orientation)
     : ThumbNode(nullptr), Orientation(orientation) {
-  const auto& style = UITheme::Modern().Panel;
+  const auto &style = UITheme::Modern().Panel;
   SetColor(style.ScrollBarColor);
-  YGNodeStyleSetMargin(GetYogaNode(), YGEdgeAll, 0.0f);
-  YGNodeStyleSetMinWidth(GetYogaNode(), 0.0f);
-  YGNodeStyleSetMinHeight(GetYogaNode(), 0.0f);
+  YGNodeStyleSetMargin(Node, YGEdgeAll, 0.0f);
+  YGNodeStyleSetMinWidth(Node, 0.0f);
+  YGNodeStyleSetMinHeight(Node, 0.0f);
 
   auto thumb = std::make_unique<RectNode>();
   ThumbNode = thumb.get();
   ThumbNode->Key = "__thumb";
   ThumbNode->SetColor(style.ScrollThumbColor);
-  YGNodeStyleSetPositionType(ThumbNode->GetYogaNode(), YGPositionTypeAbsolute);
-  YGNodeStyleSetMargin(ThumbNode->GetYogaNode(), YGEdgeAll, 0.0f);
-  YGNodeStyleSetMinWidth(ThumbNode->GetYogaNode(), 0.0f);
-  YGNodeStyleSetMinHeight(ThumbNode->GetYogaNode(), 0.0f);
+  YGNodeStyleSetPositionType(ThumbNode->Node, YGPositionTypeAbsolute);
+  YGNodeStyleSetMargin(ThumbNode->Node, YGEdgeAll, 0.0f);
+  YGNodeStyleSetMinWidth(ThumbNode->Node, 0.0f);
+  YGNodeStyleSetMinHeight(ThumbNode->Node, 0.0f);
   if (Orientation == ScrollBarOrientation::Vertical) {
-    YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeLeft, 2.0f);
-    YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeRight, 2.0f);
+    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeLeft, 2.0f);
+    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeRight, 2.0f);
   } else {
-    YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeTop, 2.0f);
-    YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeBottom, 2.0f);
+    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeTop, 2.0f);
+    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeBottom, 2.0f);
   }
   AddChild(std::move(thumb));
 }
@@ -42,65 +43,75 @@ void ScrollBarNode::SetMetrics(float viewportExtent, float contentExtent) {
 
 void ScrollBarNode::SetValue(float value, bool notify) {
   const float next = std::clamp(value, 0.0f, Maximum);
-  if (next == Value) return;
+  if (next == Value)
+    return;
   Value = next;
-  if (notify && ValueChanged) ValueChanged(Value);
+  if (notify && ValueChanged)
+    ValueChanged(Value);
 }
 
-bool ScrollBarNode::OnMouseDown(MouseMovArgs args) {
-  if (args.Button != MouseButton::Left || !IsVisible()) return false;
+EventReply ScrollBarNode::OnMouseDown(MouseMovArgs args) {
+  if (args.Button != MouseButton::Left || !Visible)
+    return EventReply::Ignored;
   if (ThumbNode->Contains(static_cast<float>(args.X),
                           static_cast<float>(args.Y))) {
-    const float track = Orientation == ScrollBarOrientation::Vertical
-        ? GetLayoutHeight() : GetLayoutWidth();
+    const float track =
+        Orientation == ScrollBarOrientation::Vertical ? Height : Width;
     const float thumb = Orientation == ScrollBarOrientation::Vertical
-        ? ThumbNode->GetLayoutHeight() : ThumbNode->GetLayoutWidth();
+                            ? ThumbNode->Height
+                            : ThumbNode->Width;
     const float travel = (std::max)(0.0f, track - thumb);
     DragScale = travel > 0.0f ? Maximum / travel : 0.0f;
     DraggingThumb = true;
-    return true;
+    return EventReply::Capture;
   }
   if (!Contains(static_cast<float>(args.X), static_cast<float>(args.Y)))
-    return false;
+    return EventReply::Ignored;
   const float pointer = Orientation == ScrollBarOrientation::Vertical
-      ? static_cast<float>(args.Y) : static_cast<float>(args.X);
+                            ? static_cast<float>(args.Y)
+                            : static_cast<float>(args.X);
   const float thumbStart = Orientation == ScrollBarOrientation::Vertical
-      ? ThumbNode->GetLayoutY() : ThumbNode->GetLayoutX();
+                               ? ThumbNode->Top
+                               : ThumbNode->Left;
   SetValue(Value + (pointer < thumbStart ? -ViewportExtent : ViewportExtent));
-  return true;
+  // 轨道分页是瞬时操作，不应错误占用后续拖动事件。
+  return EventReply::Handled;
 }
 
-bool ScrollBarNode::OnMouseDrag(MouseMovArgs args) {
-  if (!DraggingThumb) return false;
+EventReply ScrollBarNode::OnMouseDrag(MouseMovArgs args) {
+  if (!DraggingThumb)
+    return EventReply::Ignored;
   const float delta = Orientation == ScrollBarOrientation::Vertical
-      ? static_cast<float>(args.DeltaY) : static_cast<float>(args.DeltaX);
+                          ? static_cast<float>(args.DeltaY)
+                          : static_cast<float>(args.DeltaX);
   SetValue(Value + delta * DragScale);
-  return true;
+  return EventReply::Handled;
 }
 
-bool ScrollBarNode::OnMouseUp(MouseMovArgs) {
+EventReply ScrollBarNode::OnMouseUp(MouseMovArgs) {
   const bool handled = DraggingThumb;
   DraggingThumb = false;
-  return handled;
+  return handled ? EventReply::Handled : EventReply::Ignored;
 }
 
 void ScrollBarNode::OnLayoutUpdated() {
-  const auto& style = UITheme::Modern().Panel;
-  const float track = Orientation == ScrollBarOrientation::Vertical
-      ? GetLayoutHeight() : GetLayoutWidth();
+  const auto &style = UITheme::Modern().Panel;
+  const float track =
+      Orientation == ScrollBarOrientation::Vertical ? Height : Width;
   // 最小滑块保证可操作性，但极小轨道仍必须夹紧，避免滑块越出控件裁剪区。
-  const float thumb = ContentExtent > 0.0f
-      ? (std::min)(track,
-                   (std::max)(style.MinimumScrollThumbLength,
-                              track * ViewportExtent / ContentExtent))
-      : track;
+  const float thumb =
+      ContentExtent > 0.0f
+          ? (std::min)(track,
+                       (std::max)(style.MinimumScrollThumbLength,
+                                  track * ViewportExtent / ContentExtent))
+          : track;
   const float travel = (std::max)(0.0f, track - thumb);
   const float position = Maximum > 0.0f ? travel * Value / Maximum : 0.0f;
   if (Orientation == ScrollBarOrientation::Vertical) {
-    YGNodeStyleSetHeight(ThumbNode->GetYogaNode(), thumb);
-    YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeTop, position);
+    YGNodeStyleSetHeight(ThumbNode->Node, thumb);
+    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeTop, position);
   } else {
-    YGNodeStyleSetWidth(ThumbNode->GetYogaNode(), thumb);
-    YGNodeStyleSetPosition(ThumbNode->GetYogaNode(), YGEdgeLeft, position);
+    YGNodeStyleSetWidth(ThumbNode->Node, thumb);
+    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeLeft, position);
   }
 }

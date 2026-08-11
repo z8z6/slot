@@ -9,6 +9,7 @@
 #include <cstdlib>
 
 using namespace z8::ui;
+using z8::EventReply;
 
 namespace {
 
@@ -77,13 +78,13 @@ void ScrollBehavior::ApplyProperties() {
       Properties.Enabled && (Properties.Horizontal || Properties.Vertical);
   // Yoga 的 overflow 只控制测量语义；渲染裁剪和输入命中仍消费同一个
   // ClipsChildren 标志，确保视觉与交互区域不会分离。
-  YGNodeStyleSetOverflow(Viewport->GetYogaNode(),
+  YGNodeStyleSetOverflow(Viewport->Node,
                          scrolls ? YGOverflowScroll : YGOverflowVisible);
-  Viewport->SetClipsChildren(scrolls);
+  Viewport->ClipsChildren = scrolls;
   if (VerticalScrollBar) {
-    VerticalScrollBar->SetVisible(false);
+    VerticalScrollBar->Visible = false;
     if (VerticalScrollBar->ThumbNode)
-      VerticalScrollBar->ThumbNode->SetVisible(false);
+      VerticalScrollBar->ThumbNode->Visible = false;
   }
 }
 
@@ -91,13 +92,13 @@ void ScrollBehavior::UpdateRange() {
   if (!Viewport || !Content)
     return;
   float contentExtent = 0.0f;
-  for (const auto &child : Content->GetChildren()) {
-    const auto yogaNode = child->GetYogaNode();
+  for (const auto &child : Content->Children) {
+    const auto yogaNode = child->Node;
     contentExtent =
         (std::max)(contentExtent, YGNodeLayoutGetTop(yogaNode) +
                                       YGNodeLayoutGetHeight(yogaNode));
   }
-  const float viewportExtent = Viewport->GetLayoutHeight();
+  const float viewportExtent = Viewport->Height;
   MaximumOffsetY = Properties.Enabled && Properties.Vertical
                        ? (std::max)(0.0f, contentExtent - viewportExtent)
                        : 0.0f;
@@ -110,8 +111,10 @@ void ScrollBehavior::UpdateRange() {
 }
 
 void ScrollBehavior::SynchronizeVisuals() {
-  if (Viewport)
-    Viewport->SetChildOffset(0.0f, -OffsetY);
+  if (Viewport) {
+    Viewport->ChildOffsetX = 0.0f;
+    Viewport->ChildOffsetY = -OffsetY;
+  }
   if (!VerticalScrollBar)
     return;
   VerticalScrollBar->SetValue(OffsetY, false);
@@ -121,9 +124,9 @@ void ScrollBehavior::SynchronizeVisuals() {
       Properties.Enabled && Properties.Vertical &&
       (visibility == ScrollBarVisibility::Visible ||
        (visibility == ScrollBarVisibility::Auto && MaximumOffsetY > 0.0f));
-  VerticalScrollBar->SetVisible(visible);
+  VerticalScrollBar->Visible = visible;
   if (VerticalScrollBar->ThumbNode)
-    VerticalScrollBar->ThumbNode->SetVisible(visible);
+    VerticalScrollBar->ThumbNode->Visible = visible;
 }
 
 void ScrollBehavior::SetOffsetY(float offset) {
@@ -132,16 +135,16 @@ void ScrollBehavior::SetOffsetY(float offset) {
   SynchronizeVisuals();
 }
 
-bool ScrollBehavior::OnMouseWheel(MouseWheelArgs args) {
+EventReply ScrollBehavior::OnMouseWheel(MouseWheelArgs args) {
   if (!Viewport || !Properties.Enabled || !Properties.Vertical ||
       !Viewport->Contains(static_cast<float>(args.X),
                           static_cast<float>(args.Y)) ||
       MaximumOffsetY <= 0.0f)
-    return false;
+    return EventReply::Ignored;
   const float notches =
       static_cast<float>(args.Delta) / static_cast<float>(WHEEL_DELTA);
   SetOffsetY(OffsetY - notches * Properties.WheelStep);
-  return true;
+  return EventReply::Handled;
 }
 
 void ScrollBehavior::OnLayoutUpdated() { UpdateRange(); }

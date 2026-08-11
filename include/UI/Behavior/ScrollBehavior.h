@@ -1,12 +1,24 @@
 #pragma once
 
 #include "UI/Behavior/UIBehavior.h"
-#include "UI/Property/IScrollable.h"
 
 namespace z8::ui {
 
 class BaseNode;
 class ScrollBarNode;
+
+/** 滚动条可见性策略；Auto 仅在对应方向内容溢出时显示。 */
+enum class ScrollBarVisibility { Hidden, Auto, Visible };
+
+/** 滚动方向、滚动条策略及鼠标滚轮步长。 */
+struct ScrollProperty {
+  bool Enabled = true;
+  bool Horizontal = false;
+  bool Vertical = true;
+  ScrollBarVisibility HorizontalScrollBar = ScrollBarVisibility::Hidden;
+  ScrollBarVisibility VerticalScrollBar = ScrollBarVisibility::Auto;
+  float WheelStep = 40.0f;
+};
 
 /**
  * 连接 viewport、content 与可选滚动条的滚动行为。
@@ -22,15 +34,15 @@ public:
   /** 绑定复合视觉并安装滚动条 value 回调；旧绑定会被下一次绑定替换。 */
   void BindVertical(BaseNode *viewport, BaseNode *content,
                     ScrollBarNode *scrollBar);
-  /** 配置和偏移访问器统一维持 [0, maximum] 范围不变量。 */
-  const ScrollProperty &GetProperties() const { return Properties; }
+  /** 配置公开供声明层检查；批量修改通过 SetProperties 刷新范围和视觉。 */
+  ScrollProperty Properties;
   void SetProperties(const ScrollProperty &properties);
   float GetOffsetY() const { return OffsetY; }
   float GetMaximumOffsetY() const { return MaximumOffsetY; }
   void SetOffsetY(float offset);
 
   /** 滚轮、布局和属性变化最终都汇入同一范围与视觉同步流程。 */
-  bool OnMouseWheel(MouseWheelArgs args) override;
+  EventReply OnMouseWheel(MouseWheelArgs args) override;
   void OnLayoutUpdated() override;
   bool SetProperty(const std::string &name, const std::string &value) override;
 
@@ -42,7 +54,6 @@ private:
   void SynchronizeVisuals();
   void UpdateRange();
 
-  ScrollProperty Properties;
   BaseNode *Viewport = nullptr;
   BaseNode *Content = nullptr;
   ScrollBarNode *VerticalScrollBar = nullptr;

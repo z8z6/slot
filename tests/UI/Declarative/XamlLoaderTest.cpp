@@ -20,15 +20,19 @@ TEST(XamlLoaderTest, BuildsPanelControlTree) {
   Layout layout(nullptr);
   auto result = XamlLoader().LoadInto(layout, source);
   ASSERT_TRUE(result) << result.Error;
-  auto* panel = dynamic_cast<PanelNode*>(layout.Find("tools"));
+  auto *panel = dynamic_cast<PanelNode *>(layout.Find("tools"));
   ASSERT_NE(panel, nullptr);
   EXPECT_EQ(panel->Title, "Tools & Scene");
-  EXPECT_EQ(panel->ContentNode->GetChildSize(), 1U);
-  EXPECT_EQ(panel->GetDragProperties().Region, DragRegion::Anywhere);
-  EXPECT_TRUE(panel->GetScrollProperties().Horizontal);
-  EXPECT_EQ(panel->GetScrollProperties().HorizontalScrollBar,
+  EXPECT_EQ(panel->ContentNode->Children.size(), 1U);
+  const auto *drag = panel->GetBehavior<DragBehavior>();
+  const auto *scroll = panel->GetBehavior<ScrollBehavior>();
+  ASSERT_NE(drag, nullptr);
+  ASSERT_NE(scroll, nullptr);
+  EXPECT_EQ(drag->Properties.Region, DragRegion::Anywhere);
+  EXPECT_TRUE(scroll->Properties.Horizontal);
+  EXPECT_EQ(scroll->Properties.HorizontalScrollBar,
             ScrollBarVisibility::Auto);
-  EXPECT_EQ(panel->GetScrollProperties().VerticalScrollBar,
+  EXPECT_EQ(scroll->Properties.VerticalScrollBar,
             ScrollBarVisibility::Visible);
   EXPECT_NE(layout.Find("content"), nullptr);
 }
@@ -44,7 +48,8 @@ TEST(XamlLoaderTest, ReportsInvalidMarkupInEnglish) {
   EXPECT_GT(mismatch.ErrorOffset, 0U);
   EXPECT_NE(mismatch.Error.find("Mismatched closing tag"), std::string::npos);
 
-  auto duplicate = loader.Load("<UI><Rect Id=\"same\"/><Rect Id=\"same\"/></UI>");
+  auto duplicate =
+      loader.Load("<UI><Rect Id=\"same\"/><Rect Id=\"same\"/></UI>");
   EXPECT_FALSE(duplicate);
   EXPECT_NE(duplicate.Error.find("Duplicate control key"), std::string::npos);
 }

@@ -19,7 +19,7 @@ RotateCube::RotateCube()
 }
 
 
-void z8::RotateCube::OnMouseMove(MouseMovArgs Args) {
+EventReply z8::RotateCube::OnMouseMove(MouseMovArgs Args) {
   if ((Args.State & MK_LBUTTON) != 0)
   {
     // Make each pixel correspond to a quarter of a degree.
@@ -33,6 +33,7 @@ void z8::RotateCube::OnMouseMove(MouseMovArgs Args) {
     // Restrict the angle mPhi.
     Transform.Phi = Math::Clamp(Transform.Phi, 0.1f, XM_PI - 0.1f);
     Transform.UpdateCartesian();
+    return EventReply::Handled;
   }
   else if ((Args.State & MK_RBUTTON) != 0)
   {
@@ -46,7 +47,9 @@ void z8::RotateCube::OnMouseMove(MouseMovArgs Args) {
     // Restrict the radius.
     Transform.Radius = Math::Clamp(Transform.Radius, 3.0f, 15.0f);
     Transform.UpdateCartesian();
+    return EventReply::Handled;
   }
+  return EventReply::Ignored;
 }
 
 

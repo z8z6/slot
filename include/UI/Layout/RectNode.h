@@ -3,15 +3,13 @@
 //
 
 #pragma once
-#include "BaseNode.h"
+#include "VisualNode.h"
 
 namespace z8::ui {
-class RectNode : public BaseNode {
+/** 使用矩形网格绘制的基础视觉节点。 */
+class RectNode : public VisualNode {
 public:
   RectNode();
-  const char* TypeName() const override { return "Rect"; }
+  const char *TypeName() const override { return "Rect"; }
 };
-}
-
-
-
+} // namespace z8::ui

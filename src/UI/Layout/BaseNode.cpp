@@ -4,16 +4,16 @@
 
 #include "UI/Layout/BaseNode.h"
 
-#include "Object/UIObject/UIObject.h"
-#include "UI/Style/UITheme.h"
 #include "yoga/YGNodeStyle.h"
 #include "yoga/node/Node.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 using namespace z8::ui;
+using z8::EventReply;
 
-BaseNode::BaseNode() : Node(YGNodeNew()), UO(nullptr), Parent(nullptr){
+BaseNode::BaseNode() : Node(YGNodeNew()) {
   // 保存 BaseNode 指针到 YGNode, 这样可以双向查询
   YGNodeSetContext(Node, this);
   YGNodeStyleSetFlexGrow(Node, 1.0f);
@@ -21,25 +21,27 @@ BaseNode::BaseNode() : Node(YGNodeNew()), UO(nullptr), Parent(nullptr){
 }
 
 BaseNode::~BaseNode() {
-  // Behavior 可能观察内部视觉节点，必须在子树和 Yoga 几何失效前释放。
+  ReleaseBehaviors();
+  YGNodeRemoveAllChildren(Node);
+  Children.clear();
+  YGNodeFree(Node);
+  Node = nullptr;
+}
+
+void BaseNode::ReleaseBehaviors() {
+  // Behavior 可能观察内部视觉节点，必须在视觉、子树和 Yoga 几何失效前释放。
   CancelPointerCapture();
   for (const auto &behavior : Behaviors) {
     behavior->OnDetached();
     behavior->Owner = nullptr;
   }
   Behaviors.clear();
-  YGNodeRemoveAllChildren(Node);
-  Children.clear();
-  UO.reset();
-  YGNodeFree(Node);
-  Node = nullptr;
 }
 
 bool BaseNode::Contains(float x, float y) const {
-  return Visible && x >= LayoutX && y >= LayoutY &&
-         x <= LayoutX + LayoutWidth && y <= LayoutY + LayoutHeight &&
-         x >= VisibleClip.x && y >= VisibleClip.y && x <= VisibleClip.z &&
-         y <= VisibleClip.w;
+  return Visible && x >= Left && y >= Top && x <= Left + Width &&
+         y <= Top + Height && x >= VisibleClip.x && y >= VisibleClip.y &&
+         x <= VisibleClip.z && y <= VisibleClip.w;
 }
 bool BaseNode::Contains(MouseMovArgs args) const {
   return Contains(static_cast<float>(args.X), static_cast<float>(args.Y));
@@ -79,38 +81,45 @@ bool BaseNode::RemoveBehavior(UIBehavior *behavior) {
   return true;
 }
 
-UIEventReply BaseNode::DispatchMouseDown(MouseMovArgs args) {
+EventReply BaseNode::DispatchMouseDown(MouseMovArgs args) {
   CapturedBehavior = nullptr;
   for (const auto &behavior : Behaviors) {
     const auto reply = behavior->OnMouseDown(args);
-    if (reply == UIEventReply::Capture)
+    if (reply == EventReply::Capture)
       CapturedBehavior = behavior.get();
-    if (reply != UIEventReply::Ignored)
+    if (reply != EventReply::Ignored)
       return reply;
   }
-  // 旧式复合控件仍可覆写节点钩子；true 按原契约解释为开始捕获。
-  return OnMouseDown(args) ? UIEventReply::Capture : UIEventReply::Ignored;
+  return OnMouseDown(args);
+}
+
+bool BaseNode::DispatchMouseMove(MouseMovArgs args) {
+  for (const auto &behavior : Behaviors)
+    if (behavior->OnMouseMove(args) != EventReply::Ignored)
+      return true;
+  return OnMouseMove(args) != EventReply::Ignored;
 }
 
 bool BaseNode::DispatchMouseDrag(MouseMovArgs args) {
-  return CapturedBehavior ? CapturedBehavior->OnMouseDrag(args)
-                          : OnMouseDrag(args);
+  const auto reply = CapturedBehavior ? CapturedBehavior->OnMouseDrag(args)
+                                      : OnMouseDrag(args);
+  return reply != EventReply::Ignored;
 }
 
 bool BaseNode::DispatchMouseUp(MouseMovArgs args) {
   if (!CapturedBehavior)
-    return OnMouseUp(args);
+    return OnMouseUp(args) != EventReply::Ignored;
   auto *behavior = CapturedBehavior;
-  const bool handled = behavior->OnMouseUp(args);
+  const bool handled = behavior->OnMouseUp(args) != EventReply::Ignored;
   CapturedBehavior = nullptr;
   return handled;
 }
 
 bool BaseNode::DispatchMouseWheel(MouseWheelArgs args) {
   for (const auto &behavior : Behaviors)
-    if (behavior->OnMouseWheel(args))
+    if (behavior->OnMouseWheel(args) != EventReply::Ignored)
       return true;
-  return OnMouseWheel(args);
+  return OnMouseWheel(args) != EventReply::Ignored;
 }
 
 z8::MouseCursor BaseNode::QueryMouseCursor(MouseMovArgs args) const {
@@ -135,6 +144,22 @@ void BaseNode::DispatchLayoutUpdated() {
   OnLayoutUpdated();
 }
 
+void BaseNode::DispatchBeforeLayout(float width, float height) {
+  // 行为按既定优先级更新约束，使多个布局策略的覆盖顺序与输入仲裁一致。
+  for (const auto &behavior : Behaviors)
+    behavior->OnBeforeLayout(width, height);
+}
+
+void BaseNode::DispatchDragStarted(MouseMovArgs args) {
+  for (const auto &behavior : Behaviors)
+    behavior->OnDragStarted(args);
+}
+
+void BaseNode::DispatchDragCompleted(MouseMovArgs args) {
+  for (const auto &behavior : Behaviors)
+    behavior->OnDragCompleted(args);
+}
+
 void BaseNode::CancelPointerCapture() {
   if (CapturedBehavior) {
     CapturedBehavior->OnCaptureLost();
@@ -148,7 +173,7 @@ BaseNode *BaseNode::AddChild(std::unique_ptr<BaseNode> child) {
     return nullptr;
   child->Parent = this;
   auto *result = child.get();
-  YGNodeInsertChild(Node, child->GetYogaNode(), GetChildSize());
+  YGNodeInsertChild(Node, child->Node, Children.size());
   Children.push_back(std::move(child));
   return result;
 }
@@ -157,9 +182,9 @@ void BaseNode::RemoveChildrenFrom(size_t first) {
   if (first >= Children.size())
     return;
   for (size_t i = Children.size(); i > first; --i)
-    YGNodeRemoveChild(Node, Children[i - 1]->GetYogaNode());
+    YGNodeRemoveChild(Node, Children[i - 1]->Node);
   Children.erase(Children.begin() + static_cast<std::ptrdiff_t>(first),
-                   Children.end());
+                 Children.end());
 }
 
 BaseNode *BaseNode::ContentHost() { return this; }
@@ -174,12 +199,7 @@ bool BaseNode::SetProperty(const std::string &name, const std::string &value) {
   const float number = std::strtof(value.c_str(), nullptr);
   if (name == "Id" || name == "Key" || name == "Name")
     Key = value;
-  else if (name == "Color") {
-    DirectX::XMFLOAT4 color;
-    if (!ParseUIColor(value, color))
-      return false;
-    return SetColor(color);
-  } else if (name == "Width")
+  else if (name == "Width")
     YGNodeStyleSetWidth(Node, number);
   else if (name == "Height")
     YGNodeStyleSetHeight(Node, number);
@@ -208,12 +228,5 @@ bool BaseNode::SetProperty(const std::string &name, const std::string &value) {
       return false;
   } else
     return false;
-  return true;
-}
-
-bool BaseNode::SetColor(const DirectX::XMFLOAT4 &color) {
-  if (!UO)
-    return false;
-  UO->SetColor(color);
   return true;
 }

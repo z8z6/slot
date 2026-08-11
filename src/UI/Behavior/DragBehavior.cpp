@@ -5,6 +5,7 @@
 #include "yoga/YGNodeStyle.h"
 
 using namespace z8::ui;
+using z8::EventReply;
 
 namespace {
 
@@ -22,37 +23,44 @@ bool ParseBoolean(const std::string &value, bool &result) {
 
 } // namespace
 
-UIEventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
+EventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
   auto *owner = GetOwner();
   if (!owner || !Properties.Enabled || args.Button != MouseButton::Left ||
       !owner->Contains(args))
-    return UIEventReply::Ignored;
+    return EventReply::Ignored;
 
   const bool inAllowedRegion = Properties.Region == DragRegion::Anywhere ||
                                (Handle && Handle->Contains(args));
   if (!inAllowedRegion)
-    return UIEventReply::Ignored;
+    return EventReply::Ignored;
 
   // 快照 Yoga 的父空间坐标与已解析尺寸，使整个手势只累加相对位移，避免布局
   // 在两帧之间重新测量后造成拖动反馈跳变。
-  CurrentLeft = YGNodeLayoutGetLeft(owner->GetYogaNode());
-  CurrentTop = YGNodeLayoutGetTop(owner->GetYogaNode());
-  CurrentWidth = owner->GetLayoutWidth();
-  CurrentHeight = owner->GetLayoutHeight();
+  CurrentLeft = YGNodeLayoutGetLeft(owner->Node);
+  CurrentTop = YGNodeLayoutGetTop(owner->Node);
+  CurrentWidth = owner->Width;
+  CurrentHeight = owner->Height;
   Dragging = true;
-  return UIEventReply::Capture;
+  GestureMoved = false;
+  return EventReply::Capture;
 }
 
-bool DragBehavior::OnMouseDrag(MouseMovArgs args) {
+EventReply DragBehavior::OnMouseDrag(MouseMovArgs args) {
   auto *owner = GetOwner();
   if (!owner || !Dragging)
-    return false;
+    return EventReply::Ignored;
   if (args.DeltaX == 0 && args.DeltaY == 0)
-    return true;
+    return EventReply::Handled;
+
+  if (!GestureMoved) {
+    GestureMoved = true;
+    // 只在产生真实位移后通知，避免单击标题栏把已停靠 Panel 变成浮动窗口。
+    owner->DispatchDragStarted(args);
+  }
 
   CurrentLeft += static_cast<float>(args.DeltaX);
   CurrentTop += static_cast<float>(args.DeltaY);
-  auto yogaNode = owner->GetYogaNode();
+  auto yogaNode = owner->Node;
   if (!InteractiveGeometry) {
     // 流式位置已经包含 Margin；转换为绝对定位时清除它，防止首次拖动跳变。
     YGNodeStyleSetMargin(yogaNode, YGEdgeAll, 0.0f);
@@ -67,13 +75,16 @@ bool DragBehavior::OnMouseDrag(MouseMovArgs args) {
   YGNodeStyleSetHeight(yogaNode, CurrentHeight);
   YGNodeStyleSetFlexGrow(yogaNode, 0.0f);
   YGNodeStyleSetFlexShrink(yogaNode, 0.0f);
-  return true;
+  return EventReply::Handled;
 }
 
-bool DragBehavior::OnMouseUp(MouseMovArgs) {
+EventReply DragBehavior::OnMouseUp(MouseMovArgs args) {
   const bool handled = Dragging;
+  if (Dragging && GestureMoved && GetOwner())
+    GetOwner()->DispatchDragCompleted(args);
   Dragging = false;
-  return handled;
+  GestureMoved = false;
+  return handled ? EventReply::Handled : EventReply::Ignored;
 }
 
 bool DragBehavior::SetProperty(const std::string &name,

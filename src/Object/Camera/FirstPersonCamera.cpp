@@ -9,8 +9,9 @@
 using namespace z8;
 using namespace DirectX;
 
-void FirstPersonCamera::OnMouseMove(MouseMovArgs Args) {
-  if (GetAsyncKeyState(VK_MENU) & 0x8000) return;
+EventReply FirstPersonCamera::OnMouseMove(MouseMovArgs Args) {
+  if (GetAsyncKeyState(VK_MENU) & 0x8000)
+    return EventReply::Ignored;
   // 鼠标偏移量
   float dx = static_cast<float>(Args.DeltaX) * SensitivityX;
   float dy = static_cast<float>(Args.DeltaY) * SensitivityY;
@@ -24,9 +25,10 @@ void FirstPersonCamera::OnMouseMove(MouseMovArgs Args) {
   if (Transform.Rotation.x < -89.0f) Transform.Rotation.x = -89.0f;
 
   UpdateTarget();
+  return EventReply::Handled;
 }
 
-void FirstPersonCamera::OnKeyDown(KeyArgs Args) {
+EventReply FirstPersonCamera::OnKeyDown(KeyArgs Args) {
 
   // 从欧拉角获取 Yaw
   float yaw = XMConvertToRadians(Transform.Rotation.y);
@@ -62,6 +64,9 @@ void FirstPersonCamera::OnKeyDown(KeyArgs Args) {
   case VK_SHIFT:
     Transform.Position.y -= SpeedY;
     break;
+  default:
+    return EventReply::Ignored;
   }
   UpdateTarget();
+  return EventReply::Handled;
 }

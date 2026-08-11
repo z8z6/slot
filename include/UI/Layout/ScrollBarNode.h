@@ -17,24 +17,24 @@ enum class ScrollBarOrientation { Horizontal, Vertical };
  */
 class ScrollBarNode : public RectNode {
 public:
-  RectNode* ThumbNode;
+  RectNode *ThumbNode;
   ScrollBarOrientation Orientation;
   std::function<void(float)> ValueChanged;
 
   explicit ScrollBarNode(
       ScrollBarOrientation orientation = ScrollBarOrientation::Vertical);
 
-  const char* TypeName() const override { return "ScrollBar"; }
-  bool OnMouseDown(MouseMovArgs args) override;
-  bool OnMouseDrag(MouseMovArgs args) override;
-  bool OnMouseUp(MouseMovArgs args) override;
+  const char *TypeName() const override { return "ScrollBar"; }
+  EventReply OnMouseDown(MouseMovArgs args) override;
+  EventReply OnMouseDrag(MouseMovArgs args) override;
+  EventReply OnMouseUp(MouseMovArgs args) override;
   void OnPointerCaptureLost() override { DraggingThumb = false; }
   void OnLayoutUpdated() override;
 
+  /** 更新 viewport/content 比例，并据此计算滑块长度和最大值。 */
   void SetMetrics(float viewportExtent, float contentExtent);
+  /** 设置经过夹紧的滚动值；notify 控制是否向 ScrollBehavior 回传。 */
   void SetValue(float value, bool notify = true);
-  float GetValue() const { return Value; }
-  float GetMaximum() const { return Maximum; }
 
 private:
   float ViewportExtent = 0.0f;

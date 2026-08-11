@@ -1,19 +1,29 @@
 #include "UI/Layout/BaseNode.h"
+#include "Object/Object.h"
 #include "Object/UIObject/UIObject.h"
+#include "UI/Layout/VisualNode.h"
 
 #include <gtest/gtest.h>
+#include <stdexcept>
+#include <type_traits>
 
 namespace z8::ui {
 namespace {
+static_assert(!std::is_base_of_v<UIObject, BaseNode>);
+static_assert(std::is_base_of_v<BaseNode, VisualNode>);
+static_assert(std::is_base_of_v<EventTarget, BaseNode>);
+static_assert(std::is_base_of_v<EventTarget, Object>);
+
 class TrackingObject final : public UIObject {
 public:
   ~TrackingObject() override { ++DestructionCount; }
   static inline int DestructionCount = 0;
 };
 
-class TrackingNode final : public BaseNode {
+class TrackingNode final : public VisualNode {
 public:
-  TrackingNode() { SetObject(std::make_unique<TrackingObject>()); }
+  /** 测试节点通过 VisualNode 验证渲染对象与布局节点的联合生命周期。 */
+  TrackingNode() : VisualNode(std::make_unique<TrackingObject>()) {}
 };
 
 TEST(BaseNodeTest, OwnsVisualAndChildren) {
@@ -21,11 +31,11 @@ TEST(BaseNodeTest, OwnsVisualAndChildren) {
   {
     BaseNode root;
     auto child = std::make_unique<TrackingNode>();
-    auto* childObserver = child.get();
+    auto *childObserver = child.get();
     EXPECT_EQ(root.AddChild(std::move(child)), childObserver);
     EXPECT_EQ(childObserver->Parent, &root);
-    EXPECT_EQ(root.GetChildSize(), 1U);
-    EXPECT_EQ(YGNodeGetParent(childObserver->GetYogaNode()), root.GetYogaNode());
+    EXPECT_EQ(root.Children.size(), 1U);
+    EXPECT_EQ(YGNodeGetParent(childObserver->Node), root.Node);
   }
   EXPECT_EQ(TrackingObject::DestructionCount, 1);
 }
@@ -35,9 +45,13 @@ TEST(BaseNodeTest, RemovesOwnedChildSuffix) {
   root.AddChild(std::make_unique<BaseNode>());
   root.AddChild(std::make_unique<BaseNode>());
   root.RemoveChildrenFrom(1);
-  EXPECT_EQ(root.GetChildSize(), 1U);
-  EXPECT_NE(root.GetChild(0), nullptr);
-  EXPECT_EQ(root.GetChild(1), nullptr);
+  ASSERT_EQ(root.Children.size(), 1U);
+  EXPECT_NE(root.Children[0], nullptr);
+}
+
+TEST(BaseNodeTest, RejectsVisualNodeWithoutRenderObject) {
+  // VisualNode 的类型含义必须可靠，不能允许空视觉重新制造可空渲染分支。
+  EXPECT_THROW(VisualNode(nullptr), std::invalid_argument);
 }
 } // namespace
 } // namespace z8::ui

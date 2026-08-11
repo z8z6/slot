@@ -17,39 +17,35 @@
 #include <utility>
 #include <vector>
 
-namespace z8 {
-class UIObject;
-}
-
 namespace z8::ui {
 /**
- * 保留式 UI 树的基础节点，同时也是所有声明属性的根接口实现。
+ * 保留式 UI 树的非视觉基础节点，同时也是所有声明属性的根接口实现。
  *
- * XAML、即时声明和检查器只依赖 IProperty，不需要识别具体控件；拖拽、
- * 拉伸和滚动等可选能力再由派生类通过更窄的接口显式声明。
+ * BaseNode 只维护 Yoga 几何、树关系、输入路由和 Behavior，不拥有渲染对象。
+ * Root、Viewport、Content 等结构节点因此不会伪装成可绘制对象；需要绘制的
+ * 控件继承 VisualNode，由后者独占 UIObject。
  */
-class BaseNode : public virtual IProperty {
-  friend class Layout;
-  // 缓存控件的绝对位置和大小
-  float LayoutX = 0.0f;
-  float LayoutY = 0.0f;
-  float LayoutWidth = 0.0f;
-  float LayoutHeight = 0.0f;
+class BaseNode : public virtual IProperty, public EventTarget {
+public:
+  // 布局结果使用窗口客户区绝对坐标，渲染与命中测试共享这些字段。
+  float Left = 0.0f;
+  float Top = 0.0f;
+  float Width = 0.0f;
+  float Height = 0.0f;
   float ChildOffsetX = 0.0f;
   float ChildOffsetY = 0.0f;
   bool ClipsChildren = false;
   bool Visible = true;
   DirectX::XMFLOAT4 VisibleClip = {-100000.0f, -100000.0f, 100000.0f,
                                    100000.0f};
-protected:
+  // Node 由 BaseNode 独占；Children 与 Yoga 子树始终按相同顺序更新。
   GSL_OWNER YGNodeRef Node;
-  std::unique_ptr<UIObject> UO;
-  BaseNode *Parent;
+  BaseNode *Parent = nullptr;
   std::vector<std::unique_ptr<BaseNode>> Children;
+  // Behavior 生命周期严格短于宿主，内部可安全观察宿主和复合视觉子节点。
   std::vector<std::unique_ptr<UIBehavior>> Behaviors;
   UIBehavior *CapturedBehavior = nullptr;
 
-public:
   // Key 是声明式 UI 在多次构建之间复用控件的稳定身份。
   std::string Key;
 
@@ -58,30 +54,19 @@ public:
   BaseNode(const BaseNode &) = delete;
   BaseNode &operator=(const BaseNode &) = delete;
 
-  size_t GetChildSize() const { return Children.size(); }
-  BaseNode *GetChild(size_t index) const {
-    return index < GetChildSize() ? Children[index].get() : nullptr;
-  }
-  const std::vector<std::unique_ptr<BaseNode>> &GetChildren() const {
-    return Children;
-  }
-  YGNodeRef GetYogaNode() const { return Node; }
-  UIObject *GetUO() const { return UO.get(); }
-  float GetLayoutX() const { return LayoutX; }
-  float GetLayoutY() const { return LayoutY; }
-  float GetLayoutWidth() const { return LayoutWidth; }
-  float GetLayoutHeight() const { return LayoutHeight; }
   bool Contains(float x, float y) const;
   bool Contains(MouseMovArgs args) const;
 
-  virtual bool OnMouseDown(MouseMovArgs) { return false; }
-  virtual bool OnMouseDrag(MouseMovArgs) { return false; }
-  virtual bool OnMouseUp(MouseMovArgs) { return false; }
-  virtual bool OnMouseWheel(MouseWheelArgs) { return false; }
   /** 路由器放弃一次捕获时，旧式控件用它清理未完成的手势状态。 */
   virtual void OnPointerCaptureLost() {}
   /** 子树完成布局后调用，复合控件在此计算滚动范围等派生几何。 */
   virtual void OnLayoutUpdated() {}
+  /**
+   * 将缓存布局提交给可选视觉；非视觉节点默认无操作。
+   *
+   * 该窄接口避免 BaseNode 依赖 UIObject，也避免 Layout 在每帧遍历中使用 RTTI。
+   */
+  virtual void SynchronizeVisual(const DirectX::XMFLOAT4 &) {}
   // 返回当前位置期望的指针形状，父级可为子视觉提供边界光标
   virtual MouseCursor GetMouseCursor(MouseMovArgs) const {
     return MouseCursor::Arrow;
@@ -117,17 +102,19 @@ public:
         return result;
     return nullptr;
   }
-  const std::vector<std::unique_ptr<UIBehavior>> &GetBehaviors() const {
-    return Behaviors;
-  }
-
-  /** 以下入口只供 Layout 路由器调用，统一组合 Behavior 与旧控件事件钩子。 */
-  UIEventReply DispatchMouseDown(MouseMovArgs args);
+  /** 以下入口只供 Layout 路由器调用，统一组合 Behavior 与节点事件钩子。 */
+  EventReply DispatchMouseDown(MouseMovArgs args);
+  bool DispatchMouseMove(MouseMovArgs args);
   bool DispatchMouseDrag(MouseMovArgs args);
   bool DispatchMouseUp(MouseMovArgs args);
   bool DispatchMouseWheel(MouseWheelArgs args);
   MouseCursor QueryMouseCursor(MouseMovArgs args) const;
   void DispatchLayoutUpdated();
+  /** 在 Yoga 测量前允许容器行为写入本轮布局约束。 */
+  void DispatchBeforeLayout(float width, float height);
+  /** 广播有效拖拽边界，让停靠等兄弟行为无需依赖挂载顺序或回调所有权。 */
+  void DispatchDragStarted(MouseMovArgs args);
+  void DispatchDragCompleted(MouseMovArgs args);
   void CancelPointerCapture();
 
   // 控件树和 Yoga 树必须同步修改。
@@ -140,15 +127,13 @@ public:
   virtual BaseNode *ContentHost();
   virtual const char *TypeName() const;
   bool SetProperty(const std::string &name, const std::string &value) override;
-  /** 对带视觉对象的控件统一设置颜色；纯布局容器返回 false。 */
-  bool SetColor(const DirectX::XMFLOAT4 &color);
-  void SetChildOffset(float x, float y) {
-    ChildOffsetX = x;
-    ChildOffsetY = y;
-  }
-  void SetClipsChildren(bool clips) { ClipsChildren = clips; }
-  void SetVisible(bool visible) { Visible = visible; }
-  bool IsVisible() const { return Visible; }
 
+protected:
+  /**
+   * 提前释放观察宿主资源的 Behavior；VisualNode 在视觉成员析构前调用。
+   *
+   * BaseNode 析构会再次安全调用，因此纯布局节点和构造失败路径无需特殊处理。
+   */
+  void ReleaseBehaviors();
 };
 } // namespace z8::ui

@@ -4,8 +4,10 @@
 
 #include "UI/Layout/Layout.h"
 
-#include "Object/UIObject/RectUIObject.h"
-#include "UI/Layout/RectNode.h"
+#include "Object/UIObject/UIObject.h"
+#include "UI/Behavior/DockLayoutBehavior.h"
+#include "UI/Layout/BaseNode.h"
+#include "UI/Layout/VisualNode.h"
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 
@@ -16,17 +18,20 @@
 using namespace z8;
 using namespace z8::ui;
 
-Layout::Layout(Application *App) : App(App), Root(nullptr) {
-  auto root = std::make_unique<BaseNode>();
-  root->Key = "Root";
-  SetRoot(std::move(root));
+Layout::Layout(Application *App)
+    : Root(std::make_unique<BaseNode>()), App(App) {
+  Root->Key = "Root";
+  // 根节点默认作为 DockSpace；无 DockBehavior 的普通子节点保持原 Yoga 布局。
+  Root->AddBehavior<DockLayoutBehavior>();
+  RebuildIndex();
 }
 
 Layout::~Layout() = default;
 
 void Layout::SetRoot(std::unique_ptr<BaseNode> root) {
-  RootOwner = std::move(root);
-  Root = RootOwner.get();
+  Root = std::move(root);
+  if (Root && !Root->GetBehavior<DockLayoutBehavior>())
+    Root->AddBehavior<DockLayoutBehavior>();
   RebuildIndex();
 }
 
@@ -34,7 +39,10 @@ void Layout::IndexTree(BaseNode *node) {
   if (!node)
     return;
   Nodes.push_back(node);
-  for (const auto &child : node->GetChildren())
+  // RTTI 只在拓扑变化时使用；布局热路径直接调用窄虚接口。
+  if (auto *visual = dynamic_cast<VisualNode *>(node))
+    Visuals.push_back(visual);
+  for (const auto &child : node->Children)
     IndexTree(child.get());
 }
 
@@ -44,26 +52,28 @@ void Layout::CancelTreeCaptures(BaseNode *node) {
   // 从当前仍存活的树遍历，而不是解引用旧索引中的捕获指针；声明式协调可能
   // 已经删除旧 target，但被保留节点上的状态机仍需要收到 capture-lost。
   node->CancelPointerCapture();
-  for (const auto &child : node->GetChildren())
+  for (const auto &child : node->Children)
     CancelTreeCaptures(child.get());
 }
 
 void Layout::RebuildIndex() {
   // 声明式重建可能销毁旧节点，不能让指针捕获跨越拓扑变化。
-  CancelTreeCaptures(Root);
+  CancelTreeCaptures(Root.get());
   CapturedTarget = nullptr;
   CapturedHandler = nullptr;
   Nodes.clear();
-  IndexTree(Root);
+  Visuals.clear();
+  IndexTree(Root.get());
   TopologyDirty = true;
 }
 
 BaseNode *Layout::HitTest(float x, float y) const {
   // UI batch 按树的前序绘制，逆序就是最上层视觉优先。
-  for (auto iterator = Nodes.rbegin(); iterator != Nodes.rend(); ++iterator) {
-    auto *node = *iterator;
-    if (node->GetUO() && node->Contains(x, y))
-      return node;
+  for (auto iterator = Visuals.rbegin(); iterator != Visuals.rend();
+       ++iterator) {
+    auto *visual = *iterator;
+    if (visual->Visual && visual->Contains(x, y))
+      return visual;
   }
   return nullptr;
 }
@@ -93,12 +103,12 @@ bool Layout::OnMouseDown(MouseMovArgs args) {
     return false;
 
   CapturedTarget = target;
-  target->GetUO()->OnMouseDown(args);
+  // 输入只属于节点和 Behavior；UIObject 是渲染数据，不再接收重复事件。
   for (auto *node = target; node; node = node->Parent) {
     const auto reply = node->DispatchMouseDown(args);
-    if (reply == UIEventReply::Capture)
+    if (reply == EventReply::Capture)
       CapturedHandler = node;
-    if (reply != UIEventReply::Ignored)
+    if (reply != EventReply::Ignored)
       break;
   }
   // 命中任何 UI 都会阻止事件穿透到场景，即使控件没有主动手势。
@@ -110,15 +120,15 @@ bool Layout::OnMouseMove(MouseMovArgs args) {
       HitTest(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target)
     return false;
-  target->GetUO()->OnMouseMove(args);
+  for (auto *node = target; node; node = node->Parent)
+    if (node->DispatchMouseMove(args))
+      break;
   return true;
 }
 
 bool Layout::OnMouseDrag(MouseMovArgs args) {
   if (!CapturedTarget)
     return false;
-  CapturedTarget->GetUO()->OnMouseMove(args);
-  CapturedTarget->GetUO()->OnMouseDrag(args);
   if (CapturedHandler)
     CapturedHandler->DispatchMouseDrag(args);
   return true;
@@ -127,7 +137,6 @@ bool Layout::OnMouseDrag(MouseMovArgs args) {
 bool Layout::OnMouseUp(MouseMovArgs args) {
   if (!CapturedTarget)
     return false;
-  CapturedTarget->GetUO()->OnMouseUp(args);
   if (CapturedHandler)
     CapturedHandler->DispatchMouseUp(args);
   CapturedTarget = nullptr;
@@ -160,23 +169,21 @@ bool Layout::ConsumeTopologyDirty() {
   return result;
 }
 
-std::vector<z8::GameObject *> Layout::GetUO() const {
+std::vector<GameObject *> Layout::CollectVisualObjects() const {
   std::vector<GameObject *> result;
-  result.reserve(Nodes.size());
-  for (auto *node : Nodes) {
-    // Root、Viewport 和 Content 等节点只参与布局，没有渲染对象；旧 UOs 索引
-    // 会在建树时过滤它们，新按需接口必须保持相同契约，避免下游直接解引用空值。
-    if (auto *object = node->GetUO())
-      result.push_back(object);
+  result.reserve(Visuals.size());
+  for (auto *visual : Visuals) {
+    // VisualNode 构造时必须提供视觉；检查用于防御自定义节点错误转移所有权。
+    if (visual->Visual)
+      result.push_back(visual->Visual.get());
   }
   return result;
 }
 
 void Layout::Calculate(float w, float h) {
-  // 计算整体布局
-  YGNodeCalculateLayout(Root->GetYogaNode(), w, h, YGDirectionLTR);
-  // 更新节点树
-  UpdateTree(Root->GetYogaNode(), 0, 0, {0.0f, 0.0f, w, h});
+  Root->DispatchBeforeLayout(w, h);
+  YGNodeCalculateLayout(Root->Node, w, h, YGDirectionLTR);
+  UpdateTree(Root->Node, 0, 0, {0.0f, 0.0f, w, h});
 }
 
 void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY,
@@ -195,19 +202,14 @@ void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY,
   float absX = parentX + x;
   float absY = parentY + y;
 
-  // 事件系统使用与渲染完全相同的绝对布局框，避免命中区域与画面错位。
-  N->LayoutX = absX;
-  N->LayoutY = absY;
-  N->LayoutWidth = width;
-  N->LayoutHeight = height;
+  N->Left = absX;
+  N->Top = absY;
+  N->Width = width;
+  N->Height = height;
   N->VisibleClip = clip;
 
-  // 应用位置和大小
-  if (N->GetUO()) {
-    N->GetUO()->SetPosition(absX, absY, width, height);
-    N->GetUO()->SetScale(width, height);
-    N->GetUO()->SetClipRect(N->Visible ? clip : DirectX::XMFLOAT4{0, 0, 0, 0});
-  }
+  // 非视觉节点为空操作；VisualNode 在窄接口内同步位置、缩放与裁剪。
+  N->SynchronizeVisual(clip);
 
   DirectX::XMFLOAT4 childClip = clip;
   if (N->ClipsChildren) {
@@ -217,7 +219,7 @@ void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY,
     childClip.w = (std::min)(childClip.w, absY + height);
   }
 
-  for (size_t i = 0; i < N->GetChildSize(); ++i) {
+  for (size_t i = 0; i < N->Children.size(); ++i) {
     YGNodeRef child = YGNodeGetChild(Node, i);
     UpdateTree(child, absX + N->ChildOffsetX, absY + N->ChildOffsetY,
                childClip);

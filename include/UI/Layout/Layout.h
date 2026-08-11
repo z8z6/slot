@@ -3,7 +3,10 @@
 //
 
 #pragma once
-#include "RectNode.h"
+#include "Core/Event.h"
+#include "yoga/YGNode.h"
+
+#include <DirectXMath.h>
 
 #include <memory>
 #include <string>
@@ -12,26 +15,29 @@
 namespace z8 {
 class Application;
 class GameObject;
-}
+} // namespace z8
 
 namespace z8::ui {
 class BaseNode;
+class VisualNode;
 class Layout {
-  std::unique_ptr<BaseNode> RootOwner;
-  bool TopologyDirty = true;
-  BaseNode* CapturedTarget = nullptr;
-  BaseNode* CapturedHandler = nullptr;
 public:
-  Application* App;
-  std::vector<BaseNode*> Nodes;
-  BaseNode* Root;
+  std::unique_ptr<BaseNode> Root;
+  bool TopologyDirty = true;
+  BaseNode *CapturedTarget = nullptr;
+  BaseNode *CapturedHandler = nullptr;
 
-  explicit Layout(Application* App);
+  Application *App;
+  std::vector<BaseNode *> Nodes;
+  // Visuals 是 Nodes 的非拥有子集，只在拓扑变化时重建并保持绘制顺序。
+  std::vector<VisualNode *> Visuals;
+
+  explicit Layout(Application *App);
   ~Layout();
 
   void SetRoot(std::unique_ptr<BaseNode> root);
   void RebuildIndex();
-  BaseNode* Find(const std::string& key) const;
+  BaseNode *Find(const std::string &key) const;
   void Update();
   void Calculate(float width, float height);
 
@@ -52,18 +58,13 @@ public:
    * 纯布局节点没有 UIObject，必须在边界处过滤，调用方才能安全地把结果直接
    * 交给渲染批次或事件广播，而不必重复进行空指针检查。
    */
-  std::vector<GameObject *> GetUO() const;
+  std::vector<GameObject *> CollectVisualObjects() const;
 
 private:
-
-  void IndexTree(BaseNode* node);
-  void CancelTreeCaptures(BaseNode* node);
-  BaseNode* HitTest(float x, float y) const;
+  void IndexTree(BaseNode *node);
+  void CancelTreeCaptures(BaseNode *node);
+  BaseNode *HitTest(float x, float y) const;
   void UpdateTree(YGNodeRef Node, float parentX, float parentY,
-                  const DirectX::XMFLOAT4& clip);
+                  const DirectX::XMFLOAT4 &clip);
 };
-}
-
-
-
-
+} // namespace z8::ui

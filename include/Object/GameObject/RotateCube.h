@@ -11,6 +11,6 @@ class RotateCube : public CubeObject
 {
 public:
   RotateCube();
-  void OnMouseMove(MouseMovArgs) override;
+  EventReply OnMouseMove(MouseMovArgs) override;
 };
 }

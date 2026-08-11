@@ -62,6 +62,8 @@ if(SLOT_BUILD_TESTS)
     # UI 测试按 Declarative、Controls、Layout 分类，且不创建窗口或 D3D12 Device。
     add_executable(slot_ui_tests
             ${SLOT_TEST_SOURCES}
+            src/UI/Behavior/DockBehavior.cpp
+            src/UI/Behavior/DockLayoutBehavior.cpp
             src/UI/Behavior/DragBehavior.cpp
             src/UI/Behavior/ResizeBehavior.cpp
             src/UI/Behavior/ScrollBehavior.cpp
@@ -73,9 +75,7 @@ if(SLOT_BUILD_TESTS)
             src/UI/Layout/PanelNode.cpp
             src/UI/Layout/RectNode.cpp
             src/UI/Layout/ScrollBarNode.cpp
-            src/UI/Property/IDraggable.cpp
-            src/UI/Property/IResizable.cpp
-            src/UI/Property/IScrollable.cpp
+            src/UI/Layout/VisualNode.cpp
             src/UI/Style/UITheme.cpp
             src/Material/Material.cpp
             src/Material/MetalMaterial.cpp

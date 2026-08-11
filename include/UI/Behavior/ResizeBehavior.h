@@ -1,9 +1,29 @@
 #pragma once
 
 #include "UI/Behavior/UIBehavior.h"
-#include "UI/Property/IResizable.h"
 
 namespace z8::ui {
+
+/** 拉伸命中区域；角落同时改变两个轴。 */
+enum class ResizeRegion {
+  None,
+  Left,
+  Right,
+  Top,
+  Bottom,
+  TopLeft,
+  TopRight,
+  BottomLeft,
+  BottomRight
+};
+
+/** 可序列化的拉伸配置，边界宽度使用窗口客户区逻辑像素。 */
+struct ResizeProperty {
+  bool Enabled = true;
+  float Border = 6.0f;
+  float MinWidth = 120.0f;
+  float MinHeight = 80.0f;
+};
 
 /**
  * 在宿主边界和四角提供尺寸调整的独立手势组件。
@@ -16,17 +36,17 @@ public:
 
   ResizeBehavior() : UIBehavior(DefaultPriority) {}
 
-  /** SetProperties 同时夹紧配置并同步宿主的 Yoga 最小尺寸约束。 */
-  const ResizeProperty &GetProperties() const { return Properties; }
+  /** 配置公开供检查；批量修改应调用 SetProperties 以同步 Yoga 约束。 */
+  ResizeProperty Properties;
   void SetProperties(const ResizeProperty &properties);
   ResizeRegion HitTest(MouseMovArgs args) const;
   bool IsResizing() const { return ActiveRegion != ResizeRegion::None; }
   bool HasInteractiveGeometry() const { return InteractiveGeometry; }
 
   /** 输入钩子维护单一边界状态机，光标始终反映捕获时的调整方向。 */
-  UIEventReply OnMouseDown(MouseMovArgs args) override;
-  bool OnMouseDrag(MouseMovArgs args) override;
-  bool OnMouseUp(MouseMovArgs args) override;
+  EventReply OnMouseDown(MouseMovArgs args) override;
+  EventReply OnMouseDrag(MouseMovArgs args) override;
+  EventReply OnMouseUp(MouseMovArgs args) override;
   void OnCaptureLost() override { ActiveRegion = ResizeRegion::None; }
   MouseCursor GetMouseCursor(MouseMovArgs args) const override;
   bool SetProperty(const std::string &name, const std::string &value) override;
@@ -38,7 +58,6 @@ private:
   static MouseCursor CursorForRegion(ResizeRegion region);
   void ApplyMinimumSize() const;
 
-  ResizeProperty Properties;
   ResizeRegion ActiveRegion = ResizeRegion::None;
   bool InteractiveGeometry = false;
   float CurrentLeft = 0.0f;

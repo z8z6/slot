@@ -8,6 +8,7 @@
 #include <cstdlib>
 
 using namespace z8::ui;
+using z8::EventReply;
 
 namespace {
 
@@ -38,8 +39,8 @@ void ResizeBehavior::OnAttached() { ApplyMinimumSize(); }
 void ResizeBehavior::ApplyMinimumSize() const {
   if (!GetOwner())
     return;
-  YGNodeStyleSetMinWidth(GetOwner()->GetYogaNode(), Properties.MinWidth);
-  YGNodeStyleSetMinHeight(GetOwner()->GetYogaNode(), Properties.MinHeight);
+  YGNodeStyleSetMinWidth(GetOwner()->Node, Properties.MinWidth);
+  YGNodeStyleSetMinHeight(GetOwner()->Node, Properties.MinHeight);
 }
 
 ResizeRegion ResizeBehavior::HitTest(MouseMovArgs args) const {
@@ -48,12 +49,10 @@ ResizeRegion ResizeBehavior::HitTest(MouseMovArgs args) const {
     return ResizeRegion::None;
   const float x = static_cast<float>(args.X);
   const float y = static_cast<float>(args.Y);
-  const bool left = x - owner->GetLayoutX() <= Properties.Border;
-  const bool right =
-      owner->GetLayoutX() + owner->GetLayoutWidth() - x <= Properties.Border;
-  const bool top = y - owner->GetLayoutY() <= Properties.Border;
-  const bool bottom =
-      owner->GetLayoutY() + owner->GetLayoutHeight() - y <= Properties.Border;
+  const bool left = x - owner->Left <= Properties.Border;
+  const bool right = owner->Left + owner->Width - x <= Properties.Border;
+  const bool top = y - owner->Top <= Properties.Border;
+  const bool bottom = owner->Top + owner->Height - y <= Properties.Border;
 
   if (top && left)
     return ResizeRegion::TopLeft;
@@ -98,27 +97,27 @@ z8::MouseCursor ResizeBehavior::GetMouseCursor(MouseMovArgs args) const {
   return CursorForRegion(IsResizing() ? ActiveRegion : HitTest(args));
 }
 
-UIEventReply ResizeBehavior::OnMouseDown(MouseMovArgs args) {
+EventReply ResizeBehavior::OnMouseDown(MouseMovArgs args) {
   if (args.Button != MouseButton::Left)
-    return UIEventReply::Ignored;
+    return EventReply::Ignored;
   ActiveRegion = HitTest(args);
   if (ActiveRegion == ResizeRegion::None)
-    return UIEventReply::Ignored;
+    return EventReply::Ignored;
 
   auto *owner = GetOwner();
-  CurrentLeft = YGNodeLayoutGetLeft(owner->GetYogaNode());
-  CurrentTop = YGNodeLayoutGetTop(owner->GetYogaNode());
-  CurrentWidth = owner->GetLayoutWidth();
-  CurrentHeight = owner->GetLayoutHeight();
-  return UIEventReply::Capture;
+  CurrentLeft = YGNodeLayoutGetLeft(owner->Node);
+  CurrentTop = YGNodeLayoutGetTop(owner->Node);
+  CurrentWidth = owner->Width;
+  CurrentHeight = owner->Height;
+  return EventReply::Capture;
 }
 
-bool ResizeBehavior::OnMouseDrag(MouseMovArgs args) {
+EventReply ResizeBehavior::OnMouseDrag(MouseMovArgs args) {
   auto *owner = GetOwner();
   if (!owner || !IsResizing())
-    return false;
+    return EventReply::Ignored;
   if (args.DeltaX == 0 && args.DeltaY == 0)
-    return true;
+    return EventReply::Handled;
 
   const bool changesLeft = ActiveRegion == ResizeRegion::Left ||
                            ActiveRegion == ResizeRegion::TopLeft ||
@@ -153,7 +152,7 @@ bool ResizeBehavior::OnMouseDrag(MouseMovArgs args) {
   if (changesBottom)
     CurrentHeight = (std::max)(Properties.MinHeight, CurrentHeight + deltaY);
 
-  auto yogaNode = owner->GetYogaNode();
+  auto yogaNode = owner->Node;
   if (!InteractiveGeometry) {
     // 与拖拽使用相同的流式到绝对定位转换，避免主题 Margin 造成首次跳变。
     YGNodeStyleSetMargin(yogaNode, YGEdgeAll, 0.0f);
@@ -166,13 +165,13 @@ bool ResizeBehavior::OnMouseDrag(MouseMovArgs args) {
   YGNodeStyleSetHeight(yogaNode, CurrentHeight);
   YGNodeStyleSetFlexGrow(yogaNode, 0.0f);
   YGNodeStyleSetFlexShrink(yogaNode, 0.0f);
-  return true;
+  return EventReply::Handled;
 }
 
-bool ResizeBehavior::OnMouseUp(MouseMovArgs) {
+EventReply ResizeBehavior::OnMouseUp(MouseMovArgs) {
   const bool handled = IsResizing();
   ActiveRegion = ResizeRegion::None;
-  return handled;
+  return handled ? EventReply::Handled : EventReply::Ignored;
 }
 
 bool ResizeBehavior::SetProperty(const std::string &name,

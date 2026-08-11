@@ -14,7 +14,8 @@ TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
   layout.RebuildIndex();
 
   EXPECT_EQ(layout.Nodes.size(), 2U);
-  const auto objects = layout.GetUO();
+  EXPECT_EQ(layout.Visuals.size(), 1U);
+  const auto objects = layout.CollectVisualObjects();
   ASSERT_EQ(objects.size(), 1U);
   EXPECT_NE(objects.front(), nullptr);
   EXPECT_NE(layout.Find("content"), nullptr);
@@ -25,7 +26,7 @@ TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
 TEST(LayoutTest, CalculatesWithoutApplicationOrWindow) {
   Layout layout(nullptr);
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_FLOAT_EQ(YGNodeLayoutGetWidth(layout.Root->GetYogaNode()), 800.0f);
-  EXPECT_FLOAT_EQ(YGNodeLayoutGetHeight(layout.Root->GetYogaNode()), 600.0f);
+  EXPECT_FLOAT_EQ(YGNodeLayoutGetWidth(layout.Root->Node), 800.0f);
+  EXPECT_FLOAT_EQ(YGNodeLayoutGetHeight(layout.Root->Node), 600.0f);
 }
 } // namespace z8::ui
