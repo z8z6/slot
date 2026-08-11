@@ -4,7 +4,7 @@
 
 #pragma once
 #include "DX12Common.h"
-#include "UI/Object/GameObject/GameObject.h"
+#include "Shader/ShaderProgram.h"
 #include "d3d12.h"
 
 #include <vector>
@@ -25,7 +25,7 @@ public:
 
   DX12PipelineState(DX12Render* R);
 
-  void Init(GameObject* O);
+  void Init(const ShaderProgram& program);
   void UpdatePSOTy();
   void Set();
   ID3D12PipelineState* Get() const;

@@ -8,10 +8,27 @@ add_definitions(-DNOMINMAX)
 
 add_subdirectory(third/yoga)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+# 根据 Shader 描述文件生成相应的 C++ 注册代码
+file(GLOB SHADER_MANIFESTS CONFIGURE_DEPENDS shader/*.shader.json)
+set(GENERATED_SHADER_REGISTRY
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/ShaderRegistry.generated.cpp")
+add_custom_command(
+        OUTPUT "${GENERATED_SHADER_REGISTRY}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_shader_registry.py"
+                --output "${GENERATED_SHADER_REGISTRY}"
+                ${SHADER_MANIFESTS}
+        DEPENDS ${SHADER_MANIFESTS}
+                "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_shader_registry.py"
+        COMMENT "Generating ShaderProgram registry"
+        VERBATIM)
+
 # CONFIGURE_DEPENDS 让新增控件/声明层源文件自动进入目标，避免只增文件后链接缺符号。
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS src/*.cpp include/*.h third/*.h)
 
-add_executable(slot ${SOURCE_FILES})
+add_executable(slot ${SOURCE_FILES} "${GENERATED_SHADER_REGISTRY}")
 
 set_property(TARGET slot PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -52,17 +69,31 @@ if(SLOT_BUILD_TESTS)
             src/UI/Layout/Layout.cpp
             src/UI/Layout/PanelNode.cpp
             src/UI/Layout/RectNode.cpp
-            src/UI/Mesh/Mesh.cpp
-            src/UI/Mesh/MeshRegistry.cpp
-            src/UI/Object/GameObject/GameObject.cpp
-            src/UI/Object/Transform.cpp
-            src/UI/Object/UIObject/UIObject.cpp
-            src/UI/Object/UIObject/RectUIObject.cpp
+            src/Material/Material.cpp
+            src/Material/MetalMaterial.cpp
+            src/Light/Light.cpp
+            src/Light/ParallelLight.cpp
+            src/Mesh/CubeMesh.cpp
+            src/Mesh/GridMesh.cpp
+            src/Mesh/Mesh.cpp
+            src/Mesh/MountainMesh.cpp
+            src/Mesh/ObjMeshImporter.cpp
+            src/Mesh/RectMesh.cpp
+            src/Mesh/SkullMesh.cpp
+            src/Mesh/SphereMesh.cpp
+            src/Mesh/Vertex.cpp
+            src/Object/GameObject/GameObject.cpp
+            src/Object/GameObject/CubeObject.cpp
+            src/Object/GameObject/SimpleGameObject.cpp
+            src/Object/Camera/Camera.cpp
+            src/Object/Transform.cpp
+            src/Object/UIObject/UIObject.cpp
+            src/Object/UIObject/RectUIObject.cpp
+            src/Resource/ResourceManager.cpp
+            src/Core/Scene.cpp
             src/Target/DirectX/DX12Shader.cpp
-            src/UI/Shader/GameObjectShader.cpp
-            src/UI/Shader/MissingShader.cpp
-            src/UI/Shader/TimeShader.cpp
-            src/UI/Shader/UIObjectShader.cpp)
+            src/Util/MeshGenerator.cpp
+            "${GENERATED_SHADER_REGISTRY}")
     target_include_directories(slot_ui_tests PRIVATE include third)
     target_compile_definitions(slot_ui_tests PRIVATE
             SLOT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

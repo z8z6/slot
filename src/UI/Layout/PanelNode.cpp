@@ -4,7 +4,7 @@
 
 #include "UI/Layout/PanelNode.h"
 
-#include "UI/Object/UIObject/RectUIObject.h"
+#include "Object/UIObject/RectUIObject.h"
 #include "yoga/YGNodeStyle.h"
 
 #include <cstdlib>

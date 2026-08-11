@@ -8,11 +8,11 @@
 #include <iostream>
 #include <ostream>
 
-#include "UI/Object/Camera/Camera.h"
-#include "UI/Object/GameObject/RotateCube.h"
+#include "Object/Camera/Camera.h"
+#include "Object/GameObject/RotateCube.h"
 #include "Core/Event.h"
-#include "UI/Light/ParallelLight.h"
-#include "UI/Phys/Collider.h"
+#include "Light/ParallelLight.h"
+#include "Phys/Collider.h"
 
 using namespace z8;
 using namespace std;
@@ -26,9 +26,15 @@ z8::Application::Application() : Layout(this) {
   Application::Apps.push_back(this);
 }
 
+Application::~Application() {
+  // 从 Apps 中移除
+  std::erase(Apps, this);
+  delete Render;
+}
+
 void Application::Init() {
-  Camera = new z8::Camera();
-  Light = new ParallelLight();
+  ActiveScene.SetCamera(std::make_unique<Camera>());
+  ActiveScene.SetLight(std::make_unique<ParallelLight>());
   PrepareScene();
   Render = Render::CreateRender(this);
   Render->Init();
@@ -36,7 +42,7 @@ void Application::Init() {
 }
 
 void Application::PrepareScene() {
-  GOs.push_back(new RotateCube());
+  ActiveScene.CreateGameObject<RotateCube>();
 }
 
 
@@ -192,30 +198,30 @@ void z8::Application::ShowFrame() const {
 
 void Application::OnMouseMove(MouseMovArgs Args)
 {
-  for (auto* O : GOs)
+  for (auto* O : ActiveScene.GetGameObjects())
     O->OnMouseMove(Args);
-  Camera->OnMouseMove(Args);
+  ActiveScene.GetCamera()->OnMouseMove(Args);
 }
 
 void Application::OnMouseDown(MouseMovArgs Args)
 {
-  for (auto* O : GOs)
+  for (auto* O : ActiveScene.GetGameObjects())
     O->OnMouseDown(Args);
 }
 
 void Application::OnMouseUp(MouseMovArgs Args)
 {
-  for (auto* O : GOs)
+  for (auto* O : ActiveScene.GetGameObjects())
     O->OnMouseUp(Args);
 }
 
 void Application::OnKeyDown(KeyArgs Args) {
-  for (auto* O : GOs)
+  for (auto* O : ActiveScene.GetGameObjects())
     O->OnKeyDown(Args);
-  Camera->OnKeyDown(Args);
+  ActiveScene.GetCamera()->OnKeyDown(Args);
 }
 
 void Application::OnKeyUp(KeyArgs Args) {
-  for (auto* O : GOs)
+  for (auto* O : ActiveScene.GetGameObjects())
     O->OnKeyUp(Args);
 }

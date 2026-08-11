@@ -1,5 +1,5 @@
 #include "UI/Layout/RectNode.h"
-#include "UI/Object/UIObject/RectUIObject.h"
+#include "Object/UIObject/RectUIObject.h"
 
 #include <gtest/gtest.h>
 

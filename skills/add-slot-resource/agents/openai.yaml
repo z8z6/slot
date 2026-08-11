@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Slot Resource"
+  short_description: "Add Slot meshes, materials, shaders, and UI nodes"
+  default_prompt: "Use $add-slot-resource to add a resource or UI node to Slot and validate it."

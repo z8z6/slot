@@ -14,6 +14,7 @@
 #include "DX12RenderBatch.h"
 #include "DX12RenderTarget.h"
 #include "DX12RootSignature.h"
+#include "DX12Shader.h"
 #include "DX12SwapChain.h"
 #include "Target/Render.h"
 #include "d3d12.h"
@@ -45,6 +46,8 @@ public:
   DX12MaterialManager MaterialManager;
   DX12GlobalConst GlobalConst;
   DX12RootSignature RootSignature;
+  // ShaderLibrary 是每个渲染器的设备相关缓存，CPU 描述仍由 Application::Resources 拥有。
+  DX12ShaderLibrary ShaderLibrary;
 
   DX12RenderBatch GOBatch;
   DX12RenderBatch UOBatch;

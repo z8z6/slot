@@ -8,7 +8,7 @@ DX12Render 每窗口一份，组合 Device、Command、SwapChain、RenderTarget�
 
 ```text
 MSAA → Command → SwapChain → RTV/DSV → Resize
-→ RootSignature → Mesh → Material → 3D/UI Batch
+→ ShaderLibrary → RootSignature → Mesh → Material → 3D/UI Batch
 → 执行上传并等待 GPU
 ```
 
@@ -20,9 +20,9 @@ Update 依次更新 Camera、GlobalConst 和两个批次的对象常量。Draw �
 
 ## Batch 与 PSO
 
-RenderBatch 保存对象、子网格和常量索引。绘制时绑定 b1 材质、b2 全局常量，并逐对象绑定 b0 和 DrawIndexedInstanced。
+RenderBatch 在初始化时把对象的类型化软引用解析成资源 Handle，并保存子网格、Material、ShaderProgram、PSO 和常量索引。绘制时逐对象绑定对应的 PSO、b1 材质和 b0 对象常量，b2 保存全局常量。
 
-每批只用首个对象创建 PSO，因此批内对象必须使用兼容 Shader/状态。空批次现已支持。检测到 UIObject 时，PSO 会关闭深度测试/写入并启用 alpha blend，使控件按声明顺序叠放。
+批次按 ShaderProgram 缓存 PSO，Program 描述 VS/PS、深度和混合状态，不再根据首对象或 RTTI 推断管线。3D 批次按 Program、Material、Mesh 稳定排序以减少状态切换；透明 UI 批次保持声明顺序，确保画家算法的叠放语义。空批次现已支持。
 
 每帧等待 GPU 简单安全，但无法 CPU/GPU 多帧并行。后续应引入按交换链帧数划分的 Frame Resource。Flip swap chain 也不能直接多采样，MSAA 应使用独立 RT 后 Resolve。
 

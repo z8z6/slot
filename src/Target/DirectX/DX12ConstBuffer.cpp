@@ -9,7 +9,7 @@
 #include "Core/Application.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Render.h"
-#include "UI/Object/GameObject/GameObject.h"
+#include "Object/GameObject/GameObject.h"
 #include "d3dx12.h"
 
 #include <algorithm>

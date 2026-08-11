@@ -1,8 +1,8 @@
 # 着色器与常量 ABI
 
-Shader 描述文件、注册名、入口与 Target。Vertex/Pixel 默认入口为 VS/PS，目标为 `vs_6_0/ps_6_0`。`DX12ShaderRegister<T>` 的静态阶段只登记描述，不执行文件 I/O；`DX12Render::Init` 调用 `CompileAll()` 统一编译全部 Shader。
+Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS、深度和混合状态组合成一个绘制管线资源。普通 Shader 不再创建 C++ 派生类：`shader/*.shader.json` 是注册来源，CMake 生成显式注册代码，`DX12Render::Init` 再统一编译 ResourceManager 中的全部 Shader。
 
-编译器按 Target 自动选择：Shader Model 6.x 使用 DXC，旧版 Target 使用 FXC。DXC 路径支持 include、HLSL 2021、Debug 的 `-Zi/-Od` 和 Release 的 `-O3`。每个 Shader 都会打印英文的开始、诊断和成功消息；同一进程的后续窗口复用已生成字节码。
+编译器按 Target 自动选择：Shader Model 6.x 使用 DXC，旧版 Target 使用 FXC。DXC 路径支持 include、HLSL 2021、Debug 的 `-Zi/-Od` 和 Release 的 `-O3`。每个 DX12Render 拥有自己的 `DX12ShaderLibrary`，CPU 描述仍由 Application 的 ResourceManager 统一拥有。
 
 ## 根签名
 
@@ -18,6 +18,6 @@ Shader 描述文件、注册名、入口与 Target。Vertex/Pixel 默认入口�
 
 UI Shader 将世界矩阵结果视为像素坐标，再映射到 NDC 并翻转 Y；像素颜色来自每对象 `ObjectColor`，Panel 可区分背景和标题栏。
 
-GoogleTest 会真实编译全部注册的 SM 6.0 Shader，并额外验证 FXC 的 SM 5.0 兼容路径。
+GoogleTest 会真实编译生成注册表中的全部 SM 6.0 Shader，并额外验证 FXC 的 SM 5.0 兼容路径。
 
-关键源码：`DX12Shader.cpp`、`DX12RootSignature.cpp`、`DX12GlobalConst.cpp`、`shader`、`tests/Shader/DX12ShaderTest.cpp`。
+关键源码：`scripts/generate_shader_registry.py`、`DX12Shader.cpp`、`DX12RootSignature.cpp`、`DX12GlobalConst.cpp`、`shader`、`tests/Shader/DX12ShaderTest.cpp`。

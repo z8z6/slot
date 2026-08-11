@@ -1,4 +1,5 @@
 #include "Target/DirectX/DX12Shader.h"
+#include "Resource/ResourceManager.h"
 
 #include <gtest/gtest.h>
 
@@ -7,25 +8,29 @@
 namespace z8 {
 TEST(DX12ShaderTest, CompilesAllRegisteredShaderModelSixShadersWithDxc) {
   std::filesystem::current_path(SLOT_SOURCE_DIR);
-  auto& registry = DX12ShaderRegistry::Instance();
-  ASSERT_FALSE(registry.Shaders.empty());
+  ResourceManager resources;
+  DX12ShaderLibrary library(resources);
+  ASSERT_GT(resources.GetShaders().Size(), 0U);
 
-  registry.CompileAll();
+  library.CompileAll();
 
-  EXPECT_EQ(registry.Binaries.size(), registry.Shaders.size());
-  for (const auto& [name, shader] : registry.Shaders) {
-    SCOPED_TRACE(name);
-    ASSERT_NE(shader->Binary, nullptr);
-    EXPECT_NE(shader->Binary->ByteCode, nullptr);
-    EXPECT_NE(shader->Target.find("_6_"), std::string::npos);
-  }
+  EXPECT_EQ(library.Size(), resources.GetShaders().Size());
+  resources.GetShaders().Visit(
+      [&](ResourceHandle<Shader> handle, const Shader& shader) {
+        SCOPED_TRACE(shader.Name);
+        const auto* binary = library.TryGet(handle);
+        ASSERT_NE(binary, nullptr);
+        EXPECT_NE(binary->ByteCode, nullptr);
+        EXPECT_NE(shader.Target.find("_6_"), std::string::npos);
+      });
 }
 
 TEST(DX12ShaderTest, KeepsFxcSupportForLegacyTargets) {
   std::filesystem::current_path(SLOT_SOURCE_DIR);
-  PixelShader shader;
+  Shader shader;
   shader.Name = "LegacyMissingPixel";
   shader.FileName = L"shader/Missing.hlsl";
+  shader.Entry = "PS";
   shader.Target = "ps_5_0";
 
   DX12Shader binary(&shader);

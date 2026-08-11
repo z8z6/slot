@@ -1,0 +1,9 @@
+{
+  "assetId": "builtin://shader-program/ui-object",
+  "name": "UIObject",
+  "source": "shader/UIObject.hlsl",
+  "vertex": { "entry": "VS", "target": "vs_6_0" },
+  "pixel": { "entry": "PS", "target": "ps_6_0" },
+  "enableDepth": false,
+  "enableBlend": true
+}

@@ -6,9 +6,8 @@
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Render.h"
 #include "Target/DirectX/DX12Shader.h"
-#include "UI/Object/GameObject/GameObject.h"
-#include "UI/Object/UIObject/UIObject.h"
-#include "UI/Shader/Shader.h"
+#include "Object/GameObject/GameObject.h"
+#include "Shader/Shader.h"
 #include "Util/Error.h"
 #include "d3d12.h"
 #include "d3dx12.h"
@@ -19,7 +18,7 @@ z8::DX12PipelineState::DX12PipelineState(DX12Render* R) : DX12Common(R)
 {
 }
 
-void DX12PipelineState::Init(GameObject* O)
+void DX12PipelineState::Init(const ShaderProgram& program)
 {
   InputLayout =
   {
@@ -32,16 +31,18 @@ void DX12PipelineState::Init(GameObject* O)
   ZeroMemory(&PD, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
   PD.InputLayout = {InputLayout.data(), static_cast<UINT>(InputLayout.size())};
   PD.pRootSignature = Render->RootSignature.Get();
-  // @todo 不同物体的 shader 需要不同的 PSO
-  PD.VS = O->VertexShader->Binary->GetByteCode();
-  PD.PS = O->PixelShader->Binary->GetByteCode();
+  // Program 同时描述 Shader 阶段和固定状态，PSO 缓存不再依赖任意首对象。
+  PD.VS = Render->ShaderLibrary.TryGet(program.VertexShader)->GetByteCode();
+  PD.PS = Render->ShaderLibrary.TryGet(program.PixelShader)->GetByteCode();
   PD.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   PD.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
   PD.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-  if (dynamic_cast<UIObject*>(O)) {
-    // UI 依靠声明顺序叠放；关闭深度并启用 alpha，避免同平面标题栏被背景遮挡。
+  if (!program.EnableDepth) {
     PD.DepthStencilState.DepthEnable = false;
     PD.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+  }
+  if (program.EnableBlend) {
+    // UI 等透明 Program 依靠声明顺序叠放，使用标准非预乘 alpha 混合。
     auto& blend = PD.BlendState.RenderTarget[0];
     blend.BlendEnable = true;
     blend.SrcBlend = D3D12_BLEND_SRC_ALPHA;

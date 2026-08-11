@@ -4,35 +4,32 @@
 
 #pragma once
 
-#include "Timer.h"
-#include "Window.h"
-#include <vector>
-
 #include "Event.h"
+#include "Resource/ResourceManager.h"
+#include "Scene.h"
+#include "Timer.h"
 #include "UI/Layout/Layout.h"
+#include "Window.h"
 
 namespace z8 {
 class Render;
-class GameObject;
 class UIObject;
-class Camera;
-class Light;
 class Application {
 public:
   Window Window;
-  Render *Render;
+  Render *Render = nullptr;
   Timer Timer;
-  std::vector<GameObject *> GOs;
+  ResourceManager Resources;
+  Scene ActiveScene;
   ui::Layout Layout;
-  Camera *Camera;
-  Light *Light;
 
   Application();
-  virtual ~Application() = default;
+  virtual ~Application();
 
   virtual void Init();
   LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
 
+  // 保存所有的 App
   inline static std::vector<Application *> Apps;
   // 所有 App 都在这个方法中处理
   static int Run();

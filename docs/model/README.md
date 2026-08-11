@@ -10,7 +10,7 @@
 | NORMAL | `XMFLOAT3` | 12 |
 | TEXCOORD | `XMFLOAT2` | 24 |
 
-内建 Cube、Grid、Mountain、Rect、Skull、Sphere。每个 `.cpp` 用 `static MeshRegister<T>` 注册；注册时 `ComputeNormals` 将三角形面法线按面积累加后归一化。
+内建 Cube、Grid、Mountain、Rect、Skull、Sphere。`ResourceManager` 显式拥有这些网格；调用 `AddMesh` 时，`ComputeNormals` 将三角形面法线按面积累加后归一化。
 
 ## GPU 合并
 
@@ -23,8 +23,8 @@
 ## 新增模型
 
 1. 继承 Mesh，设置唯一 Name 并填充 V/I。
-2. 在参与构建的 `.cpp` 中声明 `static MeshRegister<YourMesh> R`。
-3. 创建 SimpleGameObject 子类并从 MeshRegistry 查询网格。
-4. 在 `DX12Render::Init` 前加入 `Application::GOs`。
+2. 在 `BuiltinResource.h` 添加规范 Asset ID，并由 `ResourceManager::AddMesh` 注册所有权。
+3. 创建 SimpleGameObject 子类，通过 `Renderable.Mesh` 保存类型化资源引用。
+4. 使用 `Scene::CreateGameObject` 把对象加入活动场景。
 
-关键源码：`UI/Mesh`、`DX12MeshManager.cpp`、`DX12DefaultBuffer.cpp`。
+关键源码：`Mesh`、`ResourceManager.cpp`、`DX12MeshManager.cpp`、`DX12DefaultBuffer.cpp`。

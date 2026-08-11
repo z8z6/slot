@@ -1,9 +1,12 @@
-# 场景对象
+# 场景与对象
 
-`Object` 是带 `Transform`、更新函数和输入回调的基类。`GameObject` 组合 Mesh、Material、Collider 与 VS/PS，并要求派生类提供对象常量。`GameObjectImpl<T>` 用模板保存常量结构；当前 3D 和 UI 对象都使用一个世界矩阵。
+`Scene` 表示一个可独立装载和销毁的 3D 场景，统一拥有 Camera、主 Light 和 GameObject。`Object` 是带 `Transform`、更新函数和输入回调的基类；`GameObject` 通过 `RenderableComponent` 保存 Mesh 和 Material 的类型化软引用，Material 再选择 ShaderProgram。
 
 ```mermaid
 classDiagram
+    Scene *-- Camera
+    Scene *-- Light
+    Scene *-- GameObject
     Object <|-- GameObject
     Object <|-- Camera
     Object <|-- Light
@@ -11,9 +14,10 @@ classDiagram
     GameObjectImpl <|-- SimpleGameObject
     GameObjectImpl <|-- UIObject
     Object *-- Transform
-    GameObject o-- Mesh
-    GameObject o-- Material
-    GameObject o-- Shader
+    GameObject *-- RenderableComponent
+    RenderableComponent o-- Mesh
+    RenderableComponent o-- Material
+    Material o-- ShaderProgram
 ```
 
 ## Transform
@@ -30,8 +34,9 @@ ParallelLight 的位置、颜色、方向被写入全局常量，当前 Shader �
 
 ## 源码入口
 
-- `include/UI/Object/Object.h`
-- `src/UI/Object/Transform.cpp`
-- `include/UI/Object/GameObject/GameObject.h`
-- `src/UI/Object/Camera`
-- `include/UI/Light`、`include/UI/Phys`
+- `include/Object/Object.h`
+- `include/Scene/Scene.h`
+- `src/Object/Transform.cpp`
+- `include/Object/GameObject/GameObject.h`
+- `src/Object/Camera`
+- `include/Light`、`include/Phys`

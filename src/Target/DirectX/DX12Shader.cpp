@@ -1,5 +1,6 @@
 #include "Target/DirectX/DX12Shader.h"
 
+#include "Resource/ResourceManager.h"
 #include "Util/Error.h"
 
 #include <d3dcompiler.h>
@@ -29,7 +30,7 @@ std::string Narrow(const std::wstring& value) {
 }
 } // namespace
 
-DX12Shader::DX12Shader(Shader* shader) : Description(shader) {}
+DX12Shader::DX12Shader(const Shader* shader) : Description(shader) {}
 
 void DX12Shader::Compile() {
   // Shader Model 6.x requires DXC; legacy targets remain available through FXC.
@@ -115,33 +116,28 @@ D3D12_SHADER_BYTECODE DX12Shader::GetByteCode() const {
   return {ByteCode->GetBufferPointer(), ByteCode->GetBufferSize()};
 }
 
-void DX12ShaderRegistry::Register(std::unique_ptr<Shader> shader) {
-  const std::string name = shader->Name;
-  if (Shaders.contains(name))
-    LogShaderMessage("[Shader][Warning] Replacing duplicate shader registration: " + name);
-  Shaders[name] = std::move(shader);
-  IsCompiled = false;
-}
+DX12ShaderLibrary::DX12ShaderLibrary(ResourceManager& resources)
+    : Resources(&resources) {}
 
-void DX12ShaderRegistry::CompileAll() {
+void DX12ShaderLibrary::CompileAll() {
   if (IsCompiled) {
     LogShaderMessage("[Shader] Compilation already completed; reusing bytecode.");
     return;
   }
   LogShaderMessage("[Shader] Starting unified shader compilation. Count: " +
-                   std::to_string(Shaders.size()));
+                   std::to_string(Resources->GetShaders().Size()));
   Binaries.clear();
-  for (auto& [name, shader] : Shaders) {
-    auto binary = std::make_unique<DX12Shader>(shader.get());
+  Resources->GetShaders().Visit([this](ResourceHandle<Shader> handle,
+                                       const Shader& shader) {
+    auto binary = std::make_unique<DX12Shader>(&shader);
     binary->Compile();
-    shader->Binary = binary.get();
-    Binaries[name] = std::move(binary);
-  }
+    Binaries.emplace(handle, std::move(binary));
+  });
   IsCompiled = true;
   LogShaderMessage("[Shader] Unified shader compilation completed.");
 }
 
-Shader* DX12ShaderRegistry::Get(const std::string& name) {
-  const auto it = Shaders.find(name);
-  return it == Shaders.end() ? nullptr : it->second.get();
+DX12Shader* DX12ShaderLibrary::TryGet(ResourceHandle<Shader> handle) const {
+  const auto it = Binaries.find(handle);
+  return it == Binaries.end() ? nullptr : it->second.get();
 }

@@ -1,4 +1,4 @@
-#include "Core/GameApplication.h"
+#include "Core/DemoApplication.h"
 #include "Util/DXException.h"
 
 using namespace z8;
@@ -10,7 +10,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR, int) {
   freopen("CONOUT$", "w", stderr);
 
   Window::Instance = hInstance;
-  GameApplication App1;
+  DemoApplication App1;
   // Application App2;
   App1.Init();
 

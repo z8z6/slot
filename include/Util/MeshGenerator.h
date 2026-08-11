@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "UI/Mesh/Vertex.h"
+#include "Mesh/Vertex.h"
 
 namespace z8 {
 class MeshGenerator {

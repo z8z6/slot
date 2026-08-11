@@ -4,7 +4,7 @@
 
 #include "UI/Layout/BaseNode.h"
 
-#include "UI/Object/UIObject/UIObject.h"
+#include "Object/UIObject/UIObject.h"
 #include "yoga/node/Node.h"
 #include "yoga/YGNodeStyle.h"
 

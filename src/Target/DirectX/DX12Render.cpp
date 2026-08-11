@@ -7,7 +7,7 @@
 #include "Core/Window.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Shader.h"
-#include "UI/Object/Camera/Camera.h"
+#include "Object/Camera/Camera.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
@@ -19,12 +19,12 @@ using namespace z8;
 
 DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), SwapChain(this), Msaa(this), RootSignature(this),
-      GOBatch(this), UOBatch(this), DepthStencil(this), RenderTarget(this),
-      MeshManager(this), MaterialManager(this) {
+      GOBatch(this), UOBatch(this, true), DepthStencil(this), RenderTarget(this),
+      MeshManager(this), MaterialManager(this), ShaderLibrary(app->Resources) {
   Ctx = &DX12Device::Instance();
 }
 
-void z8::DX12Render::Init()
+void DX12Render::Init()
 {
   Msaa.Init();
   Cmd.Init();
@@ -32,20 +32,17 @@ void z8::DX12Render::Init()
   RenderTarget.InitDescriptor();
   DepthStencil.InitDescriptor();
 
-  // GOBatch.Buffer.InitDescriptor();
-  // UOBatch.Buffer.InitDescriptor();
-
   Resize();
 
   Cmd.Reset();
 
-  // 所有 Shader 在设备初始化阶段统一编译，静态注册阶段不执行文件 I/O。
-  DX12ShaderRegistry::Instance().CompileAll();
+  // 所有 Shader 在设备初始化阶段统一编译
+  ShaderLibrary.CompileAll();
   RootSignature.Init();
   MeshManager.Init();
   MaterialManager.Init();
 
-  GOBatch.Init(App->GOs);
+  GOBatch.Init(App->ActiveScene.GetGameObjects());
   UOBatch.Init(App->Layout.UOs);
   App->Layout.ConsumeTopologyDirty();
 
@@ -53,7 +50,7 @@ void z8::DX12Render::Init()
   Cmd.Synchronize();
 }
 
-void z8::DX12Render::Update()
+void DX12Render::Update()
 {
   // 即时声明只在控件拓扑变化时重建 UI 常量缓冲；稳定帧复用原有 GPU 资源。
   if (App->Layout.ConsumeTopologyDirty())
@@ -126,7 +123,7 @@ void DX12Render::Resize()
 
 Camera * DX12Render::GetCamera() const
 {
-  return App->Camera;
+  return App->ActiveScene.GetCamera();
 }
 
 Window* DX12Render::GetWindow() const {
@@ -137,5 +134,5 @@ Timer *DX12Render::GetTimer() const {
   return &App->Timer;
 }
 Light *DX12Render::GetLight() const {
-  return App->Light;
+  return App->ActiveScene.GetLight();
 }

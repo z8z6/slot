@@ -35,15 +35,13 @@ float4 PS(VertexOut pin) : SV_Target
 {
     pin.WorldNormal = normalize(pin.WorldNormal);
     float3 toEyeW = normalize(Camera - pin.WorldPositon);
-    float4 ggAlbedo = float4(0.133333340f, 0.545098066f, 0.133333340f, 1.f);
-    float3 ggFresnelR0 = float3(0.02f, 0.02f, 0.02f);
-    float ggRough = 0.2f;
-    const float shininess = 1.0f - ggRough;
-    Material mat = { ggAlbedo, ggFresnelR0, shininess };
+    // 材质常量由 RenderItem 在 b1 逐对象绑定；共享 Mesh 不再隐式使用固定 Metal 数据。
+    const float shininess = 1.0f - gRough;
+    Material mat = { gAlbedo, gFresnelR0, shininess };
     float3 shadowFactor = 1.0f;
 
     float4 Direct = ComputeLighting(gLight, mat, pin.WorldPositon, pin.WorldNormal, toEyeW, shadowFactor);
-    float4 Ambient = AmbientLight * ggAlbedo;
+    float4 Ambient = AmbientLight * gAlbedo;
     float4 color = Ambient + Direct;
     return color;
 }

@@ -3,9 +3,10 @@
 //
 
 #include "Target/DirectX/DX12MeshManager.h"
-#include "UI/Mesh/MeshRegistry.h"
+#include "Core/Application.h"
+#include "Resource/ResourceManager.h"
 #include "Target/DirectX/DX12Render.h"
-#include "UI/Mesh/Mesh.h"
+#include "Mesh/Mesh.h"
 
 
 using namespace z8;
@@ -19,17 +20,18 @@ void DX12MeshManager::UnifyMesh()
   SubMeshes.clear();
   // 将注册过的所有 Mesh 拼成一个 Mesh
   // 同一种 Mesh 只会出现一次
-  for (auto* M : MeshRegistry::Instance().Meshes) {
+  Render->App->Resources.GetMeshes().Visit(
+      [this](ResourceHandle<Mesh> handle, const Mesh& mesh) {
     DX12SubMesh SubMesh;
-    SubMesh.IndexCount = M->I.size();
+    SubMesh.IndexCount = mesh.I.size();
     SubMesh.BaseVertexLocation = MergeMesh.V.size();
     SubMesh.StartIndexLocation = MergeMesh.I.size();
 
-    MergeMesh.V.insert(MergeMesh.V.end(), M->V.begin(), M->V.end());
-    MergeMesh.I.insert(MergeMesh.I.end(), M->I.begin(), M->I.end());
+    MergeMesh.V.insert(MergeMesh.V.end(), mesh.V.begin(), mesh.V.end());
+    MergeMesh.I.insert(MergeMesh.I.end(), mesh.I.begin(), mesh.I.end());
 
-    SubMeshes[M] = SubMesh;
-  }
+    SubMeshes[handle] = SubMesh;
+  });
 }
 
 void DX12MeshManager::Init()
@@ -61,7 +63,7 @@ void DX12MeshManager::Bind() const
   Render->Cmd.List->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
-DX12SubMesh* DX12MeshManager::GetSubMesh(Mesh *Mesh) {
-  if (!SubMeshes.count(Mesh)) return nullptr;
-  return &SubMeshes[Mesh];
+DX12SubMesh* DX12MeshManager::GetSubMesh(ResourceHandle<Mesh> mesh) {
+  const auto iterator = SubMeshes.find(mesh);
+  return iterator == SubMeshes.end() ? nullptr : &iterator->second;
 }
