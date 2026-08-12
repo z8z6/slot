@@ -6,9 +6,11 @@
 
 #include "Object/UIObject/UIObject.h"
 #include "UI/Behavior/DockLayoutBehavior.h"
+#include "UI/Behavior/DockBehavior.h"
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/BehaviorNode.h"
 #include "UI/Layout/DrawNode.h"
+#include "UI/Layout/SceneNode.h"
 #include "UI/Layout/TextNode.h"
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
@@ -44,6 +46,8 @@ void Layout::IndexTree(BaseNode *node) {
     Visuals.push_back(visual);
   if (auto *text = dynamic_cast<TextNode *>(node))
     Texts.push_back(text);
+  if (auto *scene = dynamic_cast<SceneNode *>(node))
+    Scenes.push_back(scene);
   for (const auto &child : node->Children)
     IndexTree(child.get());
 }
@@ -67,6 +71,7 @@ void Layout::RebuildIndex() {
   Nodes.clear();
   Visuals.clear();
   Texts.clear();
+  Scenes.clear();
   IndexTree(Root.get());
   Dirty = true;
 }
@@ -80,6 +85,22 @@ BehaviorNode *Layout::FindBehaviorNode(BaseNode *node) const {
 
 // 返回命中的最上层交互节点；纯布局和文字节点不会意外吞掉场景输入。
 BaseNode *Layout::HitAt(float x, float y) const {
+  // 浮动 Panel 逻辑上位于停靠工作区之上，即使稳定树顺序没有因拖拽而改变，
+  // 也必须优先命中，否则后声明的兄弟节点会令它无法再次拖动。
+  for (auto iterator = Nodes.rbegin(); iterator != Nodes.rend(); ++iterator) {
+    auto *behavior = dynamic_cast<BehaviorNode *>(*iterator);
+    auto *dock = behavior ? behavior->GetBehavior<DockBehavior>() : nullptr;
+    if (behavior && dock && dock->Properties.Enabled &&
+        dock->Properties.Placement == DockPlacement::Floating &&
+        behavior->HitTestVisible && behavior->Contains(x, y)) {
+      // 浮动 Scene 需要整体置顶，但内容命中仍必须落到专用 ViewportNode，
+      // 否则置顶规则会把场景输入误判为 Scene 外框 UI 输入。
+      if (auto *scene = dynamic_cast<SceneNode *>(behavior);
+          scene && scene->ViewportNode->Contains(x, y))
+        return scene->ViewportNode;
+      return behavior;
+    }
+  }
   // Nodes 按树的前序遍历，逆序对应画家顺序的最上层优先。
   for (auto iterator = Nodes.rbegin(); iterator != Nodes.rend(); ++iterator) {
     auto *behavior = dynamic_cast<BehaviorNode *>(*iterator);
@@ -113,6 +134,22 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
   auto *target =
       HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target) return EventReply::Ignored;
+  if (target->RoutesToScene()) {
+    // Scene 内容区通常透传给相机，但外层 SceneNode 的缩放边框与内容相交。
+    // 光标命中缩放方向时优先启动 UI 几何手势，否则才把按键留给 3D 场景。
+    for (auto *node = target->Parent; node; node = node->Parent) {
+      auto *behavior = dynamic_cast<BehaviorNode *>(node);
+      if (!behavior || behavior->QueryMouseCursor(args) == MouseCursor::Arrow)
+        continue;
+      const auto reply = behavior->DispatchMouseDown(args);
+      if (reply == EventReply::Capture) {
+        CapturedTarget = target;
+        CapturedHandler = behavior;
+      }
+      return reply;
+    }
+    return EventReply::Ignored;
+  }
 
   CapturedTarget = target;
   // 输入只属于节点和 Behavior；UIObject 是渲染数据，不再接收重复事件。
@@ -134,6 +171,8 @@ EventReply Layout::OnMouseMove(MouseMovArgs args) {
   auto *target =
       HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target)
+    return EventReply::Ignored;
+  if (target->RoutesToScene())
     return EventReply::Ignored;
   for (auto *node = target; node; node = node->Parent)
     if (auto *behavior = dynamic_cast<BehaviorNode *>(node);
@@ -164,6 +203,8 @@ EventReply Layout::OnMouseWheel(MouseWheelArgs args) {
   auto *target =
       HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target)
+    return EventReply::Ignored;
+  if (target->RoutesToScene())
     return EventReply::Ignored;
   for (auto *node = target; node; node = node->Parent)
     if (auto *behavior = dynamic_cast<BehaviorNode *>(node);
@@ -203,6 +244,13 @@ std::vector<GameObject *> Layout::GetUO() const {
     result.push_back(v->UO.get());
   }
   return result;
+}
+
+SceneNode *Layout::GetSceneNode() const {
+  for (auto *scene : Scenes)
+    if (scene->Visible)
+      return scene;
+  return nullptr;
 }
 
 // 每帧计算布局的入口函数

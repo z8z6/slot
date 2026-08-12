@@ -18,6 +18,7 @@ PanelNode::PanelNode()
   // Panel 自身纵向排列；标题栏固定高度，内容宿主占据剩余空间。
   YGNodeStyleSetFlexDirection(Node, YGFlexDirectionColumn);
   SetColor(style.Color);
+  SetBorder(style.BorderColor, style.BorderWidth);
   YGNodeStyleSetMargin(Node, YGEdgeAll, style.Margin);
   YGNodeStyleSetPadding(Node, YGEdgeAll, style.Padding);
   YGNodeStyleSetMinWidth(Node, style.MinWidth);

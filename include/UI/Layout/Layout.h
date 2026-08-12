@@ -21,6 +21,7 @@ class BaseNode;
 class BehaviorNode;
 class DrawNode;
 class TextNode;
+class SceneNode;
 
 /**
  * UI 树的布局与输入路由器。
@@ -31,6 +32,7 @@ public:
   std::vector<BaseNode *> Nodes;
   std::vector<DrawNode *> Visuals;
   std::vector<TextNode *> Texts;
+  std::vector<SceneNode *> Scenes;
 
   bool Dirty = true;
   BaseNode *CapturedTarget = nullptr;
@@ -46,6 +48,8 @@ public:
   bool ConsumeDirty();
   void SetRoot(std::unique_ptr<BaseNode> root);
   std::vector<GameObject *> GetUO() const;
+  /** 返回第一个可见场景视口；当前 DX12 后端以单场景相机渲染该视口。 */
+  SceneNode *GetSceneNode() const;
 
   EventReply OnMouseDown(MouseMovArgs args) override;
   EventReply OnMouseMove(MouseMovArgs args) override;

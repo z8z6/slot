@@ -1,6 +1,7 @@
 #include "UI/Declarative/XamlLoader.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Layout/SceneNode.h"
 
 #include <gtest/gtest.h>
 
@@ -52,5 +53,16 @@ TEST(XamlLoaderTest, ReportsInvalidMarkupInEnglish) {
       loader.Load("<UI><Rect Id=\"same\"/><Rect Id=\"same\"/></UI>");
   EXPECT_FALSE(duplicate);
   EXPECT_NE(duplicate.Error.find("Duplicate control key"), std::string::npos);
+}
+
+TEST(XamlLoaderTest, CreatesSceneViewportNode) {
+  Layout layout;
+  const auto result = XamlLoader().LoadInto(
+      layout, "<UI><Scene Id=\"viewport\" /></UI>");
+
+  ASSERT_TRUE(result) << result.Error;
+  ASSERT_NE(layout.GetSceneNode(), nullptr);
+  EXPECT_EQ(static_cast<BaseNode *>(layout.GetSceneNode()),
+            layout.Find("viewport"));
 }
 } // namespace z8::ui

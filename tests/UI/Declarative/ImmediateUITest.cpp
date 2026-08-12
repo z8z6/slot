@@ -2,6 +2,7 @@
 #include "Object/UIObject/UIObject.h"
 #include "UI/Layout/DrawNode.h"
 #include "UI/Layout/Layout.h"
+#include "UI/Layout/SceneNode.h"
 #include "UI/Style/Theme.h"
 #include "yoga/YGNodeStyle.h"
 
@@ -93,5 +94,25 @@ TEST(ImmediateUITest, RestoresDefaultStyleWhenStyleIsOmitted) {
   auto *drawNode = dynamic_cast<DrawNode *>(second);
   ASSERT_NE(drawNode, nullptr);
   EXPECT_FLOAT_EQ(drawNode->UO->GetColor().x, defaults.Color.x);
+}
+
+TEST(ImmediateUITest, DeclaresReusableSceneViewportWithoutStyle) {
+  Layout layout;
+  ImmediateUI ui(layout);
+
+  ui.BeginFrame();
+  auto *first = ui.Scene("viewport");
+  ASSERT_NE(first, nullptr);
+  ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
+  auto *scene = dynamic_cast<SceneNode *>(first);
+  ASSERT_NE(scene, nullptr);
+  EXPECT_TRUE(scene->ViewportNode->RoutesToScene());
+  EXPECT_EQ(layout.GetUO().size(), 1U);
+
+  ui.BeginFrame();
+  auto *second = ui.Scene("viewport");
+  ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
+  EXPECT_EQ(second, first);
+  EXPECT_EQ(static_cast<BaseNode *>(layout.GetSceneNode()), first);
 }
 } // namespace z8::ui

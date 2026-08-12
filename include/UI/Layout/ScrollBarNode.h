@@ -16,6 +16,13 @@ enum class ScrollBarOrientation { Horizontal, Vertical };
  * 通过 ValueChanged 同步内容偏移，避免滚动条依赖 Panel 的内部结构。
  */
 class ScrollBarNode : public RectNode {
+private:
+  float ViewportExtent = 0.0f;
+  float ContentExtent = 0.0f;
+  float Value = 0.0f;
+  float Maximum = 0.0f;
+  float DragScale = 0.0f;
+  bool DraggingThumb = false;
 public:
   RectNode *ThumbNode;
   ScrollBarOrientation Orientation;
@@ -35,14 +42,6 @@ public:
   void SetMetrics(float viewportExtent, float contentExtent);
   /** 设置经过夹紧的滚动值；notify 控制是否向 ScrollBehavior 回传。 */
   void SetValue(float value, bool notify = true);
-
-private:
-  float ViewportExtent = 0.0f;
-  float ContentExtent = 0.0f;
-  float Value = 0.0f;
-  float Maximum = 0.0f;
-  float DragScale = 0.0f;
-  bool DraggingThumb = false;
 };
 
 } // namespace z8::ui

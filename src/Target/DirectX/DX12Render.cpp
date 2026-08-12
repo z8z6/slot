@@ -8,6 +8,7 @@
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Shader.h"
 #include "Object/Camera/Camera.h"
+#include "UI/Layout/SceneNode.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
@@ -20,7 +21,7 @@ using namespace z8;
 DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), SwapChain(this), Msaa(this), RootSignature(this),
       GOBatch(this), UOBatch(this, true), TextRenderer(this),
-      DepthStencil(this), RenderTarget(this),
+      DepthStencil(this), RenderTarget(this), SceneTarget(this),
       MeshManager(this), MaterialManager(this), ShaderLibrary(app->Resources) {
   Ctx = &DX12Device::Instance();
 }
@@ -45,6 +46,7 @@ void DX12Render::Init()
   Cmd.Init();
   SwapChain.Init();
   RenderTarget.InitDescriptor();
+  SceneTarget.InitDescriptor();
   DepthStencil.InitDescriptor();
 
   Resize();
@@ -72,6 +74,11 @@ void DX12Render::Update()
   if (App->Layout.ConsumeDirty())
     UOBatch.Init(App->Layout.GetUO());
   // 1. 更新相机坐标
+  if (const auto *scene = App->Layout.GetSceneNode();
+      scene && scene->Viewport().Width > 0.0f &&
+      scene->Viewport().Height > 0.0f)
+    GetCamera()->UpdateProj(scene->Viewport().Width /
+                            scene->Viewport().Height);
   GetCamera()->Update(GetTimer());
   // 2. 更新全局常量
   GlobalConst.Update(this);
@@ -94,13 +101,61 @@ void z8::DX12Render::Draw()
 
   RenderTarget.Swap();
   RenderTarget.ClearBuffer();
-  DepthStencil.ClearBuffer();
 
-  RenderTarget.Bind();
+  // 3D 场景先进入独立后台纹理。使用 SceneNode 的 viewport/scissor 可让相机
+  // 投影与编辑器中央区域一致，同时离屏资源仍保持窗口尺寸以避免停靠时重建。
+  if (const auto *scene = App->Layout.GetSceneNode()) {
+    const auto &viewport = scene->Viewport();
+    const auto left = static_cast<LONG>((std::max)(0.0f, viewport.Left));
+    const auto top = static_cast<LONG>((std::max)(0.0f, viewport.Top));
+    const auto right = static_cast<LONG>((std::min)(
+        static_cast<float>(GetWindow()->Width), viewport.Left + viewport.Width));
+    const auto bottom = static_cast<LONG>((std::min)(
+        static_cast<float>(GetWindow()->Height), viewport.Top + viewport.Height));
+    if (right > left && bottom > top) {
+      SceneTarget.Transition(D3D12_RESOURCE_STATE_RENDER_TARGET);
+      SceneTarget.Clear();
+      DepthStencil.ClearBuffer();
+      const D3D12_VIEWPORT sceneView{
+          static_cast<float>(left), static_cast<float>(top),
+          static_cast<float>(right - left), static_cast<float>(bottom - top),
+          0.0f, 1.0f};
+      const D3D12_RECT sceneScissor{left, top, right, bottom};
+      Cmd.List->RSSetViewports(1, &sceneView);
+      Cmd.List->RSSetScissorRects(1, &sceneScissor);
+      SceneTarget.Bind();
+      RootSignature.Bind();
+      GOBatch.Draw();
+
+      SceneTarget.Transition(D3D12_RESOURCE_STATE_COPY_SOURCE);
+      auto swapToCopy = CD3DX12_RESOURCE_BARRIER::Transition(
+          RenderTarget.GetBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+          D3D12_RESOURCE_STATE_COPY_DEST);
+      Cmd.List->ResourceBarrier(1, &swapToCopy);
+      const D3D12_BOX sourceBox{static_cast<UINT>(left),
+                               static_cast<UINT>(top), 0,
+                               static_cast<UINT>(right),
+                               static_cast<UINT>(bottom), 1};
+      const CD3DX12_TEXTURE_COPY_LOCATION destination(
+          RenderTarget.GetBuffer(), 0);
+      const CD3DX12_TEXTURE_COPY_LOCATION source(SceneTarget.Buffer.Get(), 0);
+      Cmd.List->CopyTextureRegion(
+          &destination, left, top, 0, &source, &sourceBox);
+      auto swapToRender = CD3DX12_RESOURCE_BARRIER::Transition(
+          RenderTarget.GetBuffer(), D3D12_RESOURCE_STATE_COPY_DEST,
+          D3D12_RESOURCE_STATE_RENDER_TARGET);
+      Cmd.List->ResourceBarrier(1, &swapToRender);
+    }
+  }
+
+  // UI 总是在场景合成之后覆盖交换链，工具面板不会被 3D 深度遮挡。
+  Cmd.List->RSSetViewports(1, &ScreenView);
+  Cmd.List->RSSetScissorRects(1, &ScissorRect);
+
+  RenderTarget.Bind(false);
 
   RootSignature.Bind();
 
-  GOBatch.Draw();
   UOBatch.Draw();
 
   // DirectWrite 通过 D3D11On12 接管同一后备缓冲并完成 PRESENT 转换。
@@ -118,9 +173,11 @@ void DX12Render::Resize()
 
   TextRenderer.PrepareResize();
   RenderTarget.ResetBuffer();
+  SceneTarget.ResetBuffer();
   DepthStencil.ResetBuffer();
   SwapChain.Resize();
   RenderTarget.InitBuffer();
+  SceneTarget.InitBuffer();
   DepthStencil.InitBuffer();
   TextRenderer.Resize();
 

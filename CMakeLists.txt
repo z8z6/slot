@@ -81,6 +81,7 @@ if(SLOT_BUILD_TESTS)
             src/UI/Layout/ScrollBarNode.cpp
             src/UI/Layout/DrawNode.cpp
             src/UI/Layout/ScrollNode.cpp
+            src/UI/Layout/SceneNode.cpp
             src/UI/Layout/TextNode.cpp
             src/UI/Style/Theme.cpp
             src/Material/Material.cpp
@@ -100,6 +101,7 @@ if(SLOT_BUILD_TESTS)
             src/Object/GameObject/CubeObject.cpp
             src/Object/GameObject/SimpleGameObject.cpp
             src/Object/Camera/Camera.cpp
+            src/Object/Camera/FirstPersonCamera.cpp
             src/Object/Transform.cpp
             src/Object/UIObject/UIObject.cpp
             src/Object/UIObject/RectUIObject.cpp

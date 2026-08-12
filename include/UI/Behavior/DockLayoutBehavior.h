@@ -7,8 +7,8 @@ namespace z8::ui {
 /**
  * 为直接子节点分配停靠空间的容器行为。
  *
- * 边缘节点依声明顺序从可用矩形中切割空间，Auto/Fill 节点再横向均分剩余
- * 区域，Floating 节点保持用户几何。当前边界限定为直接子节点，避免父子
+ * 声明式边缘节点依顺序按 Extent 切割；用户交互产生的同轴停靠槽与
+ * Auto/Fill 节点均分该轴空间，Floating 节点保持用户几何。当前边界限定为直接子节点，避免父子
  * DockSpace 在同一 Yoga 计算前使用尚未更新的嵌套尺寸。
  */
 class DockLayoutBehavior final : public IBehavior {

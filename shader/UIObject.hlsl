@@ -43,6 +43,13 @@ float4 PS(VertexOut pin) : SV_Target
     if (pin.ScreenPosition.x < ClipRect.x || pin.ScreenPosition.y < ClipRect.y ||
         pin.ScreenPosition.x > ClipRect.z || pin.ScreenPosition.y > ClipRect.w)
         discard;
+    // 边框宽度使用屏幕像素而非局部坐标，因此控件缩放后仍保持一致的视觉重量。
+    float edgeDistance = min(min(pin.ScreenPosition.x - RectBounds.x,
+                                 RectBounds.z - pin.ScreenPosition.x),
+                             min(pin.ScreenPosition.y - RectBounds.y,
+                                 RectBounds.w - pin.ScreenPosition.y));
+    if (BorderWidth > 0.0f && edgeDistance <= BorderWidth)
+        return BorderColor;
     return pin.Color;
 }
 

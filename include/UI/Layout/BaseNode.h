@@ -47,6 +47,8 @@ public:
   BaseNode &operator=(const BaseNode &) = delete;
 
   virtual const char *TypeName() const;
+  /** 标记该节点是否只是场景输入窗口；默认 UI 节点会阻止事件继续传播。 */
+  virtual bool RoutesToScene() const { return false; }
   bool SetProperty(const std::string &name, const std::string &value) override;
   virtual BaseNode *ContentHost();
   bool Contains(float x, float y) const;

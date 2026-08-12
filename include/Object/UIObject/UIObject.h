@@ -14,7 +14,14 @@ struct UIObjectConst {
   // left/top/right/bottom 像素裁剪框；由 Layout 逐层求交后写入。
   DirectX::XMFLOAT4 ClipRect = {-100000.0f, -100000.0f,
                                 100000.0f, 100000.0f};
+  DirectX::XMFLOAT4 BorderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+  // left/top/right/bottom 屏幕像素边界让 Shader 能按固定像素宽度绘制边框。
+  DirectX::XMFLOAT4 RectBounds{};
+  float BorderWidth = 0.0f;
+  DirectX::XMFLOAT3 Padding{};
 };
+static_assert(sizeof(UIObjectConst) == 144,
+              "UIObjectConst must match shader/Core/Const.hlsl b0 layout.");
 
 /**
  * @brief 屏幕 UI 层的物体
@@ -32,6 +39,14 @@ public:
     Const.ClipRect = clipRect;
   }
   const DirectX::XMFLOAT4& GetClipRect() const { return Const.ClipRect; }
+  void SetBorder(const DirectX::XMFLOAT4 &color, float width) {
+    Const.BorderColor = color;
+    Const.BorderWidth = width;
+  }
+  const DirectX::XMFLOAT4 &GetBorderColor() const {
+    return Const.BorderColor;
+  }
+  float GetBorderWidth() const { return Const.BorderWidth; }
   void Update(Timer*) override;
 };
 }

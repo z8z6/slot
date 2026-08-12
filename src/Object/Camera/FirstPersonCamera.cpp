@@ -10,6 +10,8 @@ using namespace z8;
 using namespace DirectX;
 
 EventReply FirstPersonCamera::OnMouseMove(MouseMovArgs Args) {
+  if (!MouseLookEnabled)
+    return EventReply::Ignored;
   if (GetAsyncKeyState(VK_MENU) & 0x8000)
     return EventReply::Ignored;
   // 鼠标偏移量

@@ -13,6 +13,7 @@ using namespace z8::ui;
 RectNode::RectNode() : DrawNode(std::make_unique<RectUIObject>()) {
   const auto &style = Theme::Default().Rect;
   SetColor(style.Color);
+  SetBorder(style.BorderColor, style.BorderWidth);
   YGNodeStyleSetMargin(Node, YGEdgeAll, style.Margin);
   YGNodeStyleSetPadding(Node, YGEdgeAll, style.Padding);
   YGNodeStyleSetMinWidth(Node, style.MinWidth);

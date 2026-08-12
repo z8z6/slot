@@ -23,6 +23,8 @@ struct UIStyle {
   std::optional<float> Margin;
   std::optional<float> Padding;
   std::optional<DirectX::XMFLOAT4> Color;
+  std::optional<DirectX::XMFLOAT4> BorderColor;
+  std::optional<float> BorderWidth;
   std::optional<YGFlexDirection> Direction;
 };
 
@@ -39,6 +41,8 @@ public:
                   const UIStyle& style = {});
   void EndPanel();
   BaseNode* Rect(const std::string& key, const UIStyle& style = {});
+  /** 声明一个由渲染后端填充的 3D 场景视口。 */
+  BaseNode *Scene(const std::string &key, const UIStyle &style = {});
   bool EndFrame();
 
   const std::string& LastError() const { return Error; }

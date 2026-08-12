@@ -5,6 +5,8 @@
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 
+#include <algorithm>
+
 using namespace z8::ui;
 using z8::EventReply;
 
@@ -31,9 +33,7 @@ EventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
     return EventReply::Ignored;
 
   const bool inAllowedRegion = Properties.Region == DragRegion::Anywhere ||
-                               (Handle && Handle->Contains(
-                                              static_cast<float>(args.X),
-                                              static_cast<float>(args.Y)));
+                               (Handle && Handle->Contains(args));
   if (!inAllowedRegion)
     return EventReply::Ignored;
 
@@ -63,6 +63,16 @@ EventReply DragBehavior::OnMouseDrag(MouseMovArgs args) {
 
   CurrentLeft += static_cast<float>(args.DeltaX);
   CurrentTop += static_cast<float>(args.DeltaY);
+  if (const auto *parent = owner->Parent) {
+    // 至少保留标题栏的一部分在父工作区内，否则释放后用户无法再次命中拖拽句柄。
+    const float handleHeight = Handle ? Handle->Height : 24.0f;
+    constexpr float reachableWidth = 48.0f;
+    CurrentLeft = (std::clamp)(CurrentLeft,
+        -CurrentWidth + reachableWidth,
+        (std::max)(0.0f, parent->Width - reachableWidth));
+    CurrentTop = (std::clamp)(CurrentTop, 0.0f,
+        (std::max)(0.0f, parent->Height - handleHeight));
+  }
   auto yogaNode = owner->Node;
   if (!InteractiveGeometry) {
     // 流式位置已经包含 Margin；转换为绝对定位时清除它，防止首次拖动跳变。

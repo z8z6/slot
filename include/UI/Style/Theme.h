@@ -20,6 +20,8 @@ struct PaddingStyle {
 
 struct RectStyle {
   DirectX::XMFLOAT4 Color;
+  DirectX::XMFLOAT4 BorderColor;
+  float BorderWidth = 0.0f;
   float Margin = MarginStyle::Small;
   float Padding = PaddingStyle::Small;
   float MinWidth = 30.0f;
@@ -61,6 +63,10 @@ struct DemoStyle {
   float PanelHeight = 320.0f;
   float RowHeight = 32.0f;
   float RowMargin = MarginStyle::Small;
+  float ToolbarHeight = 48.0f;
+  float LeftPanelWidth = 260.0f;
+  float RightPanelWidth = 300.0f;
+  float BottomPanelHeight = 180.0f;
 };
 
 /**

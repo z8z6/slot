@@ -23,6 +23,7 @@ void UIObject::SetPosition(float x, float y, float w, float h) {
   // 将左上角坐标转为中心坐标
   Transform.Position.x = x + w / 2;
   Transform.Position.y = y + h / 2;
+  Const.RectBounds = {x, y, x + w, y + h};
 }
 
 void UIObject::SetScale(float x, float y) {

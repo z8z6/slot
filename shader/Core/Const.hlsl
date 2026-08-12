@@ -5,6 +5,10 @@ cbuffer cbPerObject : register(b0)
 	float4x4 World;
     float4 ObjectColor;
     float4 ClipRect;
+    float4 BorderColor;
+    float4 RectBounds;
+    float BorderWidth;
+    float3 ObjectPadding;
 };
 
 cbuffer cbMaterial : register(b1)

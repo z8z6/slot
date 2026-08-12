@@ -193,6 +193,11 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     if (Render) Render->Resize();
     return 0;
 
+  case WM_CLOSE:
+    // WM_CLOSE 只是关闭请求；显式销毁 HWND 才会产生 WM_DESTROY 并结束消息循环。
+    DestroyWindow(Wnd);
+    return 0;
+
     // 关闭窗口
   case WM_DESTROY: {
     if (!--Window::AliveCount)
@@ -360,8 +365,10 @@ void Application::OnMouseUp(MouseMovArgs Args)
 }
 
 void Application::OnMouseWheel(MouseWheelArgs Args) {
-  // 命中 UI 则返回
-  Layout.OnMouseWheel(Args);
+  // SceneNode 是 UI 布局中的输入窗口；只有普通工具控件会阻止滚轮进入场景。
+  if (Layout.OnMouseWheel(Args) != EventReply::Ignored)
+    return;
+  ForEachSceneObject([&](Object &object) { object.OnMouseWheel(Args); });
 }
 
 void Application::OnKeyDown(KeyArgs Args) {

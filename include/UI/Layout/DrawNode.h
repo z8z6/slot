@@ -22,6 +22,8 @@ public:
 
   bool SetProperty(const std::string &name, const std::string &value) override;
   bool SetColor(const DirectX::XMFLOAT4 &color) const;
+  /** 设置像素宽度边框；0 表示不绘制边框。 */
+  bool SetBorder(const DirectX::XMFLOAT4 &color, float width) const;
   void Synchronize() override;
 };
 

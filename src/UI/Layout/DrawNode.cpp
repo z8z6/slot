@@ -4,6 +4,7 @@
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
 
+#include <cstdlib>
 #include <stdexcept>
 #include <utility>
 
@@ -25,12 +26,32 @@ DrawNode::~DrawNode() {
 
 bool DrawNode::SetProperty(const std::string &name,
                              const std::string &value) {
+  if (name == "Border" || name == "BorderWidth") {
+    const float width = std::strtof(value.c_str(), nullptr);
+    if (width < 0.0f)
+      return false;
+    UO->SetBorder(UO->GetBorderColor(), width);
+    return true;
+  }
+  if (name == "BorderColor") {
+    DirectX::XMFLOAT4 color;
+    if (!ParseUIColor(value, color))
+      return false;
+    UO->SetBorder(color, UO->GetBorderWidth());
+    return true;
+  }
   if (name != "Color")
     return BehaviorNode::SetProperty(name, value);
   DirectX::XMFLOAT4 color;
   if (!ParseUIColor(value, color))
     return false;
   return SetColor(color);
+}
+
+bool DrawNode::SetBorder(const DirectX::XMFLOAT4 &color, float width) const {
+  assert(UO);
+  UO->SetBorder(color, width);
+  return true;
 }
 
 bool DrawNode::SetColor(const DirectX::XMFLOAT4 &color) const {

@@ -12,6 +12,7 @@
 #include "Target/Render.h"
 #include "UI/Declarative/ImmediateUI.h"
 #include "UI/Layout/RectNode.h"
+#include "UI/Layout/SceneNode.h"
 #include "UI/Style/Theme.h"
 
 using namespace z8;
@@ -44,23 +45,41 @@ void DemoApplication::PrepareScene() {
   ImmediateUI ui(Layout);
   ui.BeginFrame();
   const auto &demoStyle = Theme::Default().Demo;
-  UIStyle panelStyle;
-  panelStyle.Width = demoStyle.PanelWidth;
-  panelStyle.Height = demoStyle.PanelHeight;
-  if (ui.BeginPanel("scene-panel", "Scrollable Scene Objects", panelStyle)) {
+  if (ui.BeginPanel("toolbar", "Level Editor"))
+    ui.EndPanel();
+  if (ui.BeginPanel("content-drawer", "Content Drawer"))
+    ui.EndPanel();
+  if (ui.BeginPanel("outliner", "World Outliner")) {
     UIStyle itemStyle;
     itemStyle.Height = demoStyle.RowHeight;
     itemStyle.FlexGrow = 0.0f;
     itemStyle.FlexShrink = 0.0f;
     itemStyle.Margin = demoStyle.RowMargin;
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 8; ++i) {
       // 第一个条目模拟 UE 编辑器的非焦点选择，其余使用主题定义的交替行色。
       itemStyle.Color = i == 0 ? demoStyle.SelectedRowColor
                         : i % 2 == 0 ? demoStyle.RowColor
                                      : demoStyle.AlternateRowColor;
-      ui.Rect("scene-item-" + std::to_string(i), itemStyle);
+      ui.Rect("outliner-item-" + std::to_string(i), itemStyle);
     }
     ui.EndPanel();
   }
+  if (ui.BeginPanel("details", "Details"))
+    ui.EndPanel();
+  if (auto *scene = ui.Scene("scene-viewport"))
+    scene->SetProperty("Title", "Perspective");
   ui.EndFrame();
+
+  // UE 编辑器式工作区从四边切割工具面板，中央剩余区域由 SceneNode 占满。
+  const auto configureDock = [this](const char *key, const char *placement,
+                                    float extent) {
+    if (auto *node = Layout.Find(key)) {
+      node->SetProperty("Dock", placement);
+      node->SetProperty("DockExtent", std::to_string(extent));
+    }
+  };
+  configureDock("toolbar", "Top", demoStyle.ToolbarHeight);
+  configureDock("content-drawer", "Bottom", demoStyle.BottomPanelHeight);
+  configureDock("outliner", "Left", demoStyle.LeftPanelWidth);
+  configureDock("details", "Right", demoStyle.RightPanelWidth);
 }

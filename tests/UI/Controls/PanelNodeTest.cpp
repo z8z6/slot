@@ -1,6 +1,8 @@
 #include "UI/Layout/PanelNode.h"
+#include "Object/UIObject/UIObject.h"
 #include "UI/Declarative/ImmediateUI.h"
 #include "UI/Layout/Layout.h"
+#include "UI/Style/Theme.h"
 
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
@@ -63,6 +65,14 @@ TEST(PanelNodeTest, KeepsTitleAndContentAsInternalChildren) {
   EXPECT_EQ(panel.ScrollAreaNode->ContentNode->Children[0].get(),
             contentObserver);
   EXPECT_EQ(panel.TitleNode->Children.size(), 0U);
+}
+
+TEST(PanelNodeTest, UsesVisibleDefaultBorder) {
+  PanelNode panel;
+  const auto &style = Theme::Default().Panel;
+
+  EXPECT_GT(panel.UO->GetBorderWidth(), 0.0f);
+  EXPECT_FLOAT_EQ(panel.UO->GetBorderColor().x, style.BorderColor.x);
 }
 
 TEST(PanelNodeTest, ComposesIndependentBehaviors) {
@@ -309,10 +319,104 @@ TEST(PanelNodeTest, DocksPanelAtNearestEdgeAfterDragging) {
             DockPlacement::Right);
 
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_FLOAT_EQ(firstObserver->Left, 500.0f);
-  EXPECT_FLOAT_EQ(firstObserver->Width, 300.0f);
+  EXPECT_FLOAT_EQ(firstObserver->Left, 400.0f);
+  EXPECT_FLOAT_EQ(firstObserver->Width, 400.0f);
   EXPECT_FLOAT_EQ(secondObserver->Left, 0.0f);
-  EXPECT_FLOAT_EQ(secondObserver->Width, 500.0f);
+  EXPECT_FLOAT_EQ(secondObserver->Width, 400.0f);
+}
+
+TEST(PanelNodeTest, KeepsFloatingTitleReachableAndDraggableAgain) {
+  Layout layout;
+  auto *panel = AddPanel(layout);
+  auto *dock = panel->GetBehavior<DockBehavior>();
+  dock->Properties.Enabled = true;
+  // 此用例只验证浮动可恢复命中，关闭停靠避免释放点触发根边缘吸附。
+  dock->Properties.EdgeThreshold = -1.0f;
+
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(1600, 900, 1500, 884)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(1600, 900)), EventReply::Ignored);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_LE(panel->Top, 600.0f - panel->TitleNode->Height);
+  EXPECT_GE(panel->Left + panel->Width, 48.0f);
+
+  const int titleX = static_cast<int>((std::min)(
+      panel->Left + 24.0f, layout.Root->Width - 24.0f));
+  const int titleY = static_cast<int>(panel->Top + 12.0f);
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(titleX, titleY)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(titleX - 20, titleY, -20, 0)),
+            EventReply::Ignored);
+  EXPECT_TRUE(panel->GetBehavior<DragBehavior>()->IsDragging());
+  EXPECT_NE(layout.OnMouseUp(MouseArgs(titleX - 20, titleY)),
+            EventReply::Ignored);
+}
+
+TEST(PanelNodeTest, DocksFloatingPanelAgainstSiblingAndReflowsWorkspace) {
+  Layout layout;
+  auto first = std::make_unique<PanelNode>();
+  auto second = std::make_unique<PanelNode>();
+  auto *firstObserver = first.get();
+  auto *secondObserver = second.get();
+  layout.Root->AddChild(std::move(first));
+  layout.Root->AddChild(std::move(second));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(790, 300, 690, 284)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(790, 300)), EventReply::Ignored);
+  layout.Calculate(800.0f, 600.0f);
+
+  EXPECT_EQ(firstObserver->GetBehavior<DockBehavior>()->Properties.Placement,
+            DockPlacement::Right);
+  EXPECT_FLOAT_EQ(firstObserver->Width, secondObserver->Width);
+  EXPECT_LE(secondObserver->Left + secondObserver->Width,
+            firstObserver->Left);
+}
+
+TEST(PanelNodeTest, DocksPanelsOnBothHorizontalSides) {
+  const auto verifySide = [](bool dockLeft) {
+    Layout layout;
+    auto moving = std::make_unique<PanelNode>();
+    auto target = std::make_unique<PanelNode>();
+    auto *movingObserver = moving.get();
+    auto *targetObserver = target.get();
+    layout.Root->AddChild(std::move(moving));
+    layout.Root->AddChild(std::move(target));
+    layout.RebuildIndex();
+    layout.Calculate(800.0f, 600.0f);
+    EXPECT_FLOAT_EQ(movingObserver->Width, targetObserver->Width);
+
+    auto *dock = movingObserver->GetBehavior<DockBehavior>();
+    // 此用例验证兄弟四向区域，避免根边缘优先规则截获释放点。
+    dock->Properties.EdgeThreshold = 0.0f;
+    ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
+    const int dropX = static_cast<int>(targetObserver->Left +
+                                       targetObserver->Width *
+                                           (dockLeft ? 0.2f : 0.8f));
+    const int dropY = static_cast<int>(targetObserver->Top +
+                                       targetObserver->Height * 0.5f);
+    ASSERT_NE(layout.OnMouseDrag(
+                  MouseArgs(dropX, dropY, dropX - 100, dropY - 16)),
+              EventReply::Ignored);
+    ASSERT_NE(layout.OnMouseUp(MouseArgs(dropX, dropY)), EventReply::Ignored);
+    EXPECT_EQ(dock->Properties.Placement,
+              dockLeft ? DockPlacement::Left : DockPlacement::Right);
+
+    layout.Calculate(800.0f, 600.0f);
+    if (dockLeft)
+      EXPECT_LE(movingObserver->Left + movingObserver->Width,
+                targetObserver->Left);
+    else
+      EXPECT_GE(movingObserver->Left,
+                targetObserver->Left + targetObserver->Width);
+  };
+
+  verifySide(true);
+  verifySide(false);
 }
 
 TEST(PanelNodeTest, KeepsInteractiveSizeAcrossImmediateDeclarations) {

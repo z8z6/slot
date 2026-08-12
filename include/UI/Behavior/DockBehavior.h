@@ -17,6 +17,8 @@ struct DockProperty {
   DockPlacement Placement = DockPlacement::Auto;
   float EdgeThreshold = 48.0f;
   float Extent = 300.0f;
+  // 交互停靠使用均分槽位，声明式 DockExtent 仍保留固定工具栏/侧栏语义。
+  bool EqualShare = false;
 };
 
 /**

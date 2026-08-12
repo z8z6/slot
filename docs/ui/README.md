@@ -168,13 +168,19 @@ Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再�
 
 ## 默认主题
 
-`Color` 集中定义 UE 编辑器风格的深灰层级、蓝色强调、文本状态和反馈色；`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、ScrollBar、Panel 与 List 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Modern()` 是默认主题的兼容别名。Demo 只读取 Panel 和 List 默认样式中的尺寸、间距、交替行和非焦点选中色，不再散落颜色常量。
+`Color` 集中定义 UE 编辑器风格的深灰层级、蓝色强调、文本状态和反馈色；`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、ScrollBar、Panel 与 Demo 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Default()` 返回当前默认主题。Demo 只读取主题中的尺寸、间距、交替行和非焦点选中色，不再散落颜色常量。
 
 新增控件应先在 `Theme` 中定义对应的样式结构，再在构造函数统一应用 `Color`、`Margin`、`Padding` 和最小尺寸，避免重新引入散落的魔法值。实例属性始终拥有更高优先级。Immediate UI 的 `Style` 参数可以省略；稳定节点会在每帧先恢复主题默认值，再应用本帧显式字段，避免继承上一帧已经移除的覆盖。
+
+Rect 支持 `BorderColor` 与像素宽度的 `Border`/`BorderWidth`。边框在 UI Shader 中根据屏幕空间矩形计算，因此控件缩放后不会改变视觉粗细；默认 Rect 不显示边框，Panel 使用主题中的亮色 1 像素边框区分相邻停靠区域。
 
 ## 布局和渲染同步
 
 Yoga 计算 left/top/width/height 后，`Layout` 累加父偏移得到绝对像素坐标。矩形原点在中心，因此位置转换为 `(left + width/2, top + height/2)`，缩放为 `(width, height)`；UI Shader 再将像素坐标映射到 NDC 并翻转 Y。
+
+`SceneNode` 是编辑器中央 3D 视口的布局与输入边界，自身不创建普通 `UIObject`，但组合了可绘制标题栏、标题文字和纯布局 Viewport。标题栏用于拖拽，外边界用于拉伸，只有 Viewport 内容区的指针输入继续交给相机和场景对象。DX12 后端先把场景对象绘制到窗口大小的离屏 `DX12SceneTarget`，再按 Viewport 的可见矩形复制到交换链，最后覆盖绘制标题、工具面板与文字。默认 Demo 采用顶部工具栏、底部 Content Drawer、左侧 World Outliner、右侧 Details 和中央 SceneNode 的 UE 编辑器式布局。
+
+FirstPersonCamera 当前默认关闭鼠标观察，等待编辑器视口补齐右键捕获、光标隐藏与恢复协议。浮动 Panel 与 SceneNode 会保留可再次操作的标题区域并获得优先命中；释放到根边缘或兄弟 Panel 的上、下、左、右区域时，DockBehavior 生成对应停靠方向，DockLayout 在下一帧让交互停靠项与同级自由项平分可用轴向空间，避免新 Panel 占满并遮挡原 Panel。显式 `DockExtent` 的工具栏和侧栏仍保持固定尺寸。兄弟停靠区使用相对中心方向判定，因此宽高比例不会导致左右区域被上下区域吞并。
 
 `Layout` 仅在控件拓扑改变时设置 dirty 标记。`DX12Render` 消费该标记并重建 UI 常量缓冲和 RenderObject 索引；样式或尺寸变化只更新已有常量，不重建 GPU 资源。空 UI 批次现在可安全初始化和绘制。
 

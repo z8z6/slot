@@ -5,6 +5,7 @@
 #include "UI/Layout/PanelNode.h"
 #include "UI/Layout/RectNode.h"
 #include "UI/Layout/ScrollNode.h"
+#include "UI/Layout/SceneNode.h"
 #include "UI/Layout/TextNode.h"
 
 using namespace z8::ui;
@@ -15,6 +16,7 @@ ControlFactory::ControlFactory() {
   Register("Rect", [] { return std::make_unique<RectNode>(); });
   Register("Text", [] { return std::make_unique<TextNode>(); });
   Register("Scroll", [] { return std::make_unique<ScrollNode>(); });
+  Register("Scene", [] { return std::make_unique<SceneNode>(); });
   Register("Panel", [] { return std::make_unique<PanelNode>(); });
 }
 

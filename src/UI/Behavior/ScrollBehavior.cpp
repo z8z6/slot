@@ -110,7 +110,7 @@ void ScrollBehavior::UpdateRange() {
   SynchronizeVisuals();
 }
 
-void ScrollBehavior::SynchronizeVisuals() {
+void ScrollBehavior::SynchronizeVisuals() const {
   if (Viewport) {
     Viewport->ChildOffsetX = 0.0f;
     Viewport->ChildOffsetY = -OffsetY;

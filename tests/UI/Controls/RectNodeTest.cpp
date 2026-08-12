@@ -37,4 +37,14 @@ TEST(RectNodeTest, OverridesThemeColorWithUnifiedProperty) {
   EXPECT_NEAR(node.UO->GetColor().w, 0.8f, 0.001f);
   EXPECT_FALSE(node.SetProperty("Color", "not-a-color"));
 }
+
+TEST(RectNodeTest, SupportsPixelBorderProperties) {
+  RectNode node;
+  ASSERT_TRUE(node.SetProperty("BorderColor", "#80A0C0FF"));
+  ASSERT_TRUE(node.SetProperty("Border", "2"));
+
+  EXPECT_NEAR(node.UO->GetBorderColor().x, 128.0f / 255.0f, 0.001f);
+  EXPECT_FLOAT_EQ(node.UO->GetBorderWidth(), 2.0f);
+  EXPECT_FALSE(node.SetProperty("BorderWidth", "-1"));
+}
 } // namespace z8::ui

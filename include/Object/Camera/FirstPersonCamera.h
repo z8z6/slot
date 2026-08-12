@@ -8,6 +8,8 @@
 namespace z8 {
 class FirstPersonCamera : public Camera {
 public:
+  // 编辑器视口尚未建立按键捕获/隐藏光标协议前，默认禁止鼠标驱动相机。
+  bool MouseLookEnabled = false;
   const float SensitivityX = 0.03f;
   const float SensitivityY = 0.08f;
   const float SpeedX = 1.0f;
