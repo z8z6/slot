@@ -1,6 +1,7 @@
 #include "UI/Behavior/ResizeBehavior.h"
 
 #include "UI/Layout/BaseNode.h"
+#include "UI/Layout/BehaviorNode.h"
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 
@@ -45,7 +46,9 @@ void ResizeBehavior::ApplyMinimumSize() const {
 
 ResizeRegion ResizeBehavior::HitTest(MouseMovArgs args) const {
   const auto *owner = GetOwner();
-  if (!owner || !Properties.Enabled || !owner->Contains(args))
+  if (!owner || !Properties.Enabled ||
+      !owner->Contains(static_cast<float>(args.X),
+                       static_cast<float>(args.Y)))
     return ResizeRegion::None;
   const float x = static_cast<float>(args.X);
   const float y = static_cast<float>(args.Y);

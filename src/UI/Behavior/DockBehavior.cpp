@@ -1,6 +1,7 @@
 #include "UI/Behavior/DockBehavior.h"
 
 #include "UI/Layout/BaseNode.h"
+#include "UI/Layout/BehaviorNode.h"
 
 #include <algorithm>
 #include <cmath>

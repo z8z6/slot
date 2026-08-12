@@ -53,7 +53,15 @@ z8::Application::Application() {
 }
 
 Application::~Application() {
-  // 从 Apps 中移除
+  // 析构函数体执行时所有成员仍存活；显式关闭 Render 可避免成员逆序析构导致
+  // Resources/Scene 先于 GPU 缓存失效，也保证 D3D11On12 在 Window 之前退出。
+  if (Window.Wnd && IsWindow(Window.Wnd))
+    SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA, 0);
+  if (Render) {
+    Render->Shutdown();
+    Render.reset();
+  }
+  // 从 Apps 中移除，防止退出消息循环后继续访问正在析构的实例。
   std::erase(Apps, this);
 }
 

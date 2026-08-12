@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/Layout/BaseNode.h"
+#include "UI/Layout/BehaviorNode.h"
 
 #include <memory>
 
@@ -13,7 +13,7 @@ namespace z8::ui {
 /**
  * DrawNode 同时参与布局和绘制的 UI 节点中间层。
  */
-class DrawNode : public BaseNode {
+class DrawNode : public BehaviorNode {
 public:
   std::unique_ptr<UIObject> UO;
 

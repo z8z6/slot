@@ -1,6 +1,7 @@
 #include "UI/Behavior/DragBehavior.h"
 
 #include "UI/Layout/BaseNode.h"
+#include "UI/Layout/BehaviorNode.h"
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 
@@ -26,11 +27,13 @@ bool ParseBoolean(const std::string &value, bool &result) {
 EventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
   auto *owner = GetOwner();
   if (!owner || !Properties.Enabled || args.Button != MouseButton::Left ||
-      !owner->Contains(args))
+      !owner->Contains(static_cast<float>(args.X), static_cast<float>(args.Y)))
     return EventReply::Ignored;
 
   const bool inAllowedRegion = Properties.Region == DragRegion::Anywhere ||
-                               (Handle && Handle->Contains(args));
+                               (Handle && Handle->Contains(
+                                              static_cast<float>(args.X),
+                                              static_cast<float>(args.Y)));
   if (!inAllowedRegion)
     return EventReply::Ignored;
 

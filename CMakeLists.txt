@@ -41,6 +41,9 @@ target_link_libraries(
         dxguid.lib
         d3dcompiler.lib #fxc
         dxcompiler.lib  #dxc
+        d3d11.lib
+        d2d1.lib
+        dwrite.lib
         yogacore
 )
 
@@ -71,11 +74,14 @@ if(SLOT_BUILD_TESTS)
             src/UI/Declarative/ImmediateUI.cpp
             src/UI/Declarative/XamlLoader.cpp
             src/UI/Layout/BaseNode.cpp
+            src/UI/Layout/BehaviorNode.cpp
             src/UI/Layout/Layout.cpp
             src/UI/Layout/PanelNode.cpp
             src/UI/Layout/RectNode.cpp
             src/UI/Layout/ScrollBarNode.cpp
             src/UI/Layout/DrawNode.cpp
+            src/UI/Layout/ScrollNode.cpp
+            src/UI/Layout/TextNode.cpp
             src/UI/Style/UITheme.cpp
             src/Material/Material.cpp
             src/Material/MetalMaterial.cpp

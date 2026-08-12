@@ -90,7 +90,7 @@ bool ImmediateUI::BeginPanel(const std::string &key, const std::string &title,
   auto *panel = dynamic_cast<PanelNode *>(node);
   if (!panel)
     return false;
-  panel->Title = title;
+  panel->SetProperty("Title", title);
   ApplyStyle(*panel, style);
   ScopeStack.push_back({panel->ContentHost(), 0});
   return true;

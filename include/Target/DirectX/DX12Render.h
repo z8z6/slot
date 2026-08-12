@@ -16,6 +16,7 @@
 #include "DX12RootSignature.h"
 #include "DX12Shader.h"
 #include "DX12SwapChain.h"
+#include "DX12TextRenderer.h"
 #include "Target/Render.h"
 #include "d3d12.h"
 
@@ -51,8 +52,10 @@ public:
 
   DX12RenderBatch GOBatch;
   DX12RenderBatch UOBatch;
+  DX12TextRenderer TextRenderer;
 
   explicit DX12Render(Application* app);
+  ~DX12Render() override;
 
   void Init() override;
   // 每帧绘制前调用，更新物体状态
@@ -60,11 +63,15 @@ public:
   // 绘制物体
   void Draw() override;
   void Resize() override;
+  void Shutdown() override;
 
   Camera* GetCamera() const;
   Window* GetWindow() const;
   Timer* GetTimer() const;
   Light* GetLight() const;
+
+private:
+  bool IsShutdown = false;
 };
 
 }

@@ -6,13 +6,13 @@
 namespace z8::ui {
 
 class BaseNode;
+class BehaviorNode;
 
 /**
- * 可挂载到任意 BaseNode 的交互行为基类。
+ * 可挂载到任意 BehaviorNode 的交互行为基类。
  *
- * Behavior 只观察宿主，不拥有节点或视觉子树。宿主先销毁 Behavior，再销毁
- * UIObject、子节点和 Yoga 句柄，因此派生类可以安全缓存受宿主生命周期约束的
- * 非拥有指针，但不得把这些指针传递到 UI 树之外长期保存。
+ * Behavior 只观察宿主，不拥有节点或视觉子树。
+ * 宿主先销毁 Behavior，再销毁UIObject、子节点和 Yoga 句柄
  */
 class IBehavior : public IProperty, public EventTarget {
 public:
@@ -22,7 +22,7 @@ public:
   IBehavior(const IBehavior &) = delete;
   IBehavior &operator=(const IBehavior &) = delete;
 
-  BaseNode *GetOwner() const { return Owner; }
+  BehaviorNode *GetOwner() const { return Owner; }
   int GetPriority() const { return Priority; }
 
   /** 布局钩子是 UI 扩展；输入、光标与捕获钩子复用 EventTarget 契约。 */
@@ -38,14 +38,12 @@ public:
   }
 
 protected:
-  // 宿主建立后调用；同步依赖 Owner 的约束
   virtual void OnAttached() {}
-  // 卸载前调用
   virtual void OnDetached() {}
 
 private:
-  friend class BaseNode;
-  BaseNode *Owner = nullptr;
+  friend class BehaviorNode;
+  BehaviorNode *Owner = nullptr;
   int Priority = 0;
 };
 

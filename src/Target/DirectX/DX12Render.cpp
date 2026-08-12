@@ -19,9 +19,24 @@ using namespace z8;
 
 DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), SwapChain(this), Msaa(this), RootSignature(this),
-      GOBatch(this), UOBatch(this, true), DepthStencil(this), RenderTarget(this),
+      GOBatch(this), UOBatch(this, true), TextRenderer(this),
+      DepthStencil(this), RenderTarget(this),
       MeshManager(this), MaterialManager(this), ShaderLibrary(app->Resources) {
   Ctx = &DX12Device::Instance();
+}
+
+DX12Render::~DX12Render() { Shutdown(); }
+
+void DX12Render::Shutdown() {
+  if (IsShutdown)
+    return;
+  IsShutdown = true;
+
+  // 先等待 DX12 和 D3D11On12 对队列的所有提交完成，再断开文字互操作资源。
+  // 此时 Application::Resources、Scene、Layout 和 Window 都仍然存活。
+  if (Cmd.Queue && Cmd.Fence)
+    Cmd.Synchronize();
+  TextRenderer.Shutdown();
 }
 
 void DX12Render::Init()
@@ -44,6 +59,7 @@ void DX12Render::Init()
 
   GOBatch.Init(App->ActiveScene.GetGameObjects());
   UOBatch.Init(App->Layout.GetUO());
+  TextRenderer.Init();
   App->Layout.ConsumeDirty();
 
   Cmd.CloseAndExecute();
@@ -87,11 +103,12 @@ void z8::DX12Render::Draw()
   GOBatch.Draw();
   UOBatch.Draw();
 
-  RenderTarget.Transition();
-
+  // DirectWrite 通过 D3D11On12 接管同一后备缓冲并完成 PRESENT 转换。
   Cmd.CloseAndExecute();
-  SwapChain.Present();
   Cmd.Synchronize();
+  TextRenderer.Draw(App->Layout);
+
+  SwapChain.Present();
 }
 
 void DX12Render::Resize()
@@ -99,11 +116,13 @@ void DX12Render::Resize()
   Cmd.Synchronize();
   Cmd.Reset();
 
+  TextRenderer.PrepareResize();
   RenderTarget.ResetBuffer();
   DepthStencil.ResetBuffer();
   SwapChain.Resize();
   RenderTarget.InitBuffer();
   DepthStencil.InitBuffer();
+  TextRenderer.Resize();
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();

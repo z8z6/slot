@@ -8,21 +8,16 @@
 #include "UI/Behavior/DockBehavior.h"
 #include "UI/Behavior/DragBehavior.h"
 #include "UI/Behavior/ResizeBehavior.h"
-#include "UI/Behavior/ScrollBehavior.h"
-#include "UI/Layout/ScrollBarNode.h"
+#include "UI/Layout/ScrollNode.h"
+#include "UI/Layout/TextNode.h"
 
 #include <string>
 
 namespace z8::ui {
 class PanelNode : public RectNode {
 public:
-  RectNode *TitleNode;
-  BaseNode *ScrollViewportNode;
-  BaseNode *ContentNode;
-  ScrollBarNode *VerticalScrollBarNode;
-  RectNode *VerticalScrollThumbNode;
-  std::string Title;
-
+  TextNode *TitleNode;
+  ScrollNode *ScrollAreaNode;
   PanelNode();
   BaseNode *ContentHost() override;
   const char *TypeName() const override { return "Panel"; }

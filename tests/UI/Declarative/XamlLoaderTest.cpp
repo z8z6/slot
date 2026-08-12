@@ -22,10 +22,10 @@ TEST(XamlLoaderTest, BuildsPanelControlTree) {
   ASSERT_TRUE(result) << result.Error;
   auto *panel = dynamic_cast<PanelNode *>(layout.Find("tools"));
   ASSERT_NE(panel, nullptr);
-  EXPECT_EQ(panel->Title, "Tools & Scene");
-  EXPECT_EQ(panel->ContentNode->Children.size(), 1U);
+  EXPECT_EQ(panel->TitleNode->Text, "Tools & Scene");
+  EXPECT_EQ(panel->ScrollAreaNode->ContentNode->Children.size(), 1U);
   const auto *drag = panel->GetBehavior<DragBehavior>();
-  const auto *scroll = panel->GetBehavior<ScrollBehavior>();
+  const auto *scroll = panel->ScrollAreaNode->GetScrollBehavior();
   ASSERT_NE(drag, nullptr);
   ASSERT_NE(scroll, nullptr);
   EXPECT_EQ(drag->Properties.Region, DragRegion::Anywhere);

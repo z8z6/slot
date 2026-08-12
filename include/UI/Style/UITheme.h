@@ -18,6 +18,7 @@ struct UIControlTheme {
 /** Panel 除基础盒模型外还统一标题栏、内容留白和交互边界。 */
 struct UIPanelTheme : UIControlTheme {
   DirectX::XMFLOAT4 TitleColor;
+  DirectX::XMFLOAT4 TitleTextColor;
   DirectX::XMFLOAT4 ScrollBarColor;
   DirectX::XMFLOAT4 ScrollThumbColor;
   float TitleHeight = 36.0f;

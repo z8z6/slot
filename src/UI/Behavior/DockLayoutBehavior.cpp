@@ -2,6 +2,7 @@
 
 #include "UI/Behavior/DockBehavior.h"
 #include "UI/Layout/BaseNode.h"
+#include "UI/Layout/BehaviorNode.h"
 #include "yoga/YGNodeStyle.h"
 
 #include <algorithm>
@@ -36,7 +37,10 @@ void DockLayoutBehavior::OnBeforeLayout(float width, float height) {
   std::vector<BaseNode *> flexible;
 
   for (const auto &child : owner->Children) {
-    auto *dock = child->GetBehavior<DockBehavior>();
+    auto *behaviorChild = dynamic_cast<BehaviorNode *>(child.get());
+    auto *dock = behaviorChild
+                     ? behaviorChild->GetBehavior<DockBehavior>()
+                     : nullptr;
     if (!dock || !dock->Properties.Enabled ||
         dock->Properties.Placement == DockPlacement::Floating)
       continue;

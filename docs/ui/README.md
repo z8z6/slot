@@ -16,17 +16,19 @@ flowchart LR
 
 ## 控件树和所有权
 
-`BaseNode` 只通过 `unique_ptr` 独占子节点和 Behavior，不再拥有 `UIObject`。它负责 Yoga 几何、树关系、输入路由和裁剪传播；Root、Viewport、Content 等结构节点因此是明确的非视觉节点。`VisualNode : BaseNode` 是唯一的渲染所有权边界，通过 `unique_ptr<UIObject> Visual` 独占视觉对象，`RectNode` 及其派生控件继承这一层。
+`BaseNode` 只通过 `unique_ptr` 独占子节点，负责 Yoga 几何、树关系、属性和裁剪传播；Root、Viewport、Content 等结构节点因此不携带交互状态。`BehaviorNode : BaseNode` 选择性加入事件与 Behavior，`DrawNode : BehaviorNode` 则以 `unique_ptr<UIObject> UO` 建立渲染所有权边界，`RectNode` 及其派生控件继承绘制层。
 
-每个节点包含稳定 `Key`、父节点和 Yoga Node。`ContentHost()` 决定声明的子控件实际进入哪里；普通容器返回自身，Panel 返回内部内容区。`Layout` 持有根节点，并在拓扑变化时生成两份非拥有索引：全部节点 `Nodes` 和保持绘制顺序的 `Visuals`。RTTI 只在重建索引时使用；每帧布局通过 `SynchronizeVisual()` 窄虚接口提交位置、缩放和裁剪，不在热路径反复转换类型。
+每个节点包含稳定 `Key`、父节点和 Yoga Node。`ContentHost()` 决定声明的子控件实际进入哪里；普通容器返回自身，Panel 返回内部滚动内容区。`Layout` 在拓扑变化时生成全部节点 `Nodes`、几何视觉 `Visuals` 和文字 `Texts` 三份非拥有索引；每帧布局通过 `Synchronize()` 窄虚接口提交位置、缩放和裁剪。
 
 框架内部直接访问 `Node`、`Left/Top/Width/Height`、`Parent`、`Children`、`Visible` 等简单状态，不再用只返回成员的 Getter/Setter 包装。带边界语义的操作仍保留函数，例如 `AddChild()` 必须同步 Yoga 树，`SetProperty()` 负责声明解析，`GetBehavior<T>()` 负责运行时能力查询。
 
 ## EventTarget 与 Behavior 组合
 
-场景 `Object`、`Layout`、`BaseNode` 和 `UIBehavior` 共同继承 Core 的 `EventTarget`，鼠标与键盘事件统一返回 `EventReply::Ignored/Handled/Capture`，光标查询与捕获丢失通知也由该接口定义。Core 只定义事件 ABI，不负责命中、冒泡或捕获存储；场景与 `Layout` 可以采用不同路由策略而无需复制输入虚函数。
+场景 `Object`、`Layout`、`BehaviorNode` 和 `IBehavior` 共同继承 Core 的 `EventTarget`，鼠标与键盘事件统一返回 `EventReply::Ignored/Handled/Capture`。`BaseNode` 只负责 Yoga、属性与树所有权；纯布局节点因此不再支付 Behavior 容器、事件虚表和捕获状态的成本。Core 只定义事件 ABI，不负责命中、冒泡或捕获存储。
 
-`BaseNode` 实现属性根接口 `IProperty`，因此 XAML、即时声明和未来检查器只需面向统一的 `SetProperty` 协议。可选行为以 `unique_ptr<UIBehavior>` 挂载到节点，`DragBehavior`、`ResizeBehavior`、`ScrollBehavior`、`DockBehavior` 分别独占自己的配置和运行时状态；宿主销毁时先取消捕获并释放行为，再释放其视觉子树和 Yoga 几何。
+`PanelNode` 由背景视觉、`TextNode` 标题和 `ScrollNode` 内容区组成。`ScrollNode` 独立封装 viewport/content/scrollbar 与 `ScrollBehavior`，可被列表和树控件复用。`TextNode` 只保存 UTF-8 文本与排版属性，布局完成后由 DirectWrite 文字通道在 DX12 UI 几何之上绘制；D3D11On12 负责共享交换链缓冲和同步，文字不伪装成矩形网格资源。
+
+`BaseNode` 实现属性根接口 `IProperty`，因此 XAML、即时声明和未来检查器只需面向统一的 `SetProperty` 协议。可选行为以 `unique_ptr<IBehavior>` 挂载到 `BehaviorNode`，`DragBehavior`、`ResizeBehavior`、`ScrollBehavior`、`DockBehavior` 分别独占自己的配置和运行时状态；交互宿主销毁时先取消捕获并释放行为，再释放视觉子树和 Yoga 几何。
 
 行为按优先级稳定排序。`ResizeBehavior` 高于 `DragBehavior`，所以标题栏边缘只会开始 Resize；同优先级保持声明顺序。按下结果使用 `Ignored/Handled/Capture` 三态，避免把“消费一次点击”和“捕获一段手势”混为同一个 `bool`。声明属性会自动遍历行为链，因此给普通 Rect 挂载 Drag 后，`Draggable`、`DragRegion` 立即可由 XAML/检查器设置，不需要修改 Rect 类型：
 

@@ -18,7 +18,9 @@ class GameObject;
 
 namespace z8::ui {
 class BaseNode;
+class BehaviorNode;
 class DrawNode;
+class TextNode;
 
 /**
  * UI 树的布局与输入路由器。
@@ -28,12 +30,13 @@ public:
   std::unique_ptr<BaseNode> Root;
   std::vector<BaseNode *> Nodes;
   std::vector<DrawNode *> Visuals;
+  std::vector<TextNode *> Texts;
 
   bool Dirty = true;
   BaseNode *CapturedTarget = nullptr;
-  BaseNode *CapturedHandler = nullptr;
+  BehaviorNode *CapturedHandler = nullptr;
 
-  explicit Layout();
+  explicit Layout(Application *application = nullptr);
   ~Layout() override;
 
   void RebuildIndex();
@@ -55,6 +58,7 @@ public:
 private:
   void IndexTree(BaseNode *node);
   void CancelTreeCaptures(BaseNode *node);
+  BehaviorNode *FindBehaviorNode(BaseNode *node) const;
   BaseNode *HitAt(float x, float y) const;
   void UpdateTree(YGNodeRef Node, float parentX, float parentY,
                   const DirectX::XMFLOAT4 &clip);

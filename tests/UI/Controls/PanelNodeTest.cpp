@@ -46,19 +46,22 @@ PanelNode *AddPanel(Layout &layout, float width = 300.0f,
 TEST(PanelNodeTest, KeepsTitleAndContentAsInternalChildren) {
   PanelNode panel;
   ASSERT_NE(panel.TitleNode, nullptr);
-  ASSERT_NE(panel.ScrollViewportNode, nullptr);
-  ASSERT_NE(panel.ContentNode, nullptr);
-  ASSERT_NE(panel.VerticalScrollBarNode, nullptr);
-  ASSERT_NE(panel.VerticalScrollThumbNode, nullptr);
-  EXPECT_EQ(panel.Children.size(), 3U);
-  EXPECT_EQ(panel.ContentHost(), panel.ContentNode);
-  EXPECT_EQ(panel.ContentNode->Parent, panel.ScrollViewportNode);
+  ASSERT_NE(panel.ScrollAreaNode, nullptr);
+  ASSERT_NE(panel.ScrollAreaNode->ViewportNode, nullptr);
+  ASSERT_NE(panel.ScrollAreaNode->ContentNode, nullptr);
+  ASSERT_NE(panel.ScrollAreaNode->VerticalScrollBarNode, nullptr);
+  ASSERT_NE(panel.ScrollAreaNode->VerticalScrollThumbNode, nullptr);
+  EXPECT_EQ(panel.Children.size(), 2U);
+  EXPECT_EQ(panel.ContentHost(), panel.ScrollAreaNode->ContentNode);
+  EXPECT_EQ(panel.ScrollAreaNode->ContentNode->Parent,
+            panel.ScrollAreaNode->ViewportNode);
 
   auto content = std::make_unique<RectNode>();
   auto *contentObserver = content.get();
   panel.ContentHost()->AddChild(std::move(content));
-  ASSERT_EQ(panel.ContentNode->Children.size(), 1U);
-  EXPECT_EQ(panel.ContentNode->Children[0].get(), contentObserver);
+  ASSERT_EQ(panel.ScrollAreaNode->ContentNode->Children.size(), 1U);
+  EXPECT_EQ(panel.ScrollAreaNode->ContentNode->Children[0].get(),
+            contentObserver);
   EXPECT_EQ(panel.TitleNode->Children.size(), 0U);
 }
 
@@ -67,7 +70,7 @@ TEST(PanelNodeTest, ComposesIndependentBehaviors) {
   EXPECT_NE(dynamic_cast<IProperty *>(&panel), nullptr);
   EXPECT_NE(panel.GetBehavior<DragBehavior>(), nullptr);
   EXPECT_NE(panel.GetBehavior<ResizeBehavior>(), nullptr);
-  EXPECT_NE(panel.GetBehavior<ScrollBehavior>(), nullptr);
+  EXPECT_NE(panel.ScrollAreaNode->GetScrollBehavior(), nullptr);
   EXPECT_NE(panel.GetBehavior<DockBehavior>(), nullptr);
 }
 
@@ -85,12 +88,12 @@ TEST(PanelNodeTest, BehaviorConfigurationMaintainsLayoutInvariants) {
   // 行为 setter 必须同时更新 Yoga，确保配置与布局约束不会分离。
   EXPECT_FLOAT_EQ(YGNodeStyleGetMinWidth(panel.Node).value, 320.0f);
 
-  auto *scrollable = panel.GetBehavior<ScrollBehavior>();
+  auto *scrollable = panel.ScrollAreaNode->GetScrollBehavior();
   ScrollProperty scroll = scrollable->Properties;
   scroll.Enabled = false;
   scrollable->SetProperties(scroll);
   EXPECT_FALSE(scrollable->Properties.Enabled);
-  EXPECT_EQ(YGNodeStyleGetOverflow(panel.ScrollViewportNode->Node),
+  EXPECT_EQ(YGNodeStyleGetOverflow(panel.ScrollAreaNode->ViewportNode->Node),
             YGOverflowVisible);
 }
 
@@ -109,10 +112,11 @@ TEST(PanelNodeTest, ScrollsOverflowAndShowsVerticalThumb) {
   layout.Calculate(800.0f, 600.0f);
   layout.Calculate(800.0f, 600.0f);
 
-  auto *scroll = panel->GetBehavior<ScrollBehavior>();
+  auto *scroll = panel->ScrollAreaNode->GetScrollBehavior();
   ASSERT_GT(scroll->GetMaximumOffsetY(), 0.0f);
-  EXPECT_TRUE(panel->VerticalScrollBarNode->Visible);
-  const float originalItemY = panel->ContentNode->Children[1]->Top;
+  EXPECT_TRUE(panel->ScrollAreaNode->VerticalScrollBarNode->Visible);
+  const float originalItemY =
+      panel->ScrollAreaNode->ContentNode->Children[1]->Top;
   MouseWheelArgs wheel;
   wheel.X = 100;
   wheel.Y = 100;
@@ -120,16 +124,17 @@ TEST(PanelNodeTest, ScrollsOverflowAndShowsVerticalThumb) {
   EXPECT_NE(layout.OnMouseWheel(wheel), EventReply::Ignored);
   EXPECT_FLOAT_EQ(scroll->GetOffsetY(), scroll->Properties.WheelStep);
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_LT(panel->ContentNode->Children[1]->Top, originalItemY);
-  EXPECT_LT(panel->VerticalScrollThumbNode->Height,
-            panel->VerticalScrollBarNode->Height);
+  EXPECT_LT(panel->ScrollAreaNode->ContentNode->Children[1]->Top,
+            originalItemY);
+  EXPECT_LT(panel->ScrollAreaNode->VerticalScrollThumbNode->Height,
+            panel->ScrollAreaNode->VerticalScrollBarNode->Height);
 }
 
 TEST(PanelNodeTest, AppliesTitleAndTitleHeight) {
   PanelNode panel;
   EXPECT_TRUE(panel.SetProperty("Title", "Inspector"));
   EXPECT_TRUE(panel.SetProperty("TitleHeight", "40"));
-  EXPECT_EQ(panel.Title, "Inspector");
+  EXPECT_EQ(panel.TitleNode->Text, "Inspector");
 
   YGNodeStyleSetWidth(panel.Node, 300.0f);
   YGNodeStyleSetHeight(panel.Node, 200.0f);
@@ -232,7 +237,7 @@ TEST(PanelNodeTest, ExposesSeparatedDefaultBehaviorProperties) {
   PanelNode panel;
   auto *drag = panel.GetBehavior<DragBehavior>();
   auto *resize = panel.GetBehavior<ResizeBehavior>();
-  auto *scroll = panel.GetBehavior<ScrollBehavior>();
+  auto *scroll = panel.ScrollAreaNode->GetScrollBehavior();
   EXPECT_TRUE(drag->Properties.Enabled);
   EXPECT_EQ(drag->Properties.Region, DragRegion::TitleBar);
   EXPECT_TRUE(resize->Properties.Enabled);

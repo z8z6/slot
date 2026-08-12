@@ -9,7 +9,9 @@
 using namespace z8::ui;
 
 DrawNode::DrawNode(std::unique_ptr<UIObject> O) : UO(std::move(O)) {
-  assert (UO);
+  if (!UO)
+    throw std::invalid_argument("DrawNode requires a render object.");
+  HitTestVisible = true;
 }
 
 DrawNode::~DrawNode() {
@@ -21,7 +23,7 @@ DrawNode::~DrawNode() {
 bool DrawNode::SetProperty(const std::string &name,
                              const std::string &value) {
   if (name != "Color")
-    return BaseNode::SetProperty(name, value);
+    return BehaviorNode::SetProperty(name, value);
   DirectX::XMFLOAT4 color;
   if (!ParseUIColor(value, color))
     return false;

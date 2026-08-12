@@ -7,7 +7,9 @@
 #include "Object/UIObject/UIObject.h"
 #include "UI/Behavior/DockLayoutBehavior.h"
 #include "UI/Layout/BaseNode.h"
+#include "UI/Layout/BehaviorNode.h"
 #include "UI/Layout/DrawNode.h"
+#include "UI/Layout/TextNode.h"
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 
@@ -17,9 +19,9 @@
 using namespace z8;
 using namespace z8::ui;
 
-Layout::Layout(): Root(std::make_unique<BaseNode>()) {
+Layout::Layout(Application *): Root(std::make_unique<BehaviorNode>()) {
   Root->Key = "Root";
-  Root->AddBehavior<DockLayoutBehavior>();
+  static_cast<BehaviorNode *>(Root.get())->AddBehavior<DockLayoutBehavior>();
   RebuildIndex();
 }
 
@@ -27,8 +29,9 @@ Layout::~Layout() = default;
 
 void Layout::SetRoot(std::unique_ptr<BaseNode> root) {
   Root = std::move(root);
-  if (Root && !Root->GetBehavior<DockLayoutBehavior>())
-    Root->AddBehavior<DockLayoutBehavior>();
+  auto *behaviorRoot = dynamic_cast<BehaviorNode *>(Root.get());
+  if (behaviorRoot && !behaviorRoot->GetBehavior<DockLayoutBehavior>())
+    behaviorRoot->AddBehavior<DockLayoutBehavior>();
   RebuildIndex();
 }
 
@@ -39,6 +42,8 @@ void Layout::IndexTree(BaseNode *node) {
   // RTTI 只在拓扑变化时使用；布局热路径直接调用窄虚接口。
   if (auto *visual = dynamic_cast<DrawNode *>(node))
     Visuals.push_back(visual);
+  if (auto *text = dynamic_cast<TextNode *>(node))
+    Texts.push_back(text);
   for (const auto &child : node->Children)
     IndexTree(child.get());
 }
@@ -48,7 +53,8 @@ void Layout::CancelTreeCaptures(BaseNode *node) {
     return;
   // 从当前仍存活的树遍历，而不是解引用旧索引中的捕获指针；声明式协调可能
   // 已经删除旧 target，但被保留节点上的状态机仍需要收到 capture-lost。
-  node->CancelPointerCapture();
+  if (auto *behavior = dynamic_cast<BehaviorNode *>(node))
+    behavior->CancelPointerCapture();
   for (const auto &child : node->Children)
     CancelTreeCaptures(child.get());
 }
@@ -60,17 +66,25 @@ void Layout::RebuildIndex() {
   CapturedHandler = nullptr;
   Nodes.clear();
   Visuals.clear();
+  Texts.clear();
   IndexTree(Root.get());
   Dirty = true;
 }
 
-// 返回命中的最上层 VisualNode
+BehaviorNode *Layout::FindBehaviorNode(BaseNode *node) const {
+  for (; node; node = node->Parent)
+    if (auto *behavior = dynamic_cast<BehaviorNode *>(node))
+      return behavior;
+  return nullptr;
+}
+
+// 返回命中的最上层交互节点；纯布局和文字节点不会意外吞掉场景输入。
 BaseNode *Layout::HitAt(float x, float y) const {
-  // Visuals 按树的前序遍历，逆序就是最上层优先。
-  for (auto I = Visuals.rbegin(); I != Visuals.rend(); ++I) {
-    auto *visual = *I;
-    if (visual->Contains(x, y))
-      return visual;
+  // Nodes 按树的前序遍历，逆序对应画家顺序的最上层优先。
+  for (auto iterator = Nodes.rbegin(); iterator != Nodes.rend(); ++iterator) {
+    auto *behavior = dynamic_cast<BehaviorNode *>(*iterator);
+    if (behavior && behavior->HitTestVisible && behavior->Contains(x, y))
+      return behavior;
   }
   return nullptr;
 }
@@ -85,7 +99,10 @@ z8::MouseCursor Layout::GetMouseCursor(MouseMovArgs args) const {
                             static_cast<float>(args.Y));
        node;
        node = node->Parent) {
-    const auto cursor = node->QueryMouseCursor(args);
+    auto *behavior = dynamic_cast<BehaviorNode *>(node);
+    if (!behavior)
+      continue;
+    const auto cursor = behavior->QueryMouseCursor(args);
     if (cursor != MouseCursor::Arrow)
       return cursor;
   }
@@ -100,9 +117,12 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
   CapturedTarget = target;
   // 输入只属于节点和 Behavior；UIObject 是渲染数据，不再接收重复事件。
   for (auto *node = target; node; node = node->Parent) {
-    const auto reply = node->DispatchMouseDown(args);
+    auto *behavior = dynamic_cast<BehaviorNode *>(node);
+    if (!behavior)
+      continue;
+    const auto reply = behavior->DispatchMouseDown(args);
     if (reply == EventReply::Capture)
-      CapturedHandler = node;
+      CapturedHandler = behavior;
     if (reply != EventReply::Ignored)
       break;
   }
@@ -116,7 +136,8 @@ EventReply Layout::OnMouseMove(MouseMovArgs args) {
   if (!target)
     return EventReply::Ignored;
   for (auto *node = target; node; node = node->Parent)
-    if (node->DispatchMouseMove(args))
+    if (auto *behavior = dynamic_cast<BehaviorNode *>(node);
+        behavior && behavior->DispatchMouseMove(args))
       break;
   return EventReply::Handled;
 }
@@ -145,7 +166,8 @@ EventReply Layout::OnMouseWheel(MouseWheelArgs args) {
   if (!target)
     return EventReply::Ignored;
   for (auto *node = target; node; node = node->Parent)
-    if (node->DispatchMouseWheel(args))
+    if (auto *behavior = dynamic_cast<BehaviorNode *>(node);
+        behavior && behavior->DispatchMouseWheel(args))
       return EventReply::Handled;
   // 与其他指针事件一致，命中 UI 后不允许滚轮穿透到 3D 场景。
   return EventReply::Handled;
@@ -185,7 +207,8 @@ std::vector<GameObject *> Layout::GetUO() const {
 
 // 每帧计算布局的入口函数
 void Layout::Calculate(float w, float h) {
-  Root->DispatchBeforeLayout(w, h);
+  if (auto *root = dynamic_cast<BehaviorNode *>(Root.get()))
+    root->DispatchBeforeLayout(w, h);
   YGNodeCalculateLayout(Root->Node, w, h, YGDirectionLTR);
   UpdateTree(Root->Node, 0, 0, {0.0f, 0.0f, w, h});
 }
@@ -229,5 +252,8 @@ void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY,
   }
 
   // 6. 事件通知
-  N->DispatchLayoutUpdated();
+  if (auto *behavior = dynamic_cast<BehaviorNode *>(N))
+    behavior->DispatchLayoutUpdated();
+  else
+    N->DispatchLayoutUpdated();
 }

@@ -13,7 +13,9 @@ z8::DX12Command::DX12Command(DX12Render* R) : DX12Common(R)
 
 z8::DX12Command::~DX12Command()
 {
-  Synchronize();
+  // 构造或初始化中途失败时队列/围栏可能为空；析构不得再次制造异常。
+  if (Queue && Fence)
+    Synchronize();
 }
 
 void z8::DX12Command::Init()
