@@ -16,35 +16,23 @@ class BehaviorNode;
  */
 class IBehavior : public IProperty, public EventTarget {
 public:
+  BehaviorNode *Owner = nullptr;
+  int Priority = 0;
+
   explicit IBehavior(int priority = 0) : Priority(priority) {}
   ~IBehavior() override = default;
-
   IBehavior(const IBehavior &) = delete;
   IBehavior &operator=(const IBehavior &) = delete;
 
-  BehaviorNode *GetOwner() const { return Owner; }
-  int GetPriority() const { return Priority; }
-
-  /** 布局钩子是 UI 扩展；输入、光标与捕获钩子复用 EventTarget 契约。 */
-  virtual void OnLayoutUpdated() {}
   // Yoga 计算前更新容器约束；仅布局类 Behavior 应覆写该阶段。
   virtual void OnBeforeLayout(float, float) {}
+  virtual void OnAfterLayout() {}
+
   // 观察同一宿主上的有效拖拽生命周期，用于停靠等正交策略。
   virtual void OnDragStarted(MouseMovArgs) {}
   virtual void OnDragCompleted(MouseMovArgs) {}
-  // 行为属性与节点属性共享字符串入口，返回 false 继续查询下一能力。
-  bool SetProperty(const std::string &, const std::string &) override {
-    return false;
-  }
-
-protected:
   virtual void OnAttached() {}
   virtual void OnDetached() {}
-
-private:
-  friend class BehaviorNode;
-  BehaviorNode *Owner = nullptr;
-  int Priority = 0;
 };
 
 } // namespace z8::ui

@@ -7,7 +7,7 @@
 
 namespace z8::ui {
 TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
-  Layout layout(nullptr);
+  Layout layout;
   auto child = std::make_unique<RectNode>();
   child->Key = "content";
   layout.Root->AddChild(std::move(child));
@@ -24,7 +24,7 @@ TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
 }
 
 TEST(LayoutTest, CalculatesWithoutApplicationOrWindow) {
-  Layout layout(nullptr);
+  Layout layout;
   layout.Calculate(800.0f, 600.0f);
   EXPECT_FLOAT_EQ(YGNodeLayoutGetWidth(layout.Root->Node), 800.0f);
   EXPECT_FLOAT_EQ(YGNodeLayoutGetHeight(layout.Root->Node), 600.0f);

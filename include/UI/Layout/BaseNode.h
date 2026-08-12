@@ -25,7 +25,11 @@ namespace z8::ui {
 using ClipRect = DirectX::XMFLOAT4;
 class BaseNode : public virtual IProperty {
 public:
-  // 布局结果使用窗口客户区绝对坐标，渲染与命中测试共享这些字段。
+  std::string Key;
+  GSL_OWNER YGNodeRef Node;
+  BaseNode *Parent = nullptr;
+  std::vector<std::unique_ptr<BaseNode>> Children;
+
   float Left = 0.0f;
   float Top = 0.0f;
   float Width = 0.0f;
@@ -34,18 +38,11 @@ public:
   float ChildOffsetY = 0.0f;
   bool ClipChildren = false;
   bool Visible = true;
-  ClipRect VisibleClip = {-100000.0f, -100000.0f, 100000.0f,
-                                   100000.0f};
-  GSL_OWNER YGNodeRef Node;
-  BaseNode *Parent = nullptr;
-  std::vector<std::unique_ptr<BaseNode>> Children;
-
-  // Key 是声明式 UI 在多次构建之间复用控件的稳定身份。
-  std::string Key;
+  ClipRect VisibleClip = {-100000.0f, -100000.0f, 100000.0f, 100000.0f};
 
 public:
   BaseNode();
-  virtual ~BaseNode();
+  ~BaseNode() override;
   BaseNode(const BaseNode &) = delete;
   BaseNode &operator=(const BaseNode &) = delete;
 
@@ -57,9 +54,8 @@ public:
   BaseNode *AddChild(std::unique_ptr<BaseNode> child);
   void RemoveChildrenFrom(size_t first);
 
-  /** 子树完成布局后调用，复合控件在此计算滚动范围等派生几何。 */
-  virtual void OnLayoutUpdated() {}
+  virtual void OnAfterLayout() {}
   virtual void Synchronize() {}
-  void DispatchLayoutUpdated();
+  virtual void DispatchAfterLayout();
 };
 } // namespace z8::ui

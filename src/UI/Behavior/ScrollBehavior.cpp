@@ -147,7 +147,7 @@ EventReply ScrollBehavior::OnMouseWheel(MouseWheelArgs args) {
   return EventReply::Handled;
 }
 
-void ScrollBehavior::OnLayoutUpdated() { UpdateRange(); }
+void ScrollBehavior::OnAfterLayout() { UpdateRange(); }
 
 bool ScrollBehavior::SetProperty(const std::string &name,
                                  const std::string &value) {

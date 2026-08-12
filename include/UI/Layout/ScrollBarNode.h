@@ -29,7 +29,7 @@ public:
   EventReply OnMouseDrag(MouseMovArgs args) override;
   EventReply OnMouseUp(MouseMovArgs args) override;
   void OnPointerCaptureLost() override { DraggingThumb = false; }
-  void OnLayoutUpdated() override;
+  void OnAfterLayout() override;
 
   /** 更新 viewport/content 比例，并据此计算滑块长度和最大值。 */
   void SetMetrics(float viewportExtent, float contentExtent);

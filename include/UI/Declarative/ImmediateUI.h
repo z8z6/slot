@@ -51,6 +51,8 @@ private:
   std::string Error;
 
   BaseNode* Acquire(const std::string& type, const std::string& key);
+  /** 恢复控件构造时的主题样式，防止复用节点携带上一帧的声明值。 */
+  static void ResetStyle(BaseNode &node, bool keepsInteractiveGeometry);
   static void ApplyStyle(BaseNode& node, const UIStyle& style);
   void CloseScope();
 };

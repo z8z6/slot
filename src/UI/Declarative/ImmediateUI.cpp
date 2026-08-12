@@ -5,6 +5,7 @@
 #include "UI/Layout/DrawNode.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Style/Theme.h"
 #include "yoga/YGNodeStyle.h"
 
 using namespace z8::ui;
@@ -54,12 +55,37 @@ BaseNode *ImmediateUI::Acquire(const std::string &type,
   return node;
 }
 
+void ImmediateUI::ResetStyle(BaseNode &node,
+                             bool keepsInteractiveGeometry) {
+  const auto *panel = dynamic_cast<PanelNode *>(&node);
+  const RectStyle &style = panel ? static_cast<const RectStyle &>(
+                                      Theme::Default().Panel)
+                                 : Theme::Default().Rect;
+
+  // Immediate UI 会复用稳定 key 对应的节点，因此省略字段表示恢复控件默认值，
+  // 而不是继承上一帧的声明。交互后的 Panel 几何是运行时状态，需单独保留。
+  if (!keepsInteractiveGeometry) {
+    YGNodeStyleSetWidthAuto(node.Node);
+    YGNodeStyleSetHeightAuto(node.Node);
+    YGNodeStyleSetMargin(node.Node, YGEdgeAll, style.Margin);
+  }
+  YGNodeStyleSetMinWidth(node.Node, style.MinWidth);
+  YGNodeStyleSetMinHeight(node.Node, style.MinHeight);
+  YGNodeStyleSetFlexGrow(node.Node, 1.0f);
+  YGNodeStyleSetFlexShrink(node.Node, 1.0f);
+  YGNodeStyleSetPadding(node.Node, YGEdgeAll, style.Padding);
+  YGNodeStyleSetFlexDirection(node.Node, YGFlexDirectionColumn);
+  if (auto *visual = dynamic_cast<DrawNode *>(&node))
+    visual->SetColor(style.Color);
+}
+
 void ImmediateUI::ApplyStyle(BaseNode &node, const UIStyle &style) {
   auto *panel = dynamic_cast<PanelNode *>(&node);
   // Immediate UI 会逐帧重放初始样式；交互后的 Panel 几何必须优先，否则用户
   // 刚完成的拖动或缩放会在下一次声明时被 Width/Height 覆盖。
   const bool keepsInteractiveGeometry =
       panel && panel->HasInteractiveGeometry();
+  ResetStyle(node, keepsInteractiveGeometry);
   if (style.Width && !keepsInteractiveGeometry)
     YGNodeStyleSetWidth(node.Node, *style.Width);
   if (style.Height && !keepsInteractiveGeometry)

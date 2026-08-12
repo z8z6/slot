@@ -25,7 +25,7 @@ MouseMovArgs PointerArgs(int x, int y, int deltaX = 0, int deltaY = 0) {
 } // namespace
 
 TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
-  Layout layout(nullptr);
+  Layout layout;
   auto rect = std::make_unique<RectNode>();
   auto *observer = rect.get();
   auto *drag = rect->AddBehavior<DragBehavior>();
@@ -67,7 +67,7 @@ TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
 }
 
 TEST(BehaviorCompositionTest, CancelsGestureWhenTopologyChanges) {
-  Layout layout(nullptr);
+  Layout layout;
   auto rect = std::make_unique<RectNode>();
   auto *observer = rect.get();
   auto *drag = rect->AddBehavior<DragBehavior>();

@@ -38,14 +38,14 @@ void ResizeBehavior::SetProperties(const ResizeProperty &properties) {
 void ResizeBehavior::OnAttached() { ApplyMinimumSize(); }
 
 void ResizeBehavior::ApplyMinimumSize() const {
-  if (!GetOwner())
+  if (!Owner)
     return;
-  YGNodeStyleSetMinWidth(GetOwner()->Node, Properties.MinWidth);
-  YGNodeStyleSetMinHeight(GetOwner()->Node, Properties.MinHeight);
+  YGNodeStyleSetMinWidth(Owner->Node, Properties.MinWidth);
+  YGNodeStyleSetMinHeight(Owner->Node, Properties.MinHeight);
 }
 
 ResizeRegion ResizeBehavior::HitTest(MouseMovArgs args) const {
-  const auto *owner = GetOwner();
+  const auto *owner = Owner;
   if (!owner || !Properties.Enabled ||
       !owner->Contains(static_cast<float>(args.X),
                        static_cast<float>(args.Y)))
@@ -107,7 +107,7 @@ EventReply ResizeBehavior::OnMouseDown(MouseMovArgs args) {
   if (ActiveRegion == ResizeRegion::None)
     return EventReply::Ignored;
 
-  auto *owner = GetOwner();
+  auto *owner = Owner;
   CurrentLeft = YGNodeLayoutGetLeft(owner->Node);
   CurrentTop = YGNodeLayoutGetTop(owner->Node);
   CurrentWidth = owner->Width;
@@ -116,7 +116,7 @@ EventReply ResizeBehavior::OnMouseDown(MouseMovArgs args) {
 }
 
 EventReply ResizeBehavior::OnMouseDrag(MouseMovArgs args) {
-  auto *owner = GetOwner();
+  auto *owner = Owner;
   if (!owner || !IsResizing())
     return EventReply::Ignored;
   if (args.DeltaX == 0 && args.DeltaY == 0)

@@ -18,6 +18,7 @@ class PanelNode : public RectNode {
 public:
   TextNode *TitleNode;
   ScrollNode *ScrollAreaNode;
+
   PanelNode();
   BaseNode *ContentHost() override;
   const char *TypeName() const override { return "Panel"; }

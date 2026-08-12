@@ -1,6 +1,7 @@
 #include "UI/Layout/TextNode.h"
 
-#include "UI/Style/UITheme.h"
+#include "UI/Style/Theme.h"
+#include "Util/Color.h"
 #include "yoga/YGNodeStyle.h"
 
 #include <cstdlib>
@@ -8,10 +9,13 @@
 using namespace z8::ui;
 
 TextNode::TextNode() {
+  const auto &style = Theme::Default().Text;
+  Color = style.Color;
+  FontSize = style.FontSize;
   // 文字自身不应像普通容器一样填满父级；默认单行高度由字号留出抗锯齿边缘。
   YGNodeStyleSetFlexGrow(Node, 0.0f);
   YGNodeStyleSetFlexShrink(Node, 1.0f);
-  YGNodeStyleSetMinHeight(Node, FontSize * 1.25f);
+  YGNodeStyleSetMinHeight(Node, style.LineHeight);
 }
 
 TextNode::TextNode(std::string text) : TextNode() { Text = std::move(text); }

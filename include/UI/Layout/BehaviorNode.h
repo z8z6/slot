@@ -12,12 +12,10 @@
 namespace z8::ui {
 
 /**
- * 选择加入交互能力的节点层。
- *
- * 纯布局 BaseNode 不承担事件 ABI、行为容器和捕获状态；需要组合交互策略的
- * 控件显式继承本类，从类型上标出 Layout 可以路由到的节点。
+ * 选择加入交互能力的节点层
  */
-class BehaviorNode : public BaseNode, public EventTarget {
+class BehaviorNode : public BaseNode,
+                     public EventTarget {
 public:
   // 非视觉交互容器必须显式开启；根 DockSpace 不应吞掉整个窗口的场景输入。
   bool HitTestVisible = false;
@@ -27,17 +25,16 @@ public:
   ~BehaviorNode() override;
   bool SetProperty(const std::string &name, const std::string &value) override;
 
-
-  EventReply DispatchMouseDown(MouseMovArgs args);
-  bool DispatchMouseMove(MouseMovArgs args);
-  bool DispatchMouseDrag(MouseMovArgs args);
-  bool DispatchMouseUp(MouseMovArgs args);
+  EventReply DispatchMouseDown(const MouseMovArgs &args);
+  bool DispatchMouseMove(const MouseMovArgs &args);
+  bool DispatchMouseDrag(const MouseMovArgs &args);
+  bool DispatchMouseUp(const MouseMovArgs &args);
   bool DispatchMouseWheel(MouseWheelArgs args);
-  MouseCursor QueryMouseCursor(MouseMovArgs args) const;
-  void DispatchLayoutUpdated();
-  void DispatchBeforeLayout(float width, float height);
-  void DispatchDragStarted(MouseMovArgs args);
-  void DispatchDragCompleted(MouseMovArgs args);
+  MouseCursor QueryMouseCursor(const MouseMovArgs &args) const;
+  void DispatchAfterLayout() override;
+  void DispatchBeforeLayout(float width, float height) const;
+  void DispatchDragStarted(const MouseMovArgs &args) const;
+  void DispatchDragCompleted(const MouseMovArgs &args) const;
   void CancelPointerCapture();
 
   IBehavior *AddBehavior(std::unique_ptr<IBehavior> behavior);

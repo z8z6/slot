@@ -25,7 +25,7 @@ bool ParseBoolean(const std::string &value, bool &result) {
 } // namespace
 
 EventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
-  auto *owner = GetOwner();
+  auto *owner = Owner;
   if (!owner || !Properties.Enabled || args.Button != MouseButton::Left ||
       !owner->Contains(static_cast<float>(args.X), static_cast<float>(args.Y)))
     return EventReply::Ignored;
@@ -49,7 +49,7 @@ EventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
 }
 
 EventReply DragBehavior::OnMouseDrag(MouseMovArgs args) {
-  auto *owner = GetOwner();
+  auto *owner = Owner;
   if (!owner || !Dragging)
     return EventReply::Ignored;
   if (args.DeltaX == 0 && args.DeltaY == 0)
@@ -83,8 +83,8 @@ EventReply DragBehavior::OnMouseDrag(MouseMovArgs args) {
 
 EventReply DragBehavior::OnMouseUp(MouseMovArgs args) {
   const bool handled = Dragging;
-  if (Dragging && GestureMoved && GetOwner())
-    GetOwner()->DispatchDragCompleted(args);
+  if (Dragging && GestureMoved && Owner)
+    Owner->DispatchDragCompleted(args);
   Dragging = false;
   GestureMoved = false;
   return handled ? EventReply::Handled : EventReply::Ignored;

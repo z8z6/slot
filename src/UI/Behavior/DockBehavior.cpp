@@ -72,7 +72,7 @@ void DockBehavior::OnDragStarted(MouseMovArgs) {
 void DockBehavior::OnDragCompleted(MouseMovArgs args) {
   if (!Properties.Enabled)
     return;
-  const auto *owner = GetOwner();
+  const auto *owner = Owner;
   const auto *parent = owner ? owner->Parent : nullptr;
   if (!parent)
     return;

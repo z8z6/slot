@@ -19,7 +19,7 @@
 using namespace z8;
 using namespace z8::ui;
 
-Layout::Layout(Application *): Root(std::make_unique<BehaviorNode>()) {
+Layout::Layout(): Root(std::make_unique<BehaviorNode>()) {
   Root->Key = "Root";
   static_cast<BehaviorNode *>(Root.get())->AddBehavior<DockLayoutBehavior>();
   RebuildIndex();
@@ -252,8 +252,5 @@ void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY,
   }
 
   // 6. 事件通知
-  if (auto *behavior = dynamic_cast<BehaviorNode *>(N))
-    behavior->DispatchLayoutUpdated();
-  else
-    N->DispatchLayoutUpdated();
+  N->DispatchAfterLayout();
 }

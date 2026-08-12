@@ -43,7 +43,7 @@ public:
 
   /** 滚轮、布局和属性变化最终都汇入同一范围与视觉同步流程。 */
   EventReply OnMouseWheel(MouseWheelArgs args) override;
-  void OnLayoutUpdated() override;
+  void OnAfterLayout() override;
   bool SetProperty(const std::string &name, const std::string &value) override;
 
 protected:

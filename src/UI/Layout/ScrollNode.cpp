@@ -1,12 +1,13 @@
 #include "UI/Layout/ScrollNode.h"
 
-#include "UI/Style/UITheme.h"
+#include "UI/Style/Theme.h"
 #include "yoga/YGNodeStyle.h"
 
 using namespace z8::ui;
 
 ScrollNode::ScrollNode() {
-  const auto &style = UITheme::Modern().Panel;
+  const auto &panelStyle = Theme::Default().Panel;
+  const auto &scrollBarStyle = Theme::Default().ScrollBar;
   // ScrollNode 没有自己的矩形视觉，但空白 viewport 仍要接收滚轮输入。
   HitTestVisible = true;
 
@@ -22,7 +23,8 @@ ScrollNode::ScrollNode() {
   YGNodeStyleSetFlexGrow(ContentNode->Node, 0.0f);
   YGNodeStyleSetFlexShrink(ContentNode->Node, 0.0f);
   YGNodeStyleSetWidthPercent(ContentNode->Node, 100.0f);
-  YGNodeStyleSetPadding(ContentNode->Node, YGEdgeAll, style.ContentPadding);
+  YGNodeStyleSetPadding(ContentNode->Node, YGEdgeAll,
+                        panelStyle.ContentPadding);
   ViewportNode->AddChild(std::move(content));
   BaseNode::AddChild(std::move(viewport));
 
@@ -33,9 +35,10 @@ ScrollNode::ScrollNode() {
   VerticalScrollBarNode->Key = "__vertical_scrollbar";
   YGNodeStyleSetPositionType(VerticalScrollBarNode->Node,
                              YGPositionTypeAbsolute);
-  YGNodeStyleSetWidth(VerticalScrollBarNode->Node, style.ScrollBarThickness);
+  YGNodeStyleSetWidth(VerticalScrollBarNode->Node,
+                      scrollBarStyle.ScrollBarThickness);
   BaseNode::AddChild(std::move(scrollBar));
-  SetVerticalBarInsets(2.0f, style.ResizeBorder + 2.0f, 2.0f);
+  SetVerticalBarInsets(2.0f, panelStyle.ResizeBorder + 2.0f, 2.0f);
 
   AddBehavior<ScrollBehavior>()->BindVertical(
       ViewportNode, ContentNode, VerticalScrollBarNode);

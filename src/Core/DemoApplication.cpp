@@ -12,10 +12,10 @@
 #include "Target/Render.h"
 #include "UI/Declarative/ImmediateUI.h"
 #include "UI/Layout/RectNode.h"
+#include "UI/Style/Theme.h"
 
 using namespace z8;
 using namespace z8::ui;
-using namespace DirectX;
 
 void DemoApplication::Init() {
   auto camera = std::make_unique<FirstPersonCamera>();
@@ -43,20 +43,21 @@ void DemoApplication::PrepareScene() {
   // ImGui 风格声明会生成并保留控件树；稳定 key 使后续重复声明能够复用控件。
   ImmediateUI ui(Layout);
   ui.BeginFrame();
+  const auto &demoStyle = Theme::Default().Demo;
   UIStyle panelStyle;
-  panelStyle.Width = 360.0f;
-  panelStyle.Height = 320.0f;
+  panelStyle.Width = demoStyle.PanelWidth;
+  panelStyle.Height = demoStyle.PanelHeight;
   if (ui.BeginPanel("scene-panel", "Scrollable Scene Objects", panelStyle)) {
     UIStyle itemStyle;
-    itemStyle.Height = 48.0f;
+    itemStyle.Height = demoStyle.RowHeight;
     itemStyle.FlexGrow = 0.0f;
     itemStyle.FlexShrink = 0.0f;
-    itemStyle.Margin = 4.0f;
+    itemStyle.Margin = demoStyle.RowMargin;
     for (int i = 0; i < 14; ++i) {
-      // 交替色块让滚动位移和视口裁剪在默认 Demo 中无需文字即可辨认。
-      itemStyle.Color = i % 2 == 0
-          ? XMFLOAT4{0.20f, 0.34f, 0.52f, 1.0f}
-          : XMFLOAT4{0.16f, 0.24f, 0.36f, 1.0f};
+      // 第一个条目模拟 UE 编辑器的非焦点选择，其余使用主题定义的交替行色。
+      itemStyle.Color = i == 0 ? demoStyle.SelectedRowColor
+                        : i % 2 == 0 ? demoStyle.RowColor
+                                     : demoStyle.AlternateRowColor;
       ui.Rect("scene-item-" + std::to_string(i), itemStyle);
     }
     ui.EndPanel();

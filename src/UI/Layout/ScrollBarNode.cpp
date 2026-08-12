@@ -1,6 +1,6 @@
 #include "UI/Layout/ScrollBarNode.h"
 
-#include "UI/Style/UITheme.h"
+#include "UI/Style/Theme.h"
 #include "yoga/YGNodeStyle.h"
 
 #include <algorithm>
@@ -10,7 +10,7 @@ using z8::EventReply;
 
 ScrollBarNode::ScrollBarNode(ScrollBarOrientation orientation)
     : ThumbNode(nullptr), Orientation(orientation) {
-  const auto &style = UITheme::Modern().Panel;
+  const auto &style = Theme::Default().ScrollBar;
   SetColor(style.ScrollBarColor);
   YGNodeStyleSetMargin(Node, YGEdgeAll, 0.0f);
   YGNodeStyleSetMinWidth(Node, 0.0f);
@@ -94,8 +94,8 @@ EventReply ScrollBarNode::OnMouseUp(MouseMovArgs) {
   return handled ? EventReply::Handled : EventReply::Ignored;
 }
 
-void ScrollBarNode::OnLayoutUpdated() {
-  const auto &style = UITheme::Modern().Panel;
+void ScrollBarNode::OnAfterLayout() {
+  const auto &style = Theme::Default().ScrollBar;
   const float track =
       Orientation == ScrollBarOrientation::Vertical ? Height : Width;
   // 最小滑块保证可操作性，但极小轨道仍必须夹紧，避免滑块越出控件裁剪区。

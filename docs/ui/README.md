@@ -168,9 +168,9 @@ Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再�
 
 ## 默认主题
 
-`UITheme::Modern()` 集中保存各类控件的默认盒模型和颜色，控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。当前现代深色主题采用低饱和蓝灰色：Rect 默认外边距 4、最小尺寸 24×24；Panel 默认外边距 8、最小尺寸 240×160、标题栏高度 36、内容内边距 10，并统一滚动轨道、滑块、厚度和最小滑块长度。Panel 的背景、标题栏和普通 Rect 使用分层颜色，内部复合节点会清除普通 Rect 外边距以保持几何贴合。
+`Color` 集中定义 UE 编辑器风格的深灰层级、蓝色强调、文本状态和反馈色；`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、ScrollBar、Panel 与 List 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Modern()` 是默认主题的兼容别名。Demo 只读取 Panel 和 List 默认样式中的尺寸、间距、交替行和非焦点选中色，不再散落颜色常量。
 
-新增控件应先在 `UITheme` 中定义该控件的 `UIControlTheme`，再在构造函数统一应用 `Color`、`Margin`、`Padding` 和最小尺寸，避免重新引入散落的魔法值。实例属性始终拥有更高优先级。
+新增控件应先在 `Theme` 中定义对应的样式结构，再在构造函数统一应用 `Color`、`Margin`、`Padding` 和最小尺寸，避免重新引入散落的魔法值。实例属性始终拥有更高优先级。Immediate UI 的 `Style` 参数可以省略；稳定节点会在每帧先恢复主题默认值，再应用本帧显式字段，避免继承上一帧已经移除的覆盖。
 
 ## 布局和渲染同步
 
@@ -203,7 +203,7 @@ ctest --test-dir cmake-build-debug --output-on-failure
 - `include/UI/Layout/ScrollBarNode.h`、`src/UI/Layout/ScrollBarNode.cpp`
 - `include/UI/Behavior`、`src/UI/Behavior`
 - `include/UI/Property/IProperty.h`
-- `include/UI/Style/UITheme.h`
+- `include/UI/Style/Theme.h`
 - `src/UI/Layout/Layout.cpp`、`LayoutApplication.cpp`
 - `src/Target/DirectX/DX12Render.cpp`、`DX12RenderBatch.cpp`
 - `tests/UI/Controls`、`tests/UI/Layout`、`tests/UI/Declarative`

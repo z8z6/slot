@@ -26,7 +26,7 @@ void DockLayoutBehavior::ApplyGeometry(BaseNode *node, float left, float top,
 }
 
 void DockLayoutBehavior::OnBeforeLayout(float width, float height) {
-  auto *owner = GetOwner();
+  auto *owner = Owner;
   if (!owner)
     return;
 

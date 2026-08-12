@@ -82,7 +82,7 @@ if(SLOT_BUILD_TESTS)
             src/UI/Layout/DrawNode.cpp
             src/UI/Layout/ScrollNode.cpp
             src/UI/Layout/TextNode.cpp
-            src/UI/Style/UITheme.cpp
+            src/UI/Style/Theme.cpp
             src/Material/Material.cpp
             src/Material/MetalMaterial.cpp
             src/Light/Light.cpp
@@ -106,6 +106,7 @@ if(SLOT_BUILD_TESTS)
             src/Resource/ResourceManager.cpp
             src/Core/Scene.cpp
             src/Target/DirectX/DX12Shader.cpp
+            src/Util/Color.cpp
             src/Util/MeshGenerator.cpp
             "${GENERATED_SHADER_REGISTRY}")
     target_include_directories(slot_ui_tests PRIVATE include third)

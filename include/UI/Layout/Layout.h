@@ -36,7 +36,7 @@ public:
   BaseNode *CapturedTarget = nullptr;
   BehaviorNode *CapturedHandler = nullptr;
 
-  explicit Layout(Application *application = nullptr);
+  explicit Layout();
   ~Layout() override;
 
   void RebuildIndex();

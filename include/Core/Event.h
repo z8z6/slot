@@ -10,7 +10,11 @@ namespace z8 {
  * Capture 除了阻止继续路由，还要求后续拖动与抬起回到同一目标；把该语义放在
  * Core 层后，场景 Object、UI 节点与可组合 Behavior 可以共享同一事件契约。
  */
-enum class EventReply { Ignored, Handled, Capture };
+enum class EventReply {
+  Ignored,  // 未处理
+  Handled,  // 已处理
+  Capture   // 捕获
+};
 
 /** 鼠标按键；None 用于不由单一按键触发的移动事件。 */
 enum class MouseButton { None, Left, Middle, Right, X1, X2 };
@@ -64,41 +68,28 @@ struct KeyArgs {
 
 /**
  * 场景对象与 UI 节点共享的输入事件目标。
- *
- * 该类型只描述平台输入，不包含命中测试、冒泡或捕获存储；这些策略分别由场景
- * 和 Layout 路由器决定
  */
 class EventTarget {
 public:
   virtual ~EventTarget() = default;
-
-  /** 指针按下入口；Capture 表示后续拖动与释放必须返回当前目标。 */
   virtual EventReply OnMouseDown(MouseMovArgs) {
     return EventReply::Ignored;
   }
-  /** 无捕获移动入口，用于悬停反馈或场景观察控制。 */
   virtual EventReply OnMouseMove(MouseMovArgs) {
     return EventReply::Ignored;
   }
-  /** 捕获期间的移动入口，位移相对上一条窗口指针消息。 */
   virtual EventReply OnMouseDrag(MouseMovArgs) {
     return EventReply::Ignored;
   }
-  /** 指针释放入口，目标应在此结束当前手势状态。 */
   virtual EventReply OnMouseUp(MouseMovArgs) { return EventReply::Ignored; }
-  /** 滚轮入口；坐标已由平台层转换到窗口客户区。 */
   virtual EventReply OnMouseWheel(MouseWheelArgs) {
     return EventReply::Ignored;
   }
-  /** 键盘入口默认不消费，使路由器可以继续分发。 */
   virtual EventReply OnKeyDown(KeyArgs) { return EventReply::Ignored; }
   virtual EventReply OnKeyUp(KeyArgs) { return EventReply::Ignored; }
-
-  /** 查询目标在指定客户区位置期望显示的系统指针形状。 */
   virtual MouseCursor GetMouseCursor(MouseMovArgs) const {
     return MouseCursor::Arrow;
   }
-  /** 路由器取消独占手势时通知目标恢复空闲状态。 */
   virtual void OnPointerCaptureLost() {}
 };
 

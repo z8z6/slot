@@ -6,7 +6,7 @@
 #include "DrawNode.h"
 
 namespace z8::ui {
-/** 使用矩形网格绘制的基础视觉节点。 */
+
 class RectNode : public DrawNode {
 public:
   RectNode();

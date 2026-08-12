@@ -1,7 +1,8 @@
 #include "UI/Layout/DrawNode.h"
 
 #include "Object/UIObject/UIObject.h"
-#include "UI/Style/UITheme.h"
+#include "UI/Style/Theme.h"
+#include "Util/Color.h"
 
 #include <stdexcept>
 #include <utility>
@@ -9,6 +10,8 @@
 using namespace z8::ui;
 
 DrawNode::DrawNode(std::unique_ptr<UIObject> O) : UO(std::move(O)) {
+  // 空渲染对象属于可诊断的构造错误，不能用 assert 直接终止宿主进程；
+  // 抛出异常也让声明式 UI 能在边界处补充节点来源等上下文。
   if (!UO)
     throw std::invalid_argument("DrawNode requires a render object.");
   HitTestVisible = true;

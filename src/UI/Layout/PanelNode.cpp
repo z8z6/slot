@@ -4,7 +4,8 @@
 
 #include "UI/Layout/PanelNode.h"
 
-#include "UI/Style/UITheme.h"
+#include "UI/Style/Theme.h"
+#include "Util/Color.h"
 #include "yoga/YGNodeStyle.h"
 
 #include <cstdlib>
@@ -13,14 +14,14 @@ using namespace z8::ui;
 
 PanelNode::PanelNode()
     : TitleNode(nullptr), ScrollAreaNode(nullptr) {
-  const auto &style = UITheme::Modern().Panel;
+  const auto &style = Theme::Default().Panel;
   // Panel 自身纵向排列；标题栏固定高度，内容宿主占据剩余空间。
   YGNodeStyleSetFlexDirection(Node, YGFlexDirectionColumn);
   SetColor(style.Color);
   YGNodeStyleSetMargin(Node, YGEdgeAll, style.Margin);
   YGNodeStyleSetPadding(Node, YGEdgeAll, style.Padding);
-  YGNodeStyleSetMinWidth(Node, style.MinimumWidth);
-  YGNodeStyleSetMinHeight(Node, style.MinimumHeight);
+  YGNodeStyleSetMinWidth(Node, style.MinWidth);
+  YGNodeStyleSetMinHeight(Node, style.MinHeight);
   TitleHeight = style.TitleHeight;
 
   auto title = std::make_unique<TextNode>();
@@ -50,8 +51,8 @@ PanelNode::PanelNode()
   drag->SetHandle(TitleNode);
   auto *resizeBehavior = AddBehavior<ResizeBehavior>();
   ResizeProperty resize;
-  resize.MinWidth = style.MinimumWidth;
-  resize.MinHeight = style.MinimumHeight;
+  resize.MinWidth = style.MinWidth;
+  resize.MinHeight = style.MinHeight;
   resize.Border = style.ResizeBorder;
   resizeBehavior->SetProperties(resize);
   // DockBehavior 在 DragBehavior 之后挂载，以观察完整手势并保持能力可替换。

@@ -34,8 +34,8 @@ bool BaseNode::Contains(MouseMovArgs args) const {
   return Contains(static_cast<float>(args.X), static_cast<float>(args.Y));
 }
 
-void BaseNode::DispatchLayoutUpdated() {
-  OnLayoutUpdated();
+void BaseNode::DispatchAfterLayout() {
+  OnAfterLayout();
 }
 
 BaseNode *BaseNode::AddChild(std::unique_ptr<BaseNode> child) {

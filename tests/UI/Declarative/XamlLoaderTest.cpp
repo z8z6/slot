@@ -17,7 +17,7 @@ TEST(XamlLoaderTest, BuildsPanelControlTree) {
       </Panel>
     </UI>)";
 
-  Layout layout(nullptr);
+  Layout layout;
   auto result = XamlLoader().LoadInto(layout, source);
   ASSERT_TRUE(result) << result.Error;
   auto *panel = dynamic_cast<PanelNode *>(layout.Find("tools"));

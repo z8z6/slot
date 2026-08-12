@@ -60,7 +60,7 @@ void z8::DX12RenderTarget::Bind(bool needDepth) const {
 }
 
 void z8::DX12RenderTarget::ClearBuffer() const {
-  Render->Cmd.List->ClearRenderTargetView(Dpt, Color::Black_2, 0, nullptr);
+  Render->Cmd.List->ClearRenderTargetView(Dpt, Color::Clear, 0, nullptr);
 }
 
 void z8::DX12RenderTarget::ResetBuffer()

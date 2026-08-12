@@ -98,7 +98,7 @@ TEST(PanelNodeTest, BehaviorConfigurationMaintainsLayoutInvariants) {
 }
 
 TEST(PanelNodeTest, ScrollsOverflowAndShowsVerticalThumb) {
-  Layout layout(nullptr);
+  Layout layout;
   auto *panel = AddPanel(layout, 300.0f, 200.0f);
   for (int i = 0; i < 8; ++i) {
     auto item = std::make_unique<RectNode>();
@@ -143,7 +143,7 @@ TEST(PanelNodeTest, AppliesTitleAndTitleHeight) {
 }
 
 TEST(PanelNodeTest, DragsFromTitleAndKeepsYogaPosition) {
-  Layout layout(nullptr);
+  Layout layout;
   auto *panel = AddPanel(layout);
   const float originalWidth = panel->Width;
   const float originalHeight = panel->Height;
@@ -162,7 +162,7 @@ TEST(PanelNodeTest, DragsFromTitleAndKeepsYogaPosition) {
 }
 
 TEST(PanelNodeTest, BorderClickDoesNotMovePanelWithThemeMargin) {
-  Layout layout(nullptr);
+  Layout layout;
   auto panel = std::make_unique<PanelNode>();
   auto *panelObserver = panel.get();
   YGNodeStyleSetWidth(panel->Node, 300.0f);
@@ -192,7 +192,7 @@ TEST(PanelNodeTest, BorderClickDoesNotMovePanelWithThemeMargin) {
 }
 
 TEST(PanelNodeTest, ResizesFromCornerAndHonorsMinimumSize) {
-  Layout layout(nullptr);
+  Layout layout;
   auto *panel = AddPanel(layout);
 
   EXPECT_NE(layout.OnMouseDown(MouseArgs(299, 199)), EventReply::Ignored);
@@ -214,7 +214,7 @@ TEST(PanelNodeTest, ResizesFromCornerAndHonorsMinimumSize) {
 }
 
 TEST(PanelNodeTest, SelectsResizeCursorForEveryBorderDirection) {
-  Layout layout(nullptr);
+  Layout layout;
   AddPanel(layout);
 
   EXPECT_EQ(layout.GetMouseCursor(MouseArgs(1, 100)),
@@ -259,7 +259,7 @@ TEST(PanelNodeTest, ExposesSeparatedDefaultBehaviorProperties) {
 }
 
 TEST(PanelNodeTest, AllowsDraggingFromContentWhenConfigured) {
-  Layout layout(nullptr);
+  Layout layout;
   auto *panel = AddPanel(layout);
   ASSERT_TRUE(panel->SetProperty("DragRegion", "Anywhere"));
 
@@ -273,7 +273,7 @@ TEST(PanelNodeTest, AllowsDraggingFromContentWhenConfigured) {
 }
 
 TEST(PanelNodeTest, AutomaticallyTilesMultiplePanelsInDockSpace) {
-  Layout layout(nullptr);
+  Layout layout;
   auto first = std::make_unique<PanelNode>();
   auto second = std::make_unique<PanelNode>();
   auto *firstObserver = first.get();
@@ -291,7 +291,7 @@ TEST(PanelNodeTest, AutomaticallyTilesMultiplePanelsInDockSpace) {
 }
 
 TEST(PanelNodeTest, DocksPanelAtNearestEdgeAfterDragging) {
-  Layout layout(nullptr);
+  Layout layout;
   auto first = std::make_unique<PanelNode>();
   auto second = std::make_unique<PanelNode>();
   auto *firstObserver = first.get();
@@ -316,7 +316,7 @@ TEST(PanelNodeTest, DocksPanelAtNearestEdgeAfterDragging) {
 }
 
 TEST(PanelNodeTest, KeepsInteractiveSizeAcrossImmediateDeclarations) {
-  Layout layout(nullptr);
+  Layout layout;
   ImmediateUI ui(layout);
   UIStyle style;
   style.Width = 300.0f;
