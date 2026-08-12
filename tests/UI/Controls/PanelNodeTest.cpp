@@ -117,7 +117,7 @@ TEST(PanelNodeTest, ScrollsOverflowAndShowsVerticalThumb) {
   wheel.X = 100;
   wheel.Y = 100;
   wheel.Delta = -WHEEL_DELTA;
-  EXPECT_TRUE(layout.OnMouseWheel(wheel));
+  EXPECT_NE(layout.OnMouseWheel(wheel), EventReply::Ignored);
   EXPECT_FLOAT_EQ(scroll->GetOffsetY(), scroll->Properties.WheelStep);
   layout.Calculate(800.0f, 600.0f);
   EXPECT_LT(panel->ContentNode->Children[1]->Top, originalItemY);
@@ -143,9 +143,10 @@ TEST(PanelNodeTest, DragsFromTitleAndKeepsYogaPosition) {
   const float originalWidth = panel->Width;
   const float originalHeight = panel->Height;
 
-  EXPECT_TRUE(layout.OnMouseDown(MouseArgs(50, 16)));
-  EXPECT_TRUE(layout.OnMouseDrag(MouseArgs(80, 46, 30, 30)));
-  EXPECT_TRUE(layout.OnMouseUp(MouseArgs(80, 46)));
+  EXPECT_NE(layout.OnMouseDown(MouseArgs(50, 16)), EventReply::Ignored);
+  EXPECT_NE(layout.OnMouseDrag(MouseArgs(80, 46, 30, 30)),
+            EventReply::Ignored);
+  EXPECT_NE(layout.OnMouseUp(MouseArgs(80, 46)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
 
   EXPECT_EQ(YGNodeStyleGetPositionType(panel->Node), YGPositionTypeAbsolute);
@@ -172,8 +173,10 @@ TEST(PanelNodeTest, BorderClickDoesNotMovePanelWithThemeMargin) {
   const float originalX = panelObserver->Left;
   const float originalY = panelObserver->Top;
 
-  ASSERT_TRUE(layout.OnMouseDown(MouseArgs(static_cast<int>(originalX), 100)));
-  ASSERT_TRUE(layout.OnMouseUp(MouseArgs(static_cast<int>(originalX), 100)));
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(static_cast<int>(originalX), 100)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(static_cast<int>(originalX), 100)),
+            EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
 
   EXPECT_EQ(YGNodeStyleGetPositionType(panelObserver->Node),
@@ -187,16 +190,18 @@ TEST(PanelNodeTest, ResizesFromCornerAndHonorsMinimumSize) {
   Layout layout(nullptr);
   auto *panel = AddPanel(layout);
 
-  EXPECT_TRUE(layout.OnMouseDown(MouseArgs(299, 199)));
-  EXPECT_TRUE(layout.OnMouseDrag(MouseArgs(349, 239, 50, 40)));
-  EXPECT_TRUE(layout.OnMouseUp(MouseArgs(349, 239)));
+  EXPECT_NE(layout.OnMouseDown(MouseArgs(299, 199)), EventReply::Ignored);
+  EXPECT_NE(layout.OnMouseDrag(MouseArgs(349, 239, 50, 40)),
+            EventReply::Ignored);
+  EXPECT_NE(layout.OnMouseUp(MouseArgs(349, 239)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
   EXPECT_FLOAT_EQ(panel->Width, 350.0f);
   EXPECT_FLOAT_EQ(panel->Height, 240.0f);
 
-  EXPECT_TRUE(layout.OnMouseDown(MouseArgs(1, 100)));
-  EXPECT_TRUE(layout.OnMouseDrag(MouseArgs(471, 100, 470, 0)));
-  EXPECT_TRUE(layout.OnMouseUp(MouseArgs(471, 100)));
+  EXPECT_NE(layout.OnMouseDown(MouseArgs(1, 100)), EventReply::Ignored);
+  EXPECT_NE(layout.OnMouseDrag(MouseArgs(471, 100, 470, 0)),
+            EventReply::Ignored);
+  EXPECT_NE(layout.OnMouseUp(MouseArgs(471, 100)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
   EXPECT_FLOAT_EQ(panel->Width,
                   panel->GetBehavior<ResizeBehavior>()->Properties.MinWidth);
@@ -207,17 +212,20 @@ TEST(PanelNodeTest, SelectsResizeCursorForEveryBorderDirection) {
   Layout layout(nullptr);
   AddPanel(layout);
 
-  EXPECT_EQ(layout.GetMouseCursor(1, 100), MouseCursor::SizeHorizontal);
-  EXPECT_EQ(layout.GetMouseCursor(150, 1), MouseCursor::SizeVertical);
-  EXPECT_EQ(layout.GetMouseCursor(1, 1),
+  EXPECT_EQ(layout.GetMouseCursor(MouseArgs(1, 100)),
+            MouseCursor::SizeHorizontal);
+  EXPECT_EQ(layout.GetMouseCursor(MouseArgs(150, 1)),
+            MouseCursor::SizeVertical);
+  EXPECT_EQ(layout.GetMouseCursor(MouseArgs(1, 1)),
             MouseCursor::SizeDiagonalNorthwestSoutheast);
-  EXPECT_EQ(layout.GetMouseCursor(299, 1),
+  EXPECT_EQ(layout.GetMouseCursor(MouseArgs(299, 1)),
             MouseCursor::SizeDiagonalNortheastSouthwest);
-  EXPECT_EQ(layout.GetMouseCursor(150, 100), MouseCursor::Arrow);
+  EXPECT_EQ(layout.GetMouseCursor(MouseArgs(150, 100)), MouseCursor::Arrow);
 
-  ASSERT_TRUE(layout.OnMouseDown(MouseArgs(1, 100)));
-  EXPECT_EQ(layout.GetMouseCursor(500, 100), MouseCursor::SizeHorizontal);
-  ASSERT_TRUE(layout.OnMouseUp(MouseArgs(500, 100)));
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(1, 100)), EventReply::Ignored);
+  EXPECT_EQ(layout.GetMouseCursor(MouseArgs(500, 100)),
+            MouseCursor::SizeHorizontal);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(500, 100)), EventReply::Ignored);
 }
 
 TEST(PanelNodeTest, ExposesSeparatedDefaultBehaviorProperties) {
@@ -250,9 +258,10 @@ TEST(PanelNodeTest, AllowsDraggingFromContentWhenConfigured) {
   auto *panel = AddPanel(layout);
   ASSERT_TRUE(panel->SetProperty("DragRegion", "Anywhere"));
 
-  ASSERT_TRUE(layout.OnMouseDown(MouseArgs(150, 100)));
-  ASSERT_TRUE(layout.OnMouseDrag(MouseArgs(170, 120, 20, 20)));
-  ASSERT_TRUE(layout.OnMouseUp(MouseArgs(170, 120)));
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(150, 100)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(170, 120, 20, 20)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(170, 120)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
   EXPECT_FLOAT_EQ(panel->Left, 20.0f);
   EXPECT_FLOAT_EQ(panel->Top, 20.0f);
@@ -287,9 +296,10 @@ TEST(PanelNodeTest, DocksPanelAtNearestEdgeAfterDragging) {
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
 
-  ASSERT_TRUE(layout.OnMouseDown(MouseArgs(100, 16)));
-  ASSERT_TRUE(layout.OnMouseDrag(MouseArgs(790, 100, 690, 84)));
-  ASSERT_TRUE(layout.OnMouseUp(MouseArgs(790, 100)));
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(790, 100, 690, 84)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(790, 100)), EventReply::Ignored);
   EXPECT_EQ(firstObserver->GetBehavior<DockBehavior>()->Properties.Placement,
             DockPlacement::Right);
 
@@ -319,9 +329,10 @@ TEST(PanelNodeTest, KeepsInteractiveSizeAcrossImmediateDeclarations) {
   initialPanel->GetBehavior<DockBehavior>()->Properties.Placement =
       DockPlacement::Floating;
   layout.Calculate(800.0f, 600.0f);
-  ASSERT_TRUE(layout.OnMouseDown(MouseArgs(299, 199)));
-  ASSERT_TRUE(layout.OnMouseDrag(MouseArgs(349, 239, 50, 40)));
-  ASSERT_TRUE(layout.OnMouseUp(MouseArgs(349, 239)));
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(299, 199)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(349, 239, 50, 40)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(349, 239)), EventReply::Ignored);
 
   // 重放原始声明只表达默认尺寸，不应覆盖用户已经提交的运行时几何。
   ui.BeginFrame();

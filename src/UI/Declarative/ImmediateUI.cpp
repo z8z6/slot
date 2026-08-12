@@ -2,9 +2,9 @@
 
 #include "UI/Declarative/ControlFactory.h"
 #include "UI/Layout/BaseNode.h"
+#include "UI/Layout/DrawNode.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelNode.h"
-#include "UI/Layout/VisualNode.h"
 #include "yoga/YGNodeStyle.h"
 
 using namespace z8::ui;
@@ -78,7 +78,7 @@ void ImmediateUI::ApplyStyle(BaseNode &node, const UIStyle &style) {
     YGNodeStyleSetPadding(node.Node, YGEdgeAll, *style.Padding);
   // 强类型即时样式直接访问视觉层；纯布局节点没有颜色状态，也无需空对象占位。
   if (style.Color)
-    if (auto *visual = dynamic_cast<VisualNode *>(&node))
+    if (auto *visual = dynamic_cast<DrawNode *>(&node))
       visual->SetColor(*style.Color);
   if (style.Direction)
     YGNodeStyleSetFlexDirection(node.Node, *style.Direction);

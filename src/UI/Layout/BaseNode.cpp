@@ -47,9 +47,8 @@ bool BaseNode::Contains(MouseMovArgs args) const {
   return Contains(static_cast<float>(args.X), static_cast<float>(args.Y));
 }
 
-UIBehavior *BaseNode::AddBehavior(std::unique_ptr<UIBehavior> behavior) {
-  if (!behavior || behavior->Owner)
-    return nullptr;
+IBehavior *BaseNode::AddBehavior(std::unique_ptr<IBehavior> behavior) {
+  if (!behavior || behavior->Owner) return nullptr;
   auto *result = behavior.get();
   result->Owner = this;
   Behaviors.push_back(std::move(behavior));
@@ -62,7 +61,7 @@ UIBehavior *BaseNode::AddBehavior(std::unique_ptr<UIBehavior> behavior) {
   return result;
 }
 
-bool BaseNode::RemoveBehavior(UIBehavior *behavior) {
+bool BaseNode::RemoveBehavior(IBehavior *behavior) {
   if (!behavior)
     return false;
   const auto iterator = std::find_if(Behaviors.begin(), Behaviors.end(),
@@ -72,7 +71,7 @@ bool BaseNode::RemoveBehavior(UIBehavior *behavior) {
   if (iterator == Behaviors.end())
     return false;
   if (CapturedBehavior == behavior) {
-    behavior->OnCaptureLost();
+    behavior->OnPointerCaptureLost();
     CapturedBehavior = nullptr;
   }
   (*iterator)->OnDetached();
@@ -162,7 +161,7 @@ void BaseNode::DispatchDragCompleted(MouseMovArgs args) {
 
 void BaseNode::CancelPointerCapture() {
   if (CapturedBehavior) {
-    CapturedBehavior->OnCaptureLost();
+    CapturedBehavior->OnPointerCaptureLost();
     CapturedBehavior = nullptr;
   }
   OnPointerCaptureLost();

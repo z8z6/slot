@@ -7,21 +7,18 @@
 #include "Object/UIObject/UIObject.h"
 #include "UI/Behavior/DockLayoutBehavior.h"
 #include "UI/Layout/BaseNode.h"
-#include "UI/Layout/VisualNode.h"
+#include "UI/Layout/DrawNode.h"
 #include "yoga/YGNodeLayout.h"
 #include "yoga/YGNodeStyle.h"
 
 #include <algorithm>
-#include <iostream>
 #include <ostream>
 
 using namespace z8;
 using namespace z8::ui;
 
-Layout::Layout(Application *App)
-    : Root(std::make_unique<BaseNode>()), App(App) {
+Layout::Layout(): Root(std::make_unique<BaseNode>()) {
   Root->Key = "Root";
-  // 根节点默认作为 DockSpace；无 DockBehavior 的普通子节点保持原 Yoga 布局。
   Root->AddBehavior<DockLayoutBehavior>();
   RebuildIndex();
 }
@@ -40,7 +37,7 @@ void Layout::IndexTree(BaseNode *node) {
     return;
   Nodes.push_back(node);
   // RTTI 只在拓扑变化时使用；布局热路径直接调用窄虚接口。
-  if (auto *visual = dynamic_cast<VisualNode *>(node))
+  if (auto *visual = dynamic_cast<DrawNode *>(node))
     Visuals.push_back(visual);
   for (const auto &child : node->Children)
     IndexTree(child.get());
@@ -64,30 +61,29 @@ void Layout::RebuildIndex() {
   Nodes.clear();
   Visuals.clear();
   IndexTree(Root.get());
-  TopologyDirty = true;
+  Dirty = true;
 }
 
-BaseNode *Layout::HitTest(float x, float y) const {
-  // UI batch 按树的前序绘制，逆序就是最上层视觉优先。
-  for (auto iterator = Visuals.rbegin(); iterator != Visuals.rend();
-       ++iterator) {
-    auto *visual = *iterator;
-    if (visual->Visual && visual->Contains(x, y))
+// 返回命中的最上层 VisualNode
+BaseNode *Layout::HitAt(float x, float y) const {
+  // Visuals 按树的前序遍历，逆序就是最上层优先。
+  for (auto I = Visuals.rbegin(); I != Visuals.rend(); ++I) {
+    auto *visual = *I;
+    if (visual->Contains(x, y))
       return visual;
   }
   return nullptr;
 }
 
-z8::MouseCursor Layout::GetMouseCursor(int x, int y) const {
-  MouseMovArgs args;
-  args.X = x;
-  args.Y = y;
+z8::MouseCursor Layout::GetMouseCursor(MouseMovArgs args) const {
   if (CapturedHandler) {
     const auto cursor = CapturedHandler->QueryMouseCursor(args);
     if (cursor != MouseCursor::Arrow)
       return cursor;
   }
-  for (auto *node = HitTest(static_cast<float>(x), static_cast<float>(y)); node;
+  for (auto *node = HitAt(static_cast<float>(args.X),
+                            static_cast<float>(args.Y));
+       node;
        node = node->Parent) {
     const auto cursor = node->QueryMouseCursor(args);
     if (cursor != MouseCursor::Arrow)
@@ -96,11 +92,10 @@ z8::MouseCursor Layout::GetMouseCursor(int x, int y) const {
   return MouseCursor::Arrow;
 }
 
-bool Layout::OnMouseDown(MouseMovArgs args) {
+EventReply Layout::OnMouseDown(MouseMovArgs args) {
   auto *target =
-      HitTest(static_cast<float>(args.X), static_cast<float>(args.Y));
-  if (!target)
-    return false;
+      HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
+  if (!target) return EventReply::Ignored;
 
   CapturedTarget = target;
   // 输入只属于节点和 Behavior；UIObject 是渲染数据，不再接收重复事件。
@@ -112,48 +107,57 @@ bool Layout::OnMouseDown(MouseMovArgs args) {
       break;
   }
   // 命中任何 UI 都会阻止事件穿透到场景，即使控件没有主动手势。
-  return true;
+  return EventReply::Handled;
 }
 
-bool Layout::OnMouseMove(MouseMovArgs args) {
+EventReply Layout::OnMouseMove(MouseMovArgs args) {
   auto *target =
-      HitTest(static_cast<float>(args.X), static_cast<float>(args.Y));
+      HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target)
-    return false;
+    return EventReply::Ignored;
   for (auto *node = target; node; node = node->Parent)
     if (node->DispatchMouseMove(args))
       break;
-  return true;
+  return EventReply::Handled;
 }
 
-bool Layout::OnMouseDrag(MouseMovArgs args) {
+EventReply Layout::OnMouseDrag(MouseMovArgs args) {
   if (!CapturedTarget)
-    return false;
+    return EventReply::Ignored;
   if (CapturedHandler)
     CapturedHandler->DispatchMouseDrag(args);
-  return true;
+  return EventReply::Handled;
 }
 
-bool Layout::OnMouseUp(MouseMovArgs args) {
+EventReply Layout::OnMouseUp(MouseMovArgs args) {
   if (!CapturedTarget)
-    return false;
+    return EventReply::Ignored;
   if (CapturedHandler)
     CapturedHandler->DispatchMouseUp(args);
   CapturedTarget = nullptr;
   CapturedHandler = nullptr;
-  return true;
+  return EventReply::Handled;
 }
 
-bool Layout::OnMouseWheel(MouseWheelArgs args) {
+EventReply Layout::OnMouseWheel(MouseWheelArgs args) {
   auto *target =
-      HitTest(static_cast<float>(args.X), static_cast<float>(args.Y));
+      HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target)
-    return false;
+    return EventReply::Ignored;
   for (auto *node = target; node; node = node->Parent)
     if (node->DispatchMouseWheel(args))
-      return true;
+      return EventReply::Handled;
   // 与其他指针事件一致，命中 UI 后不允许滚轮穿透到 3D 场景。
-  return true;
+  return EventReply::Handled;
+}
+
+void Layout::OnPointerCaptureLost() {
+  // 窗口失焦或上层路由取消手势时，节点与 Behavior 必须同步释放捕获，避免
+  // 下一次按下继承已经失效的拖拽/缩放状态。
+  if (CapturedHandler)
+    CapturedHandler->CancelPointerCapture();
+  CapturedTarget = nullptr;
+  CapturedHandler = nullptr;
 }
 
 BaseNode *Layout::Find(const std::string &key) const {
@@ -163,23 +167,23 @@ BaseNode *Layout::Find(const std::string &key) const {
   return nullptr;
 }
 
-bool Layout::ConsumeTopologyDirty() {
-  const bool result = TopologyDirty;
-  TopologyDirty = false;
+bool Layout::ConsumeDirty() {
+  const bool result = Dirty;
+  Dirty = false;
   return result;
 }
 
-std::vector<GameObject *> Layout::CollectVisualObjects() const {
+std::vector<GameObject *> Layout::GetUO() const {
   std::vector<GameObject *> result;
   result.reserve(Visuals.size());
-  for (auto *visual : Visuals) {
-    // VisualNode 构造时必须提供视觉；检查用于防御自定义节点错误转移所有权。
-    if (visual->Visual)
-      result.push_back(visual->Visual.get());
+  for (auto *v : Visuals) {
+    assert (v->UO);
+    result.push_back(v->UO.get());
   }
   return result;
 }
 
+// 每帧计算布局的入口函数
 void Layout::Calculate(float w, float h) {
   Root->DispatchBeforeLayout(w, h);
   YGNodeCalculateLayout(Root->Node, w, h, YGDirectionLTR);
@@ -190,39 +194,40 @@ void Layout::UpdateTree(YGNodeRef Node, float parentX, float parentY,
                         const DirectX::XMFLOAT4 &clip) {
   auto N = static_cast<BaseNode *>(YGNodeGetContext(Node));
 
-  // 相对于父容器的位置
+  // 1. 这里得到的是相对于父容器的位置
   float x = YGNodeLayoutGetLeft(Node);
   float y = YGNodeLayoutGetTop(Node);
-
-  // 长宽
   float width = YGNodeLayoutGetWidth(Node);
   float height = YGNodeLayoutGetHeight(Node);
 
-  // 计算绝对位置
+  // 2. 然后计算绝对位置
   float absX = parentX + x;
   float absY = parentY + y;
 
+  // 3. 记录本次数据，并更新
   N->Left = absX;
   N->Top = absY;
   N->Width = width;
   N->Height = height;
   N->VisibleClip = clip;
+  N->Synchronize();
 
-  // 非视觉节点为空操作；VisualNode 在窄接口内同步位置、缩放与裁剪。
-  N->SynchronizeVisual(clip);
-
+  // 4. 计算裁剪矩形
   DirectX::XMFLOAT4 childClip = clip;
-  if (N->ClipsChildren) {
+  if (N->ClipChildren) {
     childClip.x = (std::max)(childClip.x, absX);
     childClip.y = (std::max)(childClip.y, absY);
     childClip.z = (std::min)(childClip.z, absX + width);
     childClip.w = (std::min)(childClip.w, absY + height);
   }
 
+  // 5. 迭代子节点
   for (size_t i = 0; i < N->Children.size(); ++i) {
     YGNodeRef child = YGNodeGetChild(Node, i);
     UpdateTree(child, absX + N->ChildOffsetX, absY + N->ChildOffsetY,
                childClip);
   }
+
+  // 6. 事件通知
   N->DispatchLayoutUpdated();
 }

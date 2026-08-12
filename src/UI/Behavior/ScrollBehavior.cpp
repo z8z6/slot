@@ -80,7 +80,7 @@ void ScrollBehavior::ApplyProperties() {
   // ClipsChildren 标志，确保视觉与交互区域不会分离。
   YGNodeStyleSetOverflow(Viewport->Node,
                          scrolls ? YGOverflowScroll : YGOverflowVisible);
-  Viewport->ClipsChildren = scrolls;
+  Viewport->ClipChildren = scrolls;
   if (VerticalScrollBar) {
     VerticalScrollBar->Visible = false;
     if (VerticalScrollBar->ThumbNode)

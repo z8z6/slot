@@ -75,7 +75,7 @@ if(SLOT_BUILD_TESTS)
             src/UI/Layout/PanelNode.cpp
             src/UI/Layout/RectNode.cpp
             src/UI/Layout/ScrollBarNode.cpp
-            src/UI/Layout/VisualNode.cpp
+            src/UI/Layout/DrawNode.cpp
             src/UI/Style/UITheme.cpp
             src/Material/Material.cpp
             src/Material/MetalMaterial.cpp

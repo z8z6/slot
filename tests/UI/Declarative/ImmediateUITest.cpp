@@ -20,7 +20,7 @@ void DeclareFrame(ImmediateUI& ui, bool includeItem) {
 
 TEST(ImmediateUITest, ReusesStableControlsAndTracksTopology) {
   Layout layout(nullptr);
-  layout.ConsumeTopologyDirty();
+  layout.ConsumeDirty();
   ImmediateUI ui(layout);
 
   DeclareFrame(ui, true);
@@ -28,17 +28,17 @@ TEST(ImmediateUITest, ReusesStableControlsAndTracksTopology) {
   auto* firstItem = layout.Find("item");
   ASSERT_NE(firstPanel, nullptr);
   ASSERT_NE(firstItem, nullptr);
-  EXPECT_TRUE(layout.ConsumeTopologyDirty());
+  EXPECT_TRUE(layout.ConsumeDirty());
 
   DeclareFrame(ui, true);
   EXPECT_EQ(layout.Find("panel"), firstPanel);
   EXPECT_EQ(layout.Find("item"), firstItem);
-  EXPECT_FALSE(layout.ConsumeTopologyDirty());
+  EXPECT_FALSE(layout.ConsumeDirty());
 
   DeclareFrame(ui, false);
   EXPECT_EQ(layout.Find("panel"), firstPanel);
   EXPECT_EQ(layout.Find("item"), nullptr);
-  EXPECT_TRUE(layout.ConsumeTopologyDirty());
+  EXPECT_TRUE(layout.ConsumeDirty());
 }
 
 TEST(ImmediateUITest, RejectsDuplicateKeysInEnglish) {

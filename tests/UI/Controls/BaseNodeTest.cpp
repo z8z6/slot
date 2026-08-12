@@ -1,7 +1,8 @@
 #include "UI/Layout/BaseNode.h"
 #include "Object/Object.h"
 #include "Object/UIObject/UIObject.h"
-#include "UI/Layout/VisualNode.h"
+#include "UI/Layout/DrawNode.h"
+#include "UI/Layout/Layout.h"
 
 #include <gtest/gtest.h>
 #include <stdexcept>
@@ -10,9 +11,10 @@
 namespace z8::ui {
 namespace {
 static_assert(!std::is_base_of_v<UIObject, BaseNode>);
-static_assert(std::is_base_of_v<BaseNode, VisualNode>);
+static_assert(std::is_base_of_v<BaseNode, DrawNode>);
 static_assert(std::is_base_of_v<EventTarget, BaseNode>);
 static_assert(std::is_base_of_v<EventTarget, Object>);
+static_assert(std::is_base_of_v<EventTarget, Layout>);
 
 class TrackingObject final : public UIObject {
 public:
@@ -20,10 +22,10 @@ public:
   static inline int DestructionCount = 0;
 };
 
-class TrackingNode final : public VisualNode {
+class TrackingNode final : public DrawNode {
 public:
   /** 测试节点通过 VisualNode 验证渲染对象与布局节点的联合生命周期。 */
-  TrackingNode() : VisualNode(std::make_unique<TrackingObject>()) {}
+  TrackingNode() : DrawNode(std::make_unique<TrackingObject>()) {}
 };
 
 TEST(BaseNodeTest, OwnsVisualAndChildren) {
@@ -51,7 +53,7 @@ TEST(BaseNodeTest, RemovesOwnedChildSuffix) {
 
 TEST(BaseNodeTest, RejectsVisualNodeWithoutRenderObject) {
   // VisualNode 的类型含义必须可靠，不能允许空视觉重新制造可空渲染分支。
-  EXPECT_THROW(VisualNode(nullptr), std::invalid_argument);
+  EXPECT_THROW(DrawNode(nullptr), std::invalid_argument);
 }
 } // namespace
 } // namespace z8::ui

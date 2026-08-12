@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/Behavior/UIBehavior.h"
+#include "UI/Behavior/IBehavior.h"
 
 namespace z8::ui {
 
@@ -27,7 +27,7 @@ struct ScrollProperty {
  * 依赖 BaseNode 的几何/裁剪协议和 ScrollBarNode 的 value/range 协议，因此
  * Panel、列表、树控件可以复用同一套 offset 状态机。
  */
-class ScrollBehavior final : public UIBehavior {
+class ScrollBehavior final : public IBehavior {
 public:
   ScrollBehavior() = default;
 

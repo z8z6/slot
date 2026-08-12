@@ -15,12 +15,12 @@ TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
 
   EXPECT_EQ(layout.Nodes.size(), 2U);
   EXPECT_EQ(layout.Visuals.size(), 1U);
-  const auto objects = layout.CollectVisualObjects();
+  const auto objects = layout.GetUO();
   ASSERT_EQ(objects.size(), 1U);
   EXPECT_NE(objects.front(), nullptr);
   EXPECT_NE(layout.Find("content"), nullptr);
-  EXPECT_TRUE(layout.ConsumeTopologyDirty());
-  EXPECT_FALSE(layout.ConsumeTopologyDirty());
+  EXPECT_TRUE(layout.ConsumeDirty());
+  EXPECT_FALSE(layout.ConsumeDirty());
 }
 
 TEST(LayoutTest, CalculatesWithoutApplicationOrWindow) {

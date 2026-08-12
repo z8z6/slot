@@ -39,7 +39,7 @@ MouseButton GetMouseButton(UINT message, WPARAM wParam) {
 } // namespace
 
 
-z8::Application::Application() : Layout(this) {
+z8::Application::Application() {
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA,
                     reinterpret_cast<LONG_PTR>(this));
   SetWindowLongPtrW(Window.Wnd, GWLP_WNDPROC,
@@ -84,7 +84,8 @@ int z8::Application::Run() {
       for (auto* App : Apps) {
         App->Timer.Tick();
         App->ShowFrame();
-        App->Layout.Update();
+        App->Layout.Calculate(static_cast<float>(App->Window.Width),
+            static_cast<float>(App->Window.Height));
         App->Render->Update();
         App->Render->Draw();
       }
@@ -122,8 +123,11 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
       POINT point{};
       GetCursorPos(&point);
       ScreenToClient(Wnd, &point);
+      MouseMovArgs args;
+      args.X = point.x;
+      args.Y = point.y;
       LPCWSTR cursorId = IDC_ARROW;
-      switch (Layout.GetMouseCursor(point.x, point.y)) {
+      switch (Layout.GetMouseCursor(args)) {
       case MouseCursor::SizeHorizontal: cursorId = IDC_SIZEWE; break;
       case MouseCursor::SizeVertical: cursorId = IDC_SIZENS; break;
       case MouseCursor::SizeDiagonalNorthwestSoutheast:
@@ -145,7 +149,8 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     Window.Width = LOWORD(lParam);
     Window.Height = HIWORD(lParam);
     if (wParam == SIZE_MINIMIZED) return 0;
-    Layout.Update();
+    Layout.Calculate(static_cast<float>(Window.Width),
+            static_cast<float>(Window.Height));
     // 拖动边框时 WM_SIZE 会高频到达；退出模态循环后只重建一次 GPU 资源。
     if (!InSizeMove && Render) Render->Resize();
     return 0;
@@ -175,7 +180,8 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
       WindowX = rect.left;
       WindowY = rect.top;
     }
-    Layout.Update();
+    Layout.Calculate(static_cast<float>(Window.Width),
+            static_cast<float>(Window.Height));
     if (Render) Render->Resize();
     return 0;
 
@@ -279,7 +285,7 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
 template <typename Handler>
 void Application::ForEachObject(Handler&& handler) {
   // 键盘和窗口事件没有指针目标，仍按对象集合广播。
-  for (auto* object : Layout.CollectVisualObjects()) handler(*object);
+  for (auto* object : Layout.GetUO()) handler(*object);
   ForEachSceneObject(std::forward<Handler>(handler));
 }
 
@@ -319,7 +325,10 @@ void Application::OnMouseMove(MouseMovArgs Args)
 {
   const bool dragging = (Args.State & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON |
                                        MK_XBUTTON1 | MK_XBUTTON2)) != 0;
-  if (dragging ? Layout.OnMouseDrag(Args) : Layout.OnMouseMove(Args)) return;
+  const auto reply =
+      dragging ? Layout.OnMouseDrag(Args) : Layout.OnMouseMove(Args);
+  if (reply != EventReply::Ignored)
+    return;
   ForEachSceneObject([&](Object& object) {
     object.OnMouseMove(Args);
     if (dragging) object.OnMouseDrag(Args);
@@ -329,14 +338,16 @@ void Application::OnMouseMove(MouseMovArgs Args)
 void Application::OnMouseDown(MouseMovArgs Args)
 {
   // 命中 UI 则返回
-  if (Layout.OnMouseDown(Args)) return;
+  if (Layout.OnMouseDown(Args) != EventReply::Ignored)
+    return;
   ForEachSceneObject([&](Object& object) { object.OnMouseDown(Args); });
 }
 
 void Application::OnMouseUp(MouseMovArgs Args)
 {
   // 命中 UI 则返回
-  if (Layout.OnMouseUp(Args)) return;
+  if (Layout.OnMouseUp(Args) != EventReply::Ignored)
+    return;
   ForEachSceneObject([&](Object& object) { object.OnMouseUp(Args); });
 }
 

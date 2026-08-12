@@ -46,14 +46,15 @@ TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
   ASSERT_EQ(observer->GetBehavior<DragBehavior>(), drag);
   ASSERT_EQ(observer->GetBehavior<ResizeBehavior>(), resize);
   ASSERT_EQ(observer->Behaviors.front().get(),
-            static_cast<UIBehavior *>(resize));
+            static_cast<IBehavior *>(resize));
 
   // 角落同时命中 Drag 和 Resize；优先级使 Resize 独占捕获，不会移动左上角。
-  ASSERT_TRUE(layout.OnMouseDown(PointerArgs(199, 119)));
+  ASSERT_NE(layout.OnMouseDown(PointerArgs(199, 119)), EventReply::Ignored);
   EXPECT_TRUE(resize->IsResizing());
   EXPECT_FALSE(drag->IsDragging());
-  ASSERT_TRUE(layout.OnMouseDrag(PointerArgs(219, 129, 20, 10)));
-  ASSERT_TRUE(layout.OnMouseUp(PointerArgs(219, 129)));
+  ASSERT_NE(layout.OnMouseDrag(PointerArgs(219, 129, 20, 10)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(PointerArgs(219, 129)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
   EXPECT_FLOAT_EQ(observer->Width, 220.0f);
   EXPECT_FLOAT_EQ(observer->Height, 130.0f);
@@ -80,18 +81,19 @@ TEST(BehaviorCompositionTest, CancelsGestureWhenTopologyChanges) {
   layout.RebuildIndex();
   layout.Calculate(400.0f, 300.0f);
 
-  ASSERT_TRUE(layout.OnMouseDown(PointerArgs(50, 50)));
+  ASSERT_NE(layout.OnMouseDown(PointerArgs(50, 50)), EventReply::Ignored);
   ASSERT_TRUE(drag->IsDragging());
   // 声明式重建会使旧 target 指针失效，因此必须同步取消 Behavior 内部状态。
   layout.RebuildIndex();
   EXPECT_FALSE(drag->IsDragging());
   EXPECT_EQ(observer->GetBehavior<DragBehavior>(), drag);
 
-  ASSERT_TRUE(layout.OnMouseDown(PointerArgs(50, 50)));
+  ASSERT_NE(layout.OnMouseDown(PointerArgs(50, 50)), EventReply::Ignored);
   layout.Root->RemoveChildrenFrom(0);
   // 被移除节点的析构已取消其行为；重建只遍历当前活节点，不解引用旧捕获指针。
   layout.RebuildIndex();
-  EXPECT_FALSE(layout.OnMouseDrag(PointerArgs(60, 60, 10, 10)));
+  EXPECT_EQ(layout.OnMouseDrag(PointerArgs(60, 60, 10, 10)),
+            EventReply::Ignored);
 }
 
 } // namespace z8::ui

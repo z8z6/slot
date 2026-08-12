@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/Behavior/UIBehavior.h"
+#include "UI/Behavior/IBehavior.h"
 
 namespace z8::ui {
 
@@ -11,11 +11,11 @@ namespace z8::ui {
  * 区域，Floating 节点保持用户几何。当前边界限定为直接子节点，避免父子
  * DockSpace 在同一 Yoga 计算前使用尚未更新的嵌套尺寸。
  */
-class DockLayoutBehavior final : public UIBehavior {
+class DockLayoutBehavior final : public IBehavior {
 public:
   static constexpr int DefaultPriority = 300;
 
-  DockLayoutBehavior() : UIBehavior(DefaultPriority) {}
+  DockLayoutBehavior() : IBehavior(DefaultPriority) {}
   /** 在 Yoga 测量前把容器可用矩形写入所有参与停靠的直接子节点。 */
   void OnBeforeLayout(float width, float height) override;
 

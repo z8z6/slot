@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/Behavior/UIBehavior.h"
+#include "UI/Behavior/IBehavior.h"
 
 namespace z8::ui {
 
@@ -25,7 +25,7 @@ struct DockProperty {
  * 该行为不修改布局几何：拖动开始时仅切换为 Floating，释放到父容器边缘时
  * 记录新的 Placement；实际空间分配由父节点的 DockLayoutBehavior 完成。
  */
-class DockBehavior final : public UIBehavior {
+class DockBehavior final : public IBehavior {
 public:
   DockProperty Properties;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/Behavior/UIBehavior.h"
+#include "UI/Behavior/IBehavior.h"
 
 namespace z8::ui {
 
@@ -30,11 +30,11 @@ struct ResizeProperty {
  *
  * 组件优先级高于 DragBehavior，保证重叠的标题栏边缘只启动一种几何状态机。
  */
-class ResizeBehavior final : public UIBehavior {
+class ResizeBehavior final : public IBehavior {
 public:
   static constexpr int DefaultPriority = 200;
 
-  ResizeBehavior() : UIBehavior(DefaultPriority) {}
+  ResizeBehavior() : IBehavior(DefaultPriority) {}
 
   /** 配置公开供检查；批量修改应调用 SetProperties 以同步 Yoga 约束。 */
   ResizeProperty Properties;
@@ -47,7 +47,7 @@ public:
   EventReply OnMouseDown(MouseMovArgs args) override;
   EventReply OnMouseDrag(MouseMovArgs args) override;
   EventReply OnMouseUp(MouseMovArgs args) override;
-  void OnCaptureLost() override { ActiveRegion = ResizeRegion::None; }
+  void OnPointerCaptureLost() override { ActiveRegion = ResizeRegion::None; }
   MouseCursor GetMouseCursor(MouseMovArgs args) const override;
   bool SetProperty(const std::string &name, const std::string &value) override;
 

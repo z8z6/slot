@@ -42,7 +42,7 @@ PanelNode::PanelNode()
   YGNodeStyleSetFlexGrow(ScrollViewportNode->Node, 1.0f);
   YGNodeStyleSetFlexShrink(ScrollViewportNode->Node, 1.0f);
   // 裁剪子元素
-  ScrollViewportNode->ClipsChildren = true;
+  ScrollViewportNode->ClipChildren = true;
 
   auto content = std::make_unique<BaseNode>();
   ContentNode = content.get();

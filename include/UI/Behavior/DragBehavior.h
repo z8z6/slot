@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/Behavior/UIBehavior.h"
+#include "UI/Behavior/IBehavior.h"
 
 namespace z8::ui {
 
@@ -21,11 +21,11 @@ struct DragProperty {
  * Handle 是可选的非拥有观察指针。TitleBar 模式只允许从 Handle 开始；
  * Anywhere 模式使用宿主命中框。组件不关心 Panel 或其他具体控件类型。
  */
-class DragBehavior final : public UIBehavior {
+class DragBehavior final : public IBehavior {
 public:
   static constexpr int DefaultPriority = 100;
 
-  DragBehavior() : UIBehavior(DefaultPriority) {}
+  DragBehavior() : IBehavior(DefaultPriority) {}
 
   /** 简单配置公开，避免为纯数据重复包装访问器。 */
   DragProperty Properties;
@@ -38,7 +38,7 @@ public:
   EventReply OnMouseDown(MouseMovArgs args) override;
   EventReply OnMouseDrag(MouseMovArgs args) override;
   EventReply OnMouseUp(MouseMovArgs args) override;
-  void OnCaptureLost() override {
+  void OnPointerCaptureLost() override {
     Dragging = false;
     GestureMoved = false;
   }

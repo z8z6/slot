@@ -24,7 +24,7 @@ flowchart LR
 
 ## EventTarget 与 Behavior 组合
 
-场景 `Object`、`BaseNode` 和 `UIBehavior` 共同继承 Core 的 `EventTarget`，鼠标与键盘事件统一返回 `EventReply::Ignored/Handled/Capture`。Core 只定义事件 ABI，不负责命中、冒泡或捕获存储；场景与 `Layout` 可以采用不同路由策略而无需复制 `OnMouseDown` 等虚函数。
+场景 `Object`、`Layout`、`BaseNode` 和 `UIBehavior` 共同继承 Core 的 `EventTarget`，鼠标与键盘事件统一返回 `EventReply::Ignored/Handled/Capture`，光标查询与捕获丢失通知也由该接口定义。Core 只定义事件 ABI，不负责命中、冒泡或捕获存储；场景与 `Layout` 可以采用不同路由策略而无需复制输入虚函数。
 
 `BaseNode` 实现属性根接口 `IProperty`，因此 XAML、即时声明和未来检查器只需面向统一的 `SetProperty` 协议。可选行为以 `unique_ptr<UIBehavior>` 挂载到节点，`DragBehavior`、`ResizeBehavior`、`ScrollBehavior`、`DockBehavior` 分别独占自己的配置和运行时状态；宿主销毁时先取消捕获并释放行为，再释放其视觉子树和 Yoga 几何。
 

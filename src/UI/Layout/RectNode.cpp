@@ -10,7 +10,7 @@
 
 using namespace z8::ui;
 
-RectNode::RectNode() : VisualNode(std::make_unique<RectUIObject>()) {
+RectNode::RectNode() : DrawNode(std::make_unique<RectUIObject>()) {
   const auto &style = UITheme::Modern().Rect;
   SetColor(style.Color);
   YGNodeStyleSetMargin(Node, YGEdgeAll, style.Margin);

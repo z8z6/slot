@@ -66,13 +66,13 @@ struct KeyArgs {
  * 场景对象与 UI 节点共享的输入事件目标。
  *
  * 该类型只描述平台输入，不包含命中测试、冒泡或捕获存储；这些策略分别由场景
- * 和 Layout 路由器决定，避免 Core 反向依赖具体 UI 实现。
+ * 和 Layout 路由器决定
  */
 class EventTarget {
 public:
   virtual ~EventTarget() = default;
 
-  /** 指针按下入口；Capture 表示开始一段由路由器维持的独占手势。 */
+  /** 指针按下入口；Capture 表示后续拖动与释放必须返回当前目标。 */
   virtual EventReply OnMouseDown(MouseMovArgs) {
     return EventReply::Ignored;
   }
@@ -80,7 +80,7 @@ public:
   virtual EventReply OnMouseMove(MouseMovArgs) {
     return EventReply::Ignored;
   }
-  /** 捕获期间的移动入口，参数增量相对上一条窗口指针消息。 */
+  /** 捕获期间的移动入口，位移相对上一条窗口指针消息。 */
   virtual EventReply OnMouseDrag(MouseMovArgs) {
     return EventReply::Ignored;
   }
@@ -90,9 +90,16 @@ public:
   virtual EventReply OnMouseWheel(MouseWheelArgs) {
     return EventReply::Ignored;
   }
-  /** 键盘按下与释放入口；默认不消费，以便路由器继续分发。 */
+  /** 键盘入口默认不消费，使路由器可以继续分发。 */
   virtual EventReply OnKeyDown(KeyArgs) { return EventReply::Ignored; }
   virtual EventReply OnKeyUp(KeyArgs) { return EventReply::Ignored; }
+
+  /** 查询目标在指定客户区位置期望显示的系统指针形状。 */
+  virtual MouseCursor GetMouseCursor(MouseMovArgs) const {
+    return MouseCursor::Arrow;
+  }
+  /** 路由器取消独占手势时通知目标恢复空闲状态。 */
+  virtual void OnPointerCaptureLost() {}
 };
 
 } // namespace z8

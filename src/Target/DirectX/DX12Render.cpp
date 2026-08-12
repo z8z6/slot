@@ -43,8 +43,8 @@ void DX12Render::Init()
   MaterialManager.Init();
 
   GOBatch.Init(App->ActiveScene.GetGameObjects());
-  UOBatch.Init(App->Layout.CollectVisualObjects());
-  App->Layout.ConsumeTopologyDirty();
+  UOBatch.Init(App->Layout.GetUO());
+  App->Layout.ConsumeDirty();
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
@@ -53,8 +53,8 @@ void DX12Render::Init()
 void DX12Render::Update()
 {
   // 即时声明只在控件拓扑变化时重建 UI 常量缓冲；稳定帧复用原有 GPU 资源。
-  if (App->Layout.ConsumeTopologyDirty())
-    UOBatch.Init(App->Layout.CollectVisualObjects());
+  if (App->Layout.ConsumeDirty())
+    UOBatch.Init(App->Layout.GetUO());
   // 1. 更新相机坐标
   GetCamera()->Update(GetTimer());
   // 2. 更新全局常量

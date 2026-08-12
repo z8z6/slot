@@ -4,7 +4,7 @@
 
 #pragma once
 #include "Core/Event.h"
-#include "UI/Behavior/UIBehavior.h"
+#include "UI/Behavior/IBehavior.h"
 #include "UI/Property/IProperty.h"
 #include "Util/Owner.h"
 #include "yoga/YGNode.h"
@@ -25,6 +25,7 @@ namespace z8::ui {
  * Root、Viewport、Content 等结构节点因此不会伪装成可绘制对象；需要绘制的
  * 控件继承 VisualNode，由后者独占 UIObject。
  */
+using ClipRect = DirectX::XMFLOAT4;
 class BaseNode : public virtual IProperty, public EventTarget {
 public:
   // 布局结果使用窗口客户区绝对坐标，渲染与命中测试共享这些字段。
@@ -34,75 +35,63 @@ public:
   float Height = 0.0f;
   float ChildOffsetX = 0.0f;
   float ChildOffsetY = 0.0f;
-  bool ClipsChildren = false;
+  bool ClipChildren = false;
   bool Visible = true;
-  DirectX::XMFLOAT4 VisibleClip = {-100000.0f, -100000.0f, 100000.0f,
+  ClipRect VisibleClip = {-100000.0f, -100000.0f, 100000.0f,
                                    100000.0f};
-  // Node 由 BaseNode 独占；Children 与 Yoga 子树始终按相同顺序更新。
   GSL_OWNER YGNodeRef Node;
   BaseNode *Parent = nullptr;
   std::vector<std::unique_ptr<BaseNode>> Children;
-  // Behavior 生命周期严格短于宿主，内部可安全观察宿主和复合视觉子节点。
-  std::vector<std::unique_ptr<UIBehavior>> Behaviors;
-  UIBehavior *CapturedBehavior = nullptr;
+  std::vector<std::unique_ptr<IBehavior>> Behaviors;
+  IBehavior *CapturedBehavior = nullptr;
 
   // Key 是声明式 UI 在多次构建之间复用控件的稳定身份。
   std::string Key;
 
+public:
   BaseNode();
-  virtual ~BaseNode();
+  ~BaseNode() override;
   BaseNode(const BaseNode &) = delete;
   BaseNode &operator=(const BaseNode &) = delete;
 
   bool Contains(float x, float y) const;
   bool Contains(MouseMovArgs args) const;
 
-  /** 路由器放弃一次捕获时，旧式控件用它清理未完成的手势状态。 */
-  virtual void OnPointerCaptureLost() {}
   /** 子树完成布局后调用，复合控件在此计算滚动范围等派生几何。 */
   virtual void OnLayoutUpdated() {}
-  /**
-   * 将缓存布局提交给可选视觉；非视觉节点默认无操作。
-   *
-   * 该窄接口避免 BaseNode 依赖 UIObject，也避免 Layout 在每帧遍历中使用 RTTI。
-   */
-  virtual void SynchronizeVisual(const DirectX::XMFLOAT4 &) {}
-  // 返回当前位置期望的指针形状，父级可为子视觉提供边界光标
-  virtual MouseCursor GetMouseCursor(MouseMovArgs) const {
-    return MouseCursor::Arrow;
-  }
+  virtual void Synchronize() {}
 
-  /**
-   * 添加一个可组合行为并返回稳定观察指针。
-   *
-   * 行为按优先级降序调度；同优先级保持添加顺序，从而让控件组装代码显式决定
-   * 冲突策略，而不是在控件事件函数里不断增加 if/else。行为集合只能在事件
-   * 分发之外修改，以保证当前回调地址稳定。
-   */
-  UIBehavior *AddBehavior(std::unique_ptr<UIBehavior> behavior);
-  template <typename T, typename... Args> T *AddBehavior(Args &&...args) {
-    static_assert(std::is_base_of_v<UIBehavior, T>);
+  IBehavior *AddBehavior(std::unique_ptr<IBehavior> behavior);
+  bool RemoveBehavior(IBehavior *behavior);
+
+  template <typename T, typename... Args>
+  T *AddBehavior(Args &&...args) {
+    static_assert(std::is_base_of_v<IBehavior, T>);
     auto behavior = std::make_unique<T>(std::forward<Args>(args)...);
     auto *observer = behavior.get();
     AddBehavior(std::move(behavior));
     return observer;
   }
-  bool RemoveBehavior(UIBehavior *behavior);
-  template <typename T> T *GetBehavior() {
-    static_assert(std::is_base_of_v<UIBehavior, T>);
+
+  template <typename T>
+  T *GetBehavior() {
+    static_assert(std::is_base_of_v<IBehavior, T>);
     for (auto &behavior : Behaviors)
       if (auto *result = dynamic_cast<T *>(behavior.get()))
         return result;
     return nullptr;
   }
-  template <typename T> const T *GetBehavior() const {
-    static_assert(std::is_base_of_v<UIBehavior, T>);
+
+  template <typename T>
+  const T *GetBehavior() const {
+    static_assert(std::is_base_of_v<IBehavior, T>);
     for (const auto &behavior : Behaviors)
       if (auto *result = dynamic_cast<const T *>(behavior.get()))
         return result;
     return nullptr;
   }
-  /** 以下入口只供 Layout 路由器调用，统一组合 Behavior 与节点事件钩子。 */
+
+  /** 以下入口只供 Layout 路由器调用，组合 Behavior 与节点的统一事件契约。 */
   EventReply DispatchMouseDown(MouseMovArgs args);
   bool DispatchMouseMove(MouseMovArgs args);
   bool DispatchMouseDrag(MouseMovArgs args);
@@ -129,11 +118,6 @@ public:
   bool SetProperty(const std::string &name, const std::string &value) override;
 
 protected:
-  /**
-   * 提前释放观察宿主资源的 Behavior；VisualNode 在视觉成员析构前调用。
-   *
-   * BaseNode 析构会再次安全调用，因此纯布局节点和构造失败路径无需特殊处理。
-   */
   void ReleaseBehaviors();
 };
 } // namespace z8::ui
