@@ -109,6 +109,7 @@ void Layout::CancelTreeCaptures(BaseNode *node) {
 void Layout::RebuildIndex() {
   // 声明式重建可能销毁旧节点，不能让指针捕获跨越拓扑变化。
   CancelTreeCaptures(Root.get());
+  RemoveClosedPanelGroups(*Root);
   NormalizePanelGroups(*Root);
   CapturedTarget = nullptr;
   CapturedHandler = nullptr;
@@ -176,6 +177,29 @@ z8::MouseCursor Layout::GetMouseCursor(MouseMovArgs args) const {
   return MouseCursor::Arrow;
 }
 
+EventReply Layout::OnKeyDown(KeyArgs args) {
+  if (args.Key == '3') {
+    // WasDown 来自 Win32 lParam 第 30 位；忽略自动重复，确保一次按键只切换一次。
+    if (!args.WasDown) {
+      DebugPanelBorders = !DebugPanelBorders;
+      Dirty = true;
+      UpdatePanelDebugVisuals();
+    }
+    return EventReply::Handled;
+  }
+  if (args.Key != VK_ESCAPE || Dock.Drag.State == PanelDragState::Idle)
+    return EventReply::Ignored;
+  // Escape 与 capture-lost 共享无副作用取消路径：DockTree 在预览阶段从未
+  // 被改动，因此只需复位节点手势和 DragSession 即可恢复原 placement。
+  if (CapturedHandler)
+    CapturedHandler->CancelPointerCapture();
+  CapturedTarget = nullptr;
+  CapturedHandler = nullptr;
+  Dock.CancelDrag();
+  Dirty = true;
+  return EventReply::Handled;
+}
+
 EventReply Layout::OnMouseDown(MouseMovArgs args) {
   if (args.Button == MouseButton::Left) {
     if (auto *split = Dock.Tree.FindSplitterAt(static_cast<float>(args.X),
@@ -216,6 +240,12 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
     if (reply != EventReply::Ignored)
       break;
   }
+  if (RemoveClosedPanelGroups(*Root)) {
+    // 关闭请求在命中分发完全返回后提交，避免按钮处理函数释放自身；重建
+    // 索引还会统一清除 Hover/Capture 的观察指针。
+    RebuildIndex();
+    return EventReply::Handled;
+  }
   if (CapturedHandler &&
       dynamic_cast<ResizeBehavior *>(CapturedHandler->CapturedBehavior)) {
     auto *resize = static_cast<ResizeBehavior *>(CapturedHandler->CapturedBehavior);
@@ -226,9 +256,17 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
   }
   if (CapturedHandler &&
       dynamic_cast<DragBehavior *>(CapturedHandler->CapturedBehavior) &&
-      CapturedHandler->GetBehavior<DockBehavior>())
+      CapturedHandler->GetBehavior<DockBehavior>()) {
     Dock.BeginDrag(*CapturedHandler, static_cast<float>(args.X),
                    static_cast<float>(args.Y));
+  } else if (auto *tab = dynamic_cast<PanelGroupTabNode *>(CapturedHandler);
+             tab && tab->Group && tab->PanelIndex < tab->Group->Panels.size()) {
+    // 点击立即激活 Panel；是否构成拖动仍由 DragBehavior 的位移阈值决定。
+    tab->Group->ActivatePanel(tab->PanelIndex);
+    Dock.BeginPanelDrag(*tab->Group->Panels[tab->PanelIndex], *tab->Group,
+                        tab->PanelIndex, static_cast<float>(args.X),
+                        static_cast<float>(args.Y));
+  }
   // 命中任何 UI 都会阻止事件穿透到场景，即使控件没有主动手势。
   return EventReply::Handled;
 }
@@ -267,7 +305,8 @@ EventReply Layout::OnMouseDrag(MouseMovArgs args) {
   const bool wasMoved = drag && drag->HasGestureMoved();
   if (CapturedHandler)
     CapturedHandler->DispatchMouseDrag(args);
-  if (drag && CapturedHandler->GetBehavior<DockBehavior>()) {
+  if (drag && (CapturedHandler->GetBehavior<DockBehavior>() ||
+               Dock.Drag.PayloadType == DragPayloadType::Panel)) {
     Dock.UpdateDrag(static_cast<float>(args.X), static_cast<float>(args.Y));
     // 预览层只在拖拽期间进入渲染批次，状态切换必须触发重建。
     Dirty = true;
@@ -322,13 +361,17 @@ EventReply Layout::OnMouseUp(MouseMovArgs args) {
           : key;
   if (CapturedHandler)
     CapturedHandler->DispatchMouseUp(args);
-  if (drag && CapturedHandler->GetBehavior<DockBehavior>()) {
+  if (drag && (CapturedHandler->GetBehavior<DockBehavior>() ||
+               Dock.Drag.PayloadType == DragPayloadType::Panel)) {
     auto *draggedNode = CapturedHandler;
-    Dock.CommitDrag(static_cast<float>(args.X), static_cast<float>(args.Y));
-    if (const auto *state = Dock.GetState(*draggedNode);
-        state && state->Placement == PanelPlacement::Floating)
-      BringToFront(draggedNode);
-    CommitPanelGroupMerge();
+    if (Dock.Drag.PayloadType == DragPayloadType::Panel) {
+      CommitPanelDrop(static_cast<float>(args.X), static_cast<float>(args.Y));
+    } else {
+      Dock.CommitDrag(static_cast<float>(args.X), static_cast<float>(args.Y));
+      if (const auto *state = Dock.GetState(*draggedNode);
+          state && state->Placement == PanelPlacement::Floating)
+        BringToFront(draggedNode);
+    }
     Dirty = true;
   }
   if (completedDrag)
@@ -372,8 +415,10 @@ DockRect Layout::GetDockPreview() const {
   if (Dock.Drag.State != PanelDragState::Dragging)
     return {};
   return Dock.Drag.DockTarget &&
-                 (Dock.Drag.Side != DockSide::Center ||
-                  Dock.Drag.TargetGroupTitle)
+                 Dock.Drag.Side != DockSide::Center
+             ? Dock.Drag.DockPreviewRect
+         : Dock.Drag.PayloadType == DragPayloadType::Panel &&
+                   Dock.Drag.TargetTabIndex >= 0
              ? Dock.Drag.DockPreviewRect
              : Dock.Drag.FloatingPreviewRect;
 }
@@ -393,6 +438,87 @@ void Layout::BringToFront(BaseNode *node) {
   siblings.erase(iterator);
   siblings.push_back(std::move(owner));
   RebuildIndex();
+}
+
+bool Layout::CommitPanelDrop(float clientX, float clientY) {
+  Dock.UpdateDrag(clientX, clientY);
+  const auto drag = Dock.Drag;
+  if (drag.State != PanelDragState::Dragging || !drag.PayloadPanel ||
+      !drag.SourceGroup || drag.SourceTabIndex < 0) {
+    Dock.CancelDrag();
+    return false;
+  }
+
+  auto *targetGroup = drag.TargetGroup;
+  if (!targetGroup) {
+    auto *targetLeaf = Dock.Tree.Find(drag.DockTarget);
+    targetGroup = targetLeaf && targetLeaf->Panels.size() == 1
+                      ? dynamic_cast<PanelGroupNode *>(
+                            targetLeaf->Panels.front())
+                      : nullptr;
+  }
+  if (targetGroup && drag.Side == DockSide::Center) {
+    if (!targetGroup) {
+      Dock.CancelDrag();
+      return false;
+    }
+    if (targetGroup == drag.SourceGroup) {
+      // 同组标题栏空白处不改变顺序；命中另一个 Tab 时交换完整的 Panel/Tab
+      // 所有权槽位，拖拽期间仍不触碰真实结构。
+      const bool reordered =
+          drag.TargetTabIndex < 0 ||
+          targetGroup->SwapPanels(
+              static_cast<size_t>(drag.SourceTabIndex),
+              static_cast<size_t>(drag.TargetTabIndex));
+      Dock.CancelDrag();
+      if (drag.TargetTabIndex >= 0)
+        RebuildIndex();
+      return reordered;
+    }
+    auto panel = drag.SourceGroup->RemovePanel(
+        static_cast<size_t>(drag.SourceTabIndex));
+    if (!panel) {
+      Dock.CancelDrag();
+      return false;
+    }
+    targetGroup->AddPanel(std::move(panel));
+    targetGroup->ActivatePanel(targetGroup->Panels.size() - 1);
+    if (drag.SourceGroup->Panels.empty())
+      Dock.Remove(*drag.SourceGroup);
+    Dock.CancelDrag();
+    RebuildIndex();
+    return true;
+  }
+
+  // 唯一 Panel 投向自己的边缘没有可保留的目标 Leaf；保持原结构比先删除
+  // 来源再尝试命中失效 ID 更确定。多 Panel 来源仍可正常拆出新 Group。
+  if (drag.DockTarget == drag.SourceNode &&
+      drag.SourceGroup->Panels.size() == 1) {
+    Dock.CancelDrag();
+    return true;
+  }
+
+  auto panel = drag.SourceGroup->RemovePanel(
+      static_cast<size_t>(drag.SourceTabIndex));
+  if (!panel) {
+    Dock.CancelDrag();
+    return false;
+  }
+  if (drag.SourceGroup->Panels.empty())
+    Dock.Remove(*drag.SourceGroup);
+
+  auto group = std::make_unique<PanelGroupNode>();
+  auto *newGroup = group.get();
+  newGroup->Key = panel->Key + ".__group";
+  newGroup->Style.Width = drag.FloatingPreviewRect.Width;
+  newGroup->Style.Height = drag.FloatingPreviewRect.Height;
+  newGroup->AddPanel(std::move(panel));
+  Root->BaseNode::AddChild(std::move(group));
+  const bool placed = Dock.PlaceNew(*newGroup, drag.DockTarget, drag.Side,
+                                    drag.FloatingPreviewRect);
+  Dock.CancelDrag();
+  RebuildIndex();
+  return placed;
 }
 
 void Layout::NormalizePanelGroups(BaseNode &parent) {
@@ -421,22 +547,23 @@ void Layout::NormalizePanelGroups(BaseNode &parent) {
   }
 }
 
-void Layout::CommitPanelGroupMerge() {
-  auto *source = Dock.CommittedMergeSource;
-  auto *target = Dock.CommittedMergeTarget;
-  Dock.CommittedMergeSource = nullptr;
-  Dock.CommittedMergeTarget = nullptr;
-  if (!source || !target || !source->Parent)
-    return;
-  auto *parent = source->Parent;
-  target->MergeFrom(*source);
-  auto &siblings = parent->Children;
-  const auto iterator = std::find_if(
-      siblings.begin(), siblings.end(),
-      [source](const auto &candidate) { return candidate.get() == source; });
-  if (iterator != siblings.end())
-    siblings.erase(iterator);
-  RebuildIndex();
+bool Layout::RemoveClosedPanelGroups(BaseNode &parent) {
+  bool removed = false;
+  for (auto iterator = parent.Children.begin();
+       iterator != parent.Children.end();) {
+    auto *group = dynamic_cast<PanelGroupNode *>(iterator->get());
+    if (group && (group->CloseRequested || group->Panels.empty())) {
+      // 先撤销事务状态再释放视觉树所有权，保证 DockTree、捕获和拖拽会话
+      // 不会留下指向已析构 Group 的观察指针。
+      Dock.Remove(*group);
+      iterator = parent.Children.erase(iterator);
+      removed = true;
+      continue;
+    }
+    removed = RemoveClosedPanelGroups(**iterator) || removed;
+    ++iterator;
+  }
+  return removed;
 }
 
 BaseNode *Layout::Find(const std::string &key) const {
@@ -461,7 +588,7 @@ bool Layout::ConsumeDirty() {
 
 std::vector<GameObject *> Layout::GetUO() const {
   std::vector<GameObject *> result;
-  result.reserve(Visuals.size() + 1);
+  result.reserve(Visuals.size() + PanelDebugVisuals.size() + 1);
   for (auto *v : Visuals) {
     assert (v->UO);
     result.push_back(v->UO.get());
@@ -471,6 +598,10 @@ std::vector<GameObject *> Layout::GetUO() const {
   if (DockPreviewVisual && Dock.Drag.State == PanelDragState::Dragging) {
     assert(DockPreviewVisual->UO);
     result.push_back(DockPreviewVisual->UO.get());
+  }
+  for (const auto &visual : PanelDebugVisuals) {
+    assert(visual && visual->UO);
+    result.push_back(visual->UO.get());
   }
   return result;
 }
@@ -495,6 +626,7 @@ void Layout::Calculate(float w, float h) {
   const DirectX::XMFLOAT4 clip{0.0f, 0.0f, w, h};
   UpdateTree(*Root, 0, 0, clip, true);
   UpdateDockPreview();
+  UpdatePanelDebugVisuals();
 
   bool scrollChanged = false;
   for (auto *terminal : Terminals)
@@ -545,7 +677,9 @@ void Layout::UpdateTree(BaseNode &node, float parentX, float parentY,
   }
 
   // 6. 事件通知
-  if (dispatchAfterLayout)
+  // 非活动页仍保留节点状态，但不应运行 Panel 内容的逐帧更新；可见性与
+  // 输入命中使用同一传播结果，避免隐藏页在后台继续产生 UI 状态变化。
+  if (dispatchAfterLayout && node.EffectiveVisible)
     node.DispatchAfterLayout();
 }
 
@@ -561,4 +695,51 @@ void Layout::UpdateDockPreview() {
   DockPreviewVisual->Height = rect.Height;
   DockPreviewVisual->VisibleClip = {0.0f, 0.0f, Root->Width, Root->Height};
   DockPreviewVisual->Synchronize();
+}
+
+void Layout::UpdatePanelDebugVisuals() {
+  if (!DebugPanelBorders) {
+    if (!PanelDebugVisuals.empty()) {
+      PanelDebugVisuals.clear();
+      Dirty = true;
+    }
+    return;
+  }
+  std::vector<const BaseNode *> bounds;
+  for (auto *node : Nodes) {
+    auto *panel = dynamic_cast<PanelNode *>(node);
+    if (!panel || !panel->EffectiveVisible)
+      continue;
+    // 入组 Panel 的实际布局框只覆盖 Pages；诊断窗口边界应覆盖标题栏在内的
+    // PanelGroup，否则无法观察 Dock Leaf 的真实分割位置。
+    bounds.push_back(panel->Group
+                         ? static_cast<const BaseNode *>(panel->Group)
+                         : static_cast<const BaseNode *>(panel));
+  }
+  if (PanelDebugVisuals.size() != bounds.size()) {
+    PanelDebugVisuals.clear();
+    PanelDebugVisuals.reserve(bounds.size());
+    for (size_t index = 0; index < bounds.size(); ++index) {
+      auto visual = std::make_unique<RectNode>();
+      visual->Key = "__debug_panel_border";
+      visual->HitTestVisible = false;
+      visual->SetColor({0.0f, 0.0f, 0.0f, 0.0f});
+      visual->SetBorder({1.0f, 0.0f, 0.0f, 1.0f}, 2.0f);
+      visual->SetCornerRadius(0.0f);
+      PanelDebugVisuals.push_back(std::move(visual));
+    }
+    // 渲染批次缓存 UIObject 指针；只有数量变化才需要重建，普通布局帧复用对象。
+    Dirty = true;
+  }
+  for (size_t index = 0; index < bounds.size(); ++index) {
+    auto &visual = PanelDebugVisuals[index];
+    visual->Left = bounds[index]->Left;
+    visual->Top = bounds[index]->Top;
+    visual->Width = bounds[index]->Width;
+    visual->Height = bounds[index]->Height;
+    visual->VisibleClip = {0.0f, 0.0f, Root->Width, Root->Height};
+    visual->Visible = true;
+    visual->EffectiveVisible = true;
+    visual->Synchronize();
+  }
 }

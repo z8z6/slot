@@ -403,6 +403,8 @@ void Application::OnMouseWheel(MouseWheelArgs Args) {
 }
 
 void Application::OnKeyDown(KeyArgs Args) {
+  if (Layout.OnKeyDown(Args) != EventReply::Ignored)
+    return;
   ForEachObject([&](Object& object) { object.OnKeyDown(Args); });
 }
 

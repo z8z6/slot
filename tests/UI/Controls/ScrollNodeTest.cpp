@@ -1,5 +1,6 @@
 #include "UI/Layout/ScrollNode.h"
 #include "UI/Layout/Layout.h"
+#include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
 
@@ -13,6 +14,10 @@ TEST(ScrollNodeTest, OwnsReusableScrollComposition) {
   EXPECT_EQ(scroll.ContentHost(), scroll.ContentNode);
   EXPECT_EQ(scroll.ContentNode->Parent, scroll.ViewportNode);
   EXPECT_NE(scroll.GetScrollBehavior(), nullptr);
+  ASSERT_TRUE(scroll.VerticalScrollBarNode->Style.Width.has_value());
+  EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Width.value(), 16.0f);
+  EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Width.value(),
+                  Theme::Default().ScrollBar.ScrollBarThickness);
 }
 
 TEST(ScrollNodeTest, ReceivesInputAcrossAnEmptyViewport) {

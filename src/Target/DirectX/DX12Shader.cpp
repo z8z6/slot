@@ -83,7 +83,7 @@ void DX12Shader::CompileByDxc() {
   const std::wstring target(Description->Target.begin(), Description->Target.end());
   std::vector<LPCWSTR> arguments = {
       L"-E", entry.c_str(), L"-T", target.c_str(),
-      L"-I", L"shader", L"-HV", L"2021"};
+      L"-I", L"asset/shader", L"-HV", L"2021"};
 #if defined(DEBUG) || defined(_DEBUG)
   arguments.push_back(L"-Zi");
   arguments.push_back(L"-Od");

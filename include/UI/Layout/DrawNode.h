@@ -24,6 +24,8 @@ public:
   bool SetColor(const DirectX::XMFLOAT4 &color) const;
   /** 设置像素宽度边框；0 表示不绘制边框。 */
   bool SetBorder(const DirectX::XMFLOAT4 &color, float width) const;
+  /** 设置屏幕像素圆角；Shader 会按最终矩形尺寸夹紧半径。 */
+  bool SetCornerRadius(float radius) const;
   void Synchronize() override;
 };
 

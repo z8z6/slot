@@ -10,4 +10,4 @@
 
 顶点已有 TEXCOORD，但根签名没有 SRV/sampler，材质也没有纹理句柄，`texture` 尚未进入渲染路径。
 
-关键源码：`Material`、`ResourceManager.cpp`、`DX12MaterialManager.cpp`、`shader/GameObject.hlsl`。
+关键源码：`Material`、`ResourceManager.cpp`、`DX12MaterialManager.cpp`、`asset/shader/GameObject.hlsl`；文件材质资源统一放在 `asset/material`。

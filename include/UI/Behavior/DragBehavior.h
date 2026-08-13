@@ -27,6 +27,7 @@ private:
   bool Dragging = false;
   bool GestureMoved = false;
   bool InteractiveGeometry = false;
+  bool PreviewOnly = false;
   float CurrentLeft = 0.0f;
   float CurrentTop = 0.0f;
   float CurrentWidth = 0.0f;
@@ -47,6 +48,8 @@ public:
   EventReply OnMouseDown(MouseMovArgs args) override;
   EventReply OnMouseDrag(MouseMovArgs args) override;
   EventReply OnMouseUp(MouseMovArgs args) override;
+  /** 仅推进手势状态，由外部拖放系统绘制预览，不修改宿主节点布局。 */
+  void SetPreviewOnly(bool previewOnly) { PreviewOnly = previewOnly; }
   void OnPointerCaptureLost() override {
     Dragging = false;
     GestureMoved = false;

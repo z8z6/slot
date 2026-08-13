@@ -13,6 +13,7 @@ RectNode::RectNode() : DrawNode(std::make_unique<RectUIObject>()) {
   const auto &style = Theme::Default().Rect;
   SetColor(style.Color);
   SetBorder(style.BorderColor, style.BorderWidth);
+  SetCornerRadius(style.CornerRadius);
   Style.Margin = style.Margin;
   Style.Padding = style.Padding;
   Style.MinWidth = style.MinWidth;

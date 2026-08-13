@@ -11,6 +11,7 @@ FetchContent_MakeAvailable(googletest)
 # 实现。该库刻意不包含 Application/Window 和完整 DX12 后端，保证单元测试不会
 # 创建 HWND 或图形设备。
 add_library(slot_test_runtime STATIC
+        ../src/Core/Event.cpp
         ../src/UI/Dock/DockTree.cpp
         ../src/UI/Dock/DockWorkspace.cpp
         ../src/UI/Behavior/DockBehavior.cpp
@@ -25,6 +26,7 @@ add_library(slot_test_runtime STATIC
         ../src/UI/Layout/DrawNode.cpp
         ../src/UI/Layout/Layout.cpp
         ../src/UI/Layout/LayoutEngine.cpp
+        ../src/UI/Layout/ImageNode.cpp
         ../src/UI/Layout/PanelGroupNode.cpp
         ../src/UI/Layout/PanelNode.cpp
         ../src/UI/Layout/RectNode.cpp
@@ -66,14 +68,19 @@ target_include_directories(slot_test_runtime PUBLIC
         "${PROJECT_SOURCE_DIR}/third")
 target_compile_definitions(slot_test_runtime PUBLIC
         SLOT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
-target_link_libraries(slot_test_runtime PUBLIC d3dcompiler.lib dxcompiler.lib)
+target_link_libraries(slot_test_runtime PUBLIC
+        d3dcompiler.lib
+        dxcompiler.lib
+        dwrite.lib)
 
 # 为一个测试目录创建独立可执行文件并注册其中的 GoogleTest 用例。叶子目录
 # 显式传入源文件，避免递归 glob 让新增目录意外混入其他测试目标。
 function(slot_add_test_target target)
     add_executable(${target} ${ARGN})
     target_link_libraries(${target} PRIVATE slot_test_runtime GTest::gtest_main)
-    gtest_discover_tests(${target})
+    # 资源 URI 相对于项目根解析；每个独立测试目标使用同一运行目录，避免
+    # CTest 从构建目录启动时把 asset/* 误判为缺失。
+    gtest_discover_tests(${target} WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 endfunction()
 
 add_subdirectory(Object)

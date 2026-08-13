@@ -1,6 +1,7 @@
 #include "UI/Declarative/ImmediateUI.h"
 #include "Object/UIObject/UIObject.h"
 #include "UI/Layout/DrawNode.h"
+#include "UI/Layout/ImageNode.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/SceneNode.h"
 #include "UI/Layout/TerminalNode.h"
@@ -130,5 +131,33 @@ TEST(ImmediateUITest, DeclaresReusableTerminalWithoutStyle) {
   ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
   EXPECT_EQ(second, first);
   EXPECT_EQ(terminal->OutputText(), "Persistent message");
+}
+
+TEST(ImmediateUITest, DeclaresReusableBuiltinImage) {
+  Layout layout;
+  ImmediateUI ui(layout);
+  UIStyle style;
+  style.Width = 24.0f;
+  style.Height = 24.0f;
+  style.CornerRadius = 5.0f;
+
+  ui.BeginFrame();
+  auto *first = ui.Image("add", "builtin://icon/plus", style);
+  ASSERT_NE(first, nullptr);
+  ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
+  auto *image = dynamic_cast<ImageNode *>(first);
+  ASSERT_NE(image, nullptr);
+  EXPECT_EQ(image->Kind, ImageKind::Plus);
+  EXPECT_FLOAT_EQ(image->Style.Width.value(), 24.0f);
+  EXPECT_FLOAT_EQ(image->UO->GetCornerRadius(), 5.0f);
+
+  ui.BeginFrame();
+  auto *second = ui.Image("add", "builtin://icon/close");
+  ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
+  EXPECT_EQ(second, first);
+  EXPECT_EQ(image->Kind, ImageKind::Close);
+  EXPECT_FLOAT_EQ(image->Style.Width.value(), 18.0f);
+  EXPECT_FLOAT_EQ(image->UO->GetColor().x,
+                  Theme::Default().Text.MutedColor.x);
 }
 } // namespace z8::ui

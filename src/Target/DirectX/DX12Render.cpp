@@ -21,7 +21,7 @@ using namespace z8;
 DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), SwapChain(this), Msaa(this), RootSignature(this),
       GOBatch(this), UOBatch(this, true), TextRenderer(this),
-      DepthStencil(this), RenderTarget(this), SceneTarget(this),
+      DepthStencil(this), RenderTarget(this),
       MeshManager(this), MaterialManager(this), ShaderLibrary(app->Resources) {
   Ctx = &DX12Device::Instance();
 }
@@ -46,7 +46,6 @@ void DX12Render::Init()
   Cmd.Init();
   SwapChain.Init();
   RenderTarget.InitDescriptor();
-  SceneTarget.InitDescriptor();
   DepthStencil.InitDescriptor();
 
   Resize();
@@ -93,7 +92,9 @@ void z8::DX12Render::Draw()
   // 绑定渲染流水线
   Cmd.Reset();
 
-  RenderTarget.Transition(false);
+  // 非 MSAA 路径直接渲染交换链；MSAA 路径保持交换链为 Present，直到 Resolve。
+  if (!Msaa.EnableMsaa)
+    RenderTarget.Transition(false);
 
   // This needs to be reset whenever the command list is reset.
   Cmd.List->RSSetViewports(1, &ScreenView);
@@ -102,8 +103,8 @@ void z8::DX12Render::Draw()
   RenderTarget.Swap();
   RenderTarget.ClearBuffer();
 
-  // 3D 场景先进入独立后台纹理。使用 SceneNode 的 viewport/scissor 可让相机
-  // 投影与编辑器中央区域一致，同时离屏资源仍保持窗口尺寸以避免停靠时重建。
+  // 3D 与 UI 共享同一个 4x 颜色缓冲。SceneNode 的 viewport/scissor 将 3D
+  // 限制在中央内容区，随后恢复全屏状态叠加 UI，不再需要不兼容 MSAA 的复制。
   if (const auto *scene = App->Layout.GetSceneNode()) {
     const auto &viewport = scene->Viewport();
     const auto left = static_cast<LONG>((std::max)(0.0f, viewport.Left));
@@ -113,8 +114,6 @@ void z8::DX12Render::Draw()
     const auto bottom = static_cast<LONG>((std::min)(
         static_cast<float>(GetWindow()->Height), viewport.Top + viewport.Height));
     if (right > left && bottom > top) {
-      SceneTarget.Transition(D3D12_RESOURCE_STATE_RENDER_TARGET);
-      SceneTarget.Clear();
       DepthStencil.ClearBuffer();
       const D3D12_VIEWPORT sceneView{
           static_cast<float>(left), static_cast<float>(top),
@@ -123,28 +122,9 @@ void z8::DX12Render::Draw()
       const D3D12_RECT sceneScissor{left, top, right, bottom};
       Cmd.List->RSSetViewports(1, &sceneView);
       Cmd.List->RSSetScissorRects(1, &sceneScissor);
-      SceneTarget.Bind();
+      RenderTarget.Bind();
       RootSignature.Bind();
       GOBatch.Draw();
-
-      SceneTarget.Transition(D3D12_RESOURCE_STATE_COPY_SOURCE);
-      auto swapToCopy = CD3DX12_RESOURCE_BARRIER::Transition(
-          RenderTarget.GetBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
-          D3D12_RESOURCE_STATE_COPY_DEST);
-      Cmd.List->ResourceBarrier(1, &swapToCopy);
-      const D3D12_BOX sourceBox{static_cast<UINT>(left),
-                               static_cast<UINT>(top), 0,
-                               static_cast<UINT>(right),
-                               static_cast<UINT>(bottom), 1};
-      const CD3DX12_TEXTURE_COPY_LOCATION destination(
-          RenderTarget.GetBuffer(), 0);
-      const CD3DX12_TEXTURE_COPY_LOCATION source(SceneTarget.Buffer.Get(), 0);
-      Cmd.List->CopyTextureRegion(
-          &destination, left, top, 0, &source, &sourceBox);
-      auto swapToRender = CD3DX12_RESOURCE_BARRIER::Transition(
-          RenderTarget.GetBuffer(), D3D12_RESOURCE_STATE_COPY_DEST,
-          D3D12_RESOURCE_STATE_RENDER_TARGET);
-      Cmd.List->ResourceBarrier(1, &swapToRender);
     }
   }
 
@@ -157,6 +137,9 @@ void z8::DX12Render::Draw()
   RootSignature.Bind();
 
   UOBatch.Draw();
+
+  if (Msaa.EnableMsaa)
+    RenderTarget.Resolve();
 
   // DirectWrite 通过 D3D11On12 接管同一后备缓冲并完成 PRESENT 转换。
   Cmd.CloseAndExecute();
@@ -173,11 +156,9 @@ void DX12Render::Resize()
 
   TextRenderer.PrepareResize();
   RenderTarget.ResetBuffer();
-  SceneTarget.ResetBuffer();
   DepthStencil.ResetBuffer();
   SwapChain.Resize();
   RenderTarget.InitBuffer();
-  SceneTarget.InitBuffer();
   DepthStencil.InitBuffer();
   TextRenderer.Resize();
 

@@ -25,8 +25,9 @@ void z8::DX12SwapChain::Init()
   SD.BufferDesc.Format = Format;
   SD.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
   SD.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-  SD.SampleDesc.Count = Render->Msaa.GetSampleCount();
-  SD.SampleDesc.Quality = Render->Msaa.GetMsaaQuality();
+  // Flip 模型交换链只能是单采样；4x MSAA 在独立颜色缓冲完成后 Resolve。
+  SD.SampleDesc.Count = 1;
+  SD.SampleDesc.Quality = 0;
   SD.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   SD.BufferCount = RtvBufCount;
   SD.OutputWindow = Render->GetWindow()->Wnd;
@@ -34,8 +35,7 @@ void z8::DX12SwapChain::Init()
   SD.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
   SD.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-  // SwapChain 创建依赖 CmdQueue
-  // @todo Flip 模型不支持 MSAA
+  // SwapChain 创建依赖 CmdQueue。
   ComPtr<IDXGISwapChain> SwapChain0;
   Ok(Ctx->Factory->CreateSwapChain(Render->Cmd.Queue.Get(), &SD, SwapChain0.GetAddressOf()));
   Ok(SwapChain0.As(&SwapChain));

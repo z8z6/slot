@@ -40,6 +40,8 @@ public:
   DockWorkspace Dock;
   /** 拖动候选覆盖层独立于 DockTree，渲染后不参与命中或布局决策。 */
   std::unique_ptr<RectNode> DockPreviewVisual;
+  /** 数字键 3 控制的 Panel 边界诊断开关。 */
+  bool DebugPanelBorders = false;
 
   bool Dirty = true;
   BaseNode *CapturedTarget = nullptr;
@@ -62,7 +64,10 @@ public:
   void WriteTerminal(const std::string &message) const;
   /** 返回当前 Dock 或浮动候选预览；Idle 时返回空矩形。 */
   DockRect GetDockPreview() const;
+  /** 返回当前参与绘制的红色 Panel 边界数量，供调试面板和测试查询。 */
+  size_t GetPanelDebugBorderCount() const { return PanelDebugVisuals.size(); }
 
+  EventReply OnKeyDown(KeyArgs args) override;
   EventReply OnMouseDown(MouseMovArgs args) override;
   EventReply OnMouseMove(MouseMovArgs args) override;
   EventReply OnMouseDrag(MouseMovArgs args) override;
@@ -74,15 +79,22 @@ public:
 private:
   void BringToFront(BaseNode *node);
   void CancelTreeCaptures(BaseNode *node);
-  void CommitPanelGroupMerge();
+  /** 按统一 DragSession 提交 Panel 成员迁移，并在需要时创建单页 Group。 */
+  bool CommitPanelDrop(float clientX, float clientY);
   BehaviorNode *FindBehaviorNode(BaseNode *node) const;
   BaseNode *HitAt(float x, float y) const;
   void IndexTree(BaseNode *node);
   /** 把未分组 Panel 包装为单页 PanelGroup，Dock 树只管理 Group。 */
   void NormalizePanelGroups(BaseNode &parent);
+  /** 回收请求关闭或已无页面的 Group，并同步清除 Dock/Floating 归属。 */
+  bool RemoveClosedPanelGroups(BaseNode &parent);
+  /** 根据最终屏幕坐标刷新诊断覆盖层，不修改 Panel 自身主题状态。 */
+  void UpdatePanelDebugVisuals();
   void UpdateTree(BaseNode &node, float parentX, float parentY,
                   const DirectX::XMFLOAT4 &clip, bool dispatchAfterLayout,
                   bool parentVisible = true);
   void UpdateDockPreview();
+
+  std::vector<std::unique_ptr<RectNode>> PanelDebugVisuals;
 };
 } // namespace z8::ui

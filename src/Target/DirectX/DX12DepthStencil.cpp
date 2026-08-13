@@ -56,11 +56,14 @@ void z8::DX12DepthStencil::InitBuffer()
     IID_PPV_ARGS(Buffer.GetAddressOf())));
 
   // 绑定 Dsv 描述符
-  D3D12_DEPTH_STENCIL_VIEW_DESC DD;
+  D3D12_DEPTH_STENCIL_VIEW_DESC DD{};
   DD.Flags = D3D12_DSV_FLAG_NONE;
-  DD.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+  DD.ViewDimension = Render->Msaa.EnableMsaa
+                         ? D3D12_DSV_DIMENSION_TEXTURE2DMS
+                         : D3D12_DSV_DIMENSION_TEXTURE2D;
   DD.Format = Format;
-  DD.Texture2D.MipSlice = 0;
+  if (!Render->Msaa.EnableMsaa)
+    DD.Texture2D.MipSlice = 0;
   Ctx->Device->CreateDepthStencilView(Buffer.Get(), &DD, Dpt);
 
   // 状态转换

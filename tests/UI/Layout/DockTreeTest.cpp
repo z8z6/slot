@@ -119,8 +119,18 @@ TEST(DockTreeTest, PreviewUsesThirtyPercentButCommitKeepsEqualSplit) {
   auto *target = tree.AddPanel(&first);
   tree.Layout({0.0f, 0.0f, 1000.0f, 600.0f});
 
-  const auto preview = tree.GetPreviewRect(*target, DockSide::Left);
-  EXPECT_FLOAT_EQ(preview.Width, 300.0f);
+  const auto leftPreview = tree.GetPreviewRect(*target, DockSide::Left);
+  const auto rightPreview = tree.GetPreviewRect(*target, DockSide::Right);
+  const auto topPreview = tree.GetPreviewRect(*target, DockSide::Top);
+  const auto bottomPreview = tree.GetPreviewRect(*target, DockSide::Bottom);
+  EXPECT_FLOAT_EQ(leftPreview.Left, 0.0f);
+  EXPECT_FLOAT_EQ(leftPreview.Width, 300.0f);
+  EXPECT_FLOAT_EQ(rightPreview.Left, 700.0f);
+  EXPECT_FLOAT_EQ(rightPreview.Width, 300.0f);
+  EXPECT_FLOAT_EQ(topPreview.Top, 0.0f);
+  EXPECT_FLOAT_EQ(topPreview.Height, 180.0f);
+  EXPECT_FLOAT_EQ(bottomPreview.Top, 420.0f);
+  EXPECT_FLOAT_EQ(bottomPreview.Height, 180.0f);
   ASSERT_TRUE(tree.Commit({&second, 0, target->ID, DockSide::Left}));
   tree.Layout({0.0f, 0.0f, 1000.0f, 600.0f});
   EXPECT_FLOAT_EQ(tree.Root->SplitRatio, 0.5f);

@@ -2,6 +2,7 @@
 #include "UI/Layout/RectNode.h"
 #include "UI/Layout/SceneNode.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
 
@@ -28,6 +29,24 @@ TEST(LayoutTest, CalculatesWithoutApplicationOrWindow) {
   layout.Calculate(800.0f, 600.0f);
   EXPECT_FLOAT_EQ(layout.Root->Computed.Width, 800.0f);
   EXPECT_FLOAT_EQ(layout.Root->Computed.Height, 600.0f);
+}
+
+TEST(LayoutTest, TogglesRedPanelBorderDebugModeWithNumberThree) {
+  Layout layout;
+  auto panel = std::make_unique<PanelNode>();
+  layout.Root->AddChild(std::move(panel));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_EQ(layout.GetPanelDebugBorderCount(), 0U);
+
+  EXPECT_EQ(layout.OnKeyDown(KeyArgs('3')), EventReply::Handled);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_TRUE(layout.DebugPanelBorders);
+  EXPECT_EQ(layout.GetPanelDebugBorderCount(), 1U);
+
+  EXPECT_EQ(layout.OnKeyDown(KeyArgs('3')), EventReply::Handled);
+  EXPECT_FALSE(layout.DebugPanelBorders);
+  EXPECT_EQ(layout.GetPanelDebugBorderCount(), 0U);
 }
 
 TEST(LayoutTest, RoutesSceneViewportInputPastUIOverlay) {
@@ -76,8 +95,9 @@ TEST(LayoutTest, ReservesEditorPanelsAroundSceneViewport) {
   EXPECT_FLOAT_EQ(sceneObserver->Top, 48.0f);
   EXPECT_FLOAT_EQ(sceneObserver->Width, 640.0f);
   EXPECT_FLOAT_EQ(sceneObserver->Height, 572.0f);
-  EXPECT_FLOAT_EQ(sceneObserver->Viewport().Top, 78.0f);
-  EXPECT_FLOAT_EQ(sceneObserver->Viewport().Height, 542.0f);
+  const float titleHeight = Theme::Default().Panel.TitleHeight;
+  EXPECT_FLOAT_EQ(sceneObserver->Viewport().Top, 48.0f + titleHeight);
+  EXPECT_FLOAT_EQ(sceneObserver->Viewport().Height, 572.0f - titleHeight);
 }
 
 TEST(LayoutTest, DocksPanelWhenDroppedOverSceneViewport) {

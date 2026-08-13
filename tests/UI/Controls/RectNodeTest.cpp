@@ -44,4 +44,12 @@ TEST(RectNodeTest, SupportsPixelBorderProperties) {
   EXPECT_FLOAT_EQ(node.UO->GetBorderWidth(), 2.0f);
   EXPECT_FALSE(node.SetProperty("BorderWidth", "-1"));
 }
+
+TEST(RectNodeTest, SupportsPixelCornerRadius) {
+  RectNode node;
+
+  ASSERT_TRUE(node.SetProperty("CornerRadius", "8"));
+  EXPECT_FLOAT_EQ(node.UO->GetCornerRadius(), 8.0f);
+  EXPECT_FALSE(node.SetProperty("CornerRadius", "-1"));
+}
 } // namespace z8::ui

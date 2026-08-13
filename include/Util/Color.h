@@ -19,26 +19,27 @@ constexpr DirectX::XMFLOAT4 ColorFromBytes(unsigned red, unsigned green,
 
 class Color {
 public:
-  // UE 编辑器式深色层级：从窗口背景到抬升控件逐级变亮，避免纯黑造成高反差。
-  inline static constexpr auto EditorBackground = ColorFromBytes(17, 17, 17);
-  inline static constexpr auto PanelBackground = ColorFromBytes(26, 26, 26);
-  inline static constexpr auto HeaderBackground = ColorFromBytes(36, 36, 36);
-  inline static constexpr auto ControlBackground = ColorFromBytes(42, 42, 42);
-  inline static constexpr auto ControlBackgroundAlt = ColorFromBytes(34, 34, 34);
-  inline static constexpr auto ControlHover = ColorFromBytes(52, 52, 52);
-  inline static constexpr auto ControlPressed = ColorFromBytes(24, 24, 24);
-  inline static constexpr auto Border = ColorFromBytes(8, 8, 8);
-  inline static constexpr auto Divider = ColorFromBytes(55, 55, 55);
+  // 蓝黑编辑器层级取自参考界面的视觉关系：背景偏冷，抬升层只增加少量
+  // 明度，让长时间使用保持低眩光，同时仍能辨认 Panel 与输入控件边界。
+  inline static constexpr auto EditorBackground = ColorFromBytes(11, 16, 22);
+  inline static constexpr auto PanelBackground = ColorFromBytes(16, 22, 29);
+  inline static constexpr auto HeaderBackground = ColorFromBytes(22, 29, 38);
+  inline static constexpr auto ControlBackground = ColorFromBytes(20, 27, 35);
+  inline static constexpr auto ControlBackgroundAlt = ColorFromBytes(17, 23, 30);
+  inline static constexpr auto ControlHover = ColorFromBytes(30, 41, 54);
+  inline static constexpr auto ControlPressed = ColorFromBytes(13, 19, 26);
+  inline static constexpr auto Border = ColorFromBytes(43, 55, 68);
+  inline static constexpr auto Divider = ColorFromBytes(49, 61, 74);
 
   // UE 编辑器常用的蓝色选择语义；弱强调用于行底色，强强调用于焦点和选中。
-  inline static constexpr auto Accent = ColorFromBytes(0, 112, 224);
-  inline static constexpr auto AccentHover = ColorFromBytes(26, 140, 255);
-  inline static constexpr auto Selection = ColorFromBytes(0, 96, 192);
-  inline static constexpr auto SelectionInactive = ColorFromBytes(52, 73, 94);
+  inline static constexpr auto Accent = ColorFromBytes(42, 139, 255);
+  inline static constexpr auto AccentHover = ColorFromBytes(73, 160, 255);
+  inline static constexpr auto Selection = ColorFromBytes(25, 76, 132);
+  inline static constexpr auto SelectionInactive = ColorFromBytes(29, 53, 78);
 
-  inline static constexpr auto Text = ColorFromBytes(220, 220, 220);
-  inline static constexpr auto TextMuted = ColorFromBytes(160, 160, 160);
-  inline static constexpr auto TextDisabled = ColorFromBytes(96, 96, 96);
+  inline static constexpr auto Text = ColorFromBytes(218, 225, 234);
+  inline static constexpr auto TextMuted = ColorFromBytes(157, 169, 184);
+  inline static constexpr auto TextDisabled = ColorFromBytes(91, 103, 117);
   inline static constexpr auto Warning = ColorFromBytes(230, 158, 42);
   inline static constexpr auto Error = ColorFromBytes(220, 64, 64);
   inline static constexpr auto Success = ColorFromBytes(74, 166, 91);

@@ -7,12 +7,21 @@
 namespace z8::ui {
 class BaseNode;
 class PanelGroupNode;
+class PanelNode;
 
 enum class PanelDragState { Idle, Pressed, Dragging };
+enum class DragPayloadType { None, Panel, PanelGroup };
 
 /** 一次标题栏拖拽的全部临时状态；其生命周期内 DockTree 保持只读。 */
 struct PanelDragSession {
   PanelDragState State = PanelDragState::Idle;
+  DragPayloadType PayloadType = DragPayloadType::None;
+  PanelNode *PayloadPanel = nullptr;
+  PanelGroupNode *PayloadGroup = nullptr;
+  PanelGroupNode *SourceGroup = nullptr;
+  /** 标题栏命中的页签目标；浮动 Group 不在 DockTree 中，不能只依赖 DockTarget。 */
+  PanelGroupNode *TargetGroup = nullptr;
+  /** 参与预览与 DockTree 查询的 Group；Panel 拖动时仍指向来源 Group。 */
   BaseNode *Panel = nullptr;
   DockNodeID SourceNode = 0;
   int SourceTabIndex = -1;
@@ -26,8 +35,9 @@ struct PanelDragSession {
   float GrabOffsetY = 0.0f;
   DockRect FloatingPreviewRect;
   DockNodeID DockTarget = 0;
-  bool TargetGroupTitle = false;
   DockSide Side = DockSide::Center;
+  /** 同组 Panel 拖动时命中的目标页签；-1 表示标题栏空白或非页签目标。 */
+  int TargetTabIndex = -1;
   DockRect DockPreviewRect;
 };
 
@@ -46,19 +56,23 @@ class DockWorkspace final {
 public:
   DockTree Tree;
   PanelDragSession Drag;
-  /** MouseUp 产生的 Group 合并请求，Layout 在输入分发后转移节点所有权。 */
-  PanelGroupNode *CommittedMergeSource = nullptr;
-  PanelGroupNode *CommittedMergeTarget = nullptr;
 
   void ApplyLayout(float width, float height);
   void BeginDrag(BaseNode &panel, float clientX, float clientY);
+  void BeginPanelDrag(PanelNode &panel, PanelGroupNode &sourceGroup,
+                      size_t sourceTabIndex, float clientX, float clientY);
   void CancelDrag();
   bool CommitDrag(float clientX, float clientY);
   DockSide DetectSide(const DockRect &rect, float clientX,
                       float clientY) const;
   const PanelDockState *GetState(const BaseNode &panel) const;
   bool IsDocked(const BaseNode &panel) const;
+  /** 为 Commit 阶段新建的单页 Group 建立唯一 Dock/Floating 归属。 */
+  bool PlaceNew(BaseNode &group, DockNodeID target, DockSide side,
+                const DockRect &floatingRect);
   void Reconcile(const std::vector<BaseNode *> &nodes);
+  /** 在控件所有权释放前清除 Group 的 Dock/Floating 唯一归属。 */
+  bool Remove(BaseNode &panel);
   void UpdateDrag(float clientX, float clientY);
   bool ResizeSplitter(DockNodeID split, float clientX, float clientY);
   std::string DumpDebug() const;

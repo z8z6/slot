@@ -32,13 +32,13 @@ Use canonical lowercase asset IDs such as `builtin://mesh/name`. Add the constan
 1. Add a `Material` subclass only when reusable defaults or loading behavior justify a type. Plain data can be constructed directly during resource registration.
 2. Add its canonical ID and register ownership with `ResourceManager::AddMaterial`.
 3. Set its `Program` reference and bind it through `Renderable.Material`; do not allocate a private default material in each object.
-4. If fields change, update `DX12Material`, `shader/Core/Const.hlsl`, upload alignment, and ABI tests together. Root CBV material slots must remain 256-byte aligned.
+4. If fields change, update `DX12Material`, `asset/shader/Core/Const.hlsl`, upload alignment, and ABI tests together. Root CBV material slots must remain 256-byte aligned.
 5. Verify that the HLSL reads the material fields instead of shadowing them with constants.
 
 ## Add a ShaderProgram
 
-1. Add the HLSL file under `shader/`. Keep shared constant ABI in `shader/Core`.
-2. Add `shader/<Name>.shader.json` with `assetId`, `name`, `source`, `vertex`, `pixel`, `enableDepth`, and `enableBlend`.
+1. Add the HLSL file under `asset/shader/`. Keep shared constant ABI in `asset/shader/Core`.
+2. Add `asset/shader/<Name>.shader.json` with `assetId`, `name`, `source`, `vertex`, `pixel`, `enableDepth`, and `enableBlend`.
 3. Do not create Shader C++ header/source pairs. CMake runs `scripts/generate_shader_registry.py` and emits the explicit registration source.
 4. Add a `BuiltinResource.h` constant when C++ or scene defaults need to reference the Program.
 5. Bind the Program through `Material::Program`; GameObject must not reference ShaderProgram directly.

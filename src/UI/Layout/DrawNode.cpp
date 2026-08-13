@@ -26,6 +26,10 @@ DrawNode::~DrawNode() {
 
 bool DrawNode::SetProperty(const std::string &name,
                              const std::string &value) {
+  if (name == "CornerRadius" || name == "Radius") {
+    const float radius = std::strtof(value.c_str(), nullptr);
+    return radius >= 0.0f && SetCornerRadius(radius);
+  }
   if (name == "Border" || name == "BorderWidth") {
     const float width = std::strtof(value.c_str(), nullptr);
     if (width < 0.0f)
@@ -57,6 +61,14 @@ bool DrawNode::SetBorder(const DirectX::XMFLOAT4 &color, float width) const {
 bool DrawNode::SetColor(const DirectX::XMFLOAT4 &color) const {
   assert (UO);
   UO->SetColor(color);
+  return true;
+}
+
+bool DrawNode::SetCornerRadius(float radius) const {
+  assert(UO);
+  if (radius < 0.0f)
+    return false;
+  UO->SetCornerRadius(radius);
   return true;
 }
 

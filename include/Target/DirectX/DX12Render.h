@@ -14,7 +14,6 @@
 #include "DX12RenderBatch.h"
 #include "DX12RenderTarget.h"
 #include "DX12RootSignature.h"
-#include "DX12SceneTarget.h"
 #include "DX12Shader.h"
 #include "DX12SwapChain.h"
 #include "DX12TextRenderer.h"
@@ -43,7 +42,6 @@ public:
 
   DX12DepthStencil DepthStencil;
   DX12RenderTarget RenderTarget;
-  DX12SceneTarget SceneTarget;
 
   DX12MeshManager MeshManager;
   DX12MaterialManager MaterialManager;

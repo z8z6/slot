@@ -29,7 +29,7 @@ TEST(DX12ShaderTest, KeepsFxcSupportForLegacyTargets) {
   std::filesystem::current_path(SLOT_SOURCE_DIR);
   Shader shader;
   shader.Name = "LegacyMissingPixel";
-  shader.FileName = L"shader/Missing.hlsl";
+  shader.FileName = L"asset/shader/Missing.hlsl";
   shader.Entry = "PS";
   shader.Target = "ps_5_0";
 

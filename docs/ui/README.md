@@ -146,9 +146,9 @@ Panel（可渲染背景，Column）
 
 标题栏、视口和滚动条是内部节点，调用者的子控件永远被重定向到 ContentNode，不会破坏复合控件结构。Panel 背景和标题栏使用不同对象颜色；UI PSO 关闭深度写入并启用 alpha，保证标题栏按声明顺序覆盖背景。`Title` 已作为控件语义保存，但项目尚无字体/字形渲染器，文字显示需在文字渲染模块完成后接入。
 
-Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再覆写鼠标事件或保存手势状态。启用 Dock 的独立 Panel 会自动归入一个单页 `PanelGroupNode`，DockTree 始终以 Group 为最小窗口单元。`DockWorkspace` 持有单窗口的 `DockTree`：Split 节点保存轴向和比例，Leaf 只保存一个 Dock 项。`Dock="Left|Right|Top|Bottom|Fill"` 只用于初次构建结构，运行时几何唯一由树递归计算。拖到 Leaf 内容中心会按 Unity 语义创建 Floating 窗口，拖到 PanelGroup 标题栏会把源 Group 的页签合并进目标 Group，拖到边缘则创建 Split。
+Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再覆写鼠标事件或保存手势状态。启用 Dock 的独立 Panel 会自动归入一个单页 `PanelGroupNode`，DockTree 始终以 Group 为最小窗口单元。`DockWorkspace` 持有单窗口的 `DockTree`：Split 节点保存轴向和比例，Leaf 只保存一个 Dock 项。`Dock="Left|Right|Top|Bottom|Fill"` 只用于初次构建结构，运行时几何唯一由树递归计算。拖到 Leaf 中心或无目标区域会创建 Floating 窗口，拖到边缘则创建 Split；标题栏投放不会跨 Group 合并 Tab。
 
-`PanelGroupNode` 表达一个或多个 Panel 的页签组，它自身作为一个 Dock 项参与布局。标题栏为每个 Panel 生成可点击 Tab，内容区保留所有页面的运行状态，但只显示和命中当前活动 Panel；XAML 仍可显式声明初始多页组：
+`PanelGroupNode` 表达一个或多个 Panel 的页签组，它自身作为一个 Dock 项参与布局。标题栏按 Tab、空白拖动区、关闭按钮组织：Tab 根据 UTF-8 标题的估算字形宽度和固定左右留白确定长度，不再均分标题栏；活动 Tab 使用抬升背景、亮色文字和底部蓝色指示线。点击 Tab 切换活动页，拖动 Tab 以单个 Panel 为 Payload，拖动空白区则以整个 PanelGroup 为 Payload，关闭按钮移除整个 Group。内容区保留所有页面状态，但只更新、显示和命中当前活动 Panel；XAML 仍可显式声明初始多页组：
 
 ```xml
 <PanelGroup Id="editors">
@@ -157,7 +157,7 @@ Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再�
 </PanelGroup>
 ```
 
-停靠 Panel 的拖动期只更新候选目标和半透明预览，不改变节点 Style 或 DockTree；边缘预览占目标区域的 30%，便于保留目标内容的可见上下文，鼠标释放后的 Split 初始比例仍为 50%。Floating 或未被 DockTree 管理的节点仍可从边缘和四角拉伸；停靠 Panel 不允许通用 Resize 直接写几何，共享边界由 Splitter 仅修改 `SplitRatio`。
+Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交管线。拖动期只更新 Payload、候选目标和半透明预览，不改变 Group 成员、节点 Style 或 DockTree。Panel 投到目标 Center 时成为目标 Group 的活动 Tab，投到边缘或空白时只在 Commit 阶段创建新的单页 Group；PanelGroup 投到 Center 或空白时整体 Floating，投到边缘时整体 Dock。边缘预览占目标区域的 30%，鼠标释放后的 Split 初始比例仍为 50%。Floating 或未被 DockTree 管理的节点仍可从边缘和四角拉伸；停靠 Panel 不允许通用 Resize 直接写几何，共享边界由 Splitter 仅修改 `SplitRatio`。
 
 默认 `Drag.Region` 为 `TitleBar`。默认滚动总开关开启，仅允许垂直方向；水平滚动条为 `Hidden`，垂直滚动条为 `Auto`，滚轮步长为 40。Panel 根据内容范围计算并夹紧偏移；滚轮移动内容，轨道点击按一页移动，滑块拖拽通过指针捕获连续更新 value。`ScrollBarNode` 只管理 range/value 和滑块，不拥有内容，因而可被后续独立 ScrollView、列表和水平滚动复用。
 
@@ -177,17 +177,23 @@ Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再�
 
 ## 默认主题
 
-`Color` 集中定义 UE 编辑器风格的深灰层级、蓝色强调、文本状态和反馈色；`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、ScrollBar、Panel 与 Demo 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Default()` 返回当前默认主题。Demo 只读取主题中的尺寸、间距、交替行和非焦点选中色，不再散落颜色常量。
+`Color` 集中定义参考编辑器界面的冷调蓝黑层级、蓝色强调、文本状态和反馈色；Panel、标题栏、输入背景和边界只用小幅明度差建立层级，减少大面积纯黑与高反差。`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、ScrollBar、Panel 与 Demo 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Default()` 返回当前默认主题。Demo 只读取主题中的尺寸、间距、交替行和非焦点选中色，不再散落颜色常量。
+
+所有 `DrawNode` 支持像素单位的 `CornerRadius`/`Radius`。UI Shader 使用屏幕空间有符号距离场裁剪圆角并计算边框，因此半径和边框不会随控件缩放改变视觉重量；半径超过短边一半时会自动夹紧。
+
+`ImageNode` 提供独立的图标绘制节点，XAML 使用 `<Image Source="builtin://icon/plus" Tint="#2A8BFFFF"/>`，Immediate UI 使用 `Image(key, source, style)`。当前支持 `close`、`plus`、`chevron-down`、`cube` 四个 `builtin://icon/*` 单色图标，由 UI Shader 直接生成并复用现有 UI PSO；项目尚未接入纹理 SRV/sampler，因此文件位图不是本阶段伪装支持的输入，未来纹理管线可沿用 `Source` 属性扩展。
 
 新增控件应先在 `Theme` 中定义对应的样式结构，再在构造函数统一应用 `Color`、`Margin`、`Padding` 和最小尺寸，避免重新引入散落的魔法值。实例属性始终拥有更高优先级。Immediate UI 的 `Style` 参数可以省略；稳定节点会在每帧先恢复主题默认值，再应用本帧显式字段，避免继承上一帧已经移除的覆盖。
 
 Rect 支持 `BorderColor` 与像素宽度的 `Border`/`BorderWidth`。边框在 UI Shader 中根据屏幕空间矩形计算，因此控件缩放后不会改变视觉粗细；默认 Rect 不显示边框，Panel 使用主题中的亮色 1 像素边框区分相邻停靠区域。
 
+垂直滚动条使用 16 像素轨道和至少 28 像素长的滑块，两侧视觉内缩后仍保留 12 像素可见宽度。PanelGroup 内拖动 Panel 页签到另一个页签会交换二者顺序，并保持原活动 Panel 的身份；拖到目标 Group 的标题栏空白处仍表示加入该 Group。按数字键 `3` 可切换 Panel 边界调试模式，布局会用独立的红色 2 像素覆盖线显示每个可见 PanelGroup 的实际 Dock 边界，不会覆盖控件自身主题属性。
+
 ## 布局和渲染同步
 
 `LayoutEngine` 计算父空间 left/top/width/height 后，`Layout` 累加父偏移得到绝对像素坐标。求解器支持 Row/Column、grow/shrink、min/max、统一 margin/padding、百分比宽度和四边绝对定位；样式与结果均由节点直接拥有，不经过第三方句柄或 C ABI。矩形原点在中心，因此位置转换为 `(left + width/2, top + height/2)`，缩放为 `(width, height)`；UI Shader 再将像素坐标映射到 NDC 并翻转 Y。
 
-`SceneNode` 是编辑器中央 3D 视口的布局与输入边界，自身不创建普通 `UIObject`，但组合了可绘制标题栏、标题文字和纯布局 Viewport。标题栏用于拖拽，外边界用于拉伸，只有 Viewport 内容区的指针输入继续交给相机和场景对象。DX12 后端先把场景对象绘制到窗口大小的离屏 `DX12SceneTarget`，再按 Viewport 的可见矩形复制到交换链，最后覆盖绘制标题、工具面板与文字。默认 Demo 采用顶部工具栏、底部 Output Log、左侧 World Outliner、右侧 Details 和中央 SceneNode 的 UE 编辑器式布局。
+`SceneNode` 是编辑器中央 3D 视口的布局与输入边界，自身不创建普通 `UIObject`，但组合了可绘制标题栏、标题文字和纯布局 Viewport。标题栏用于拖拽，外边界用于拉伸，只有 Viewport 内容区的指针输入继续交给相机和场景对象。DX12 后端把场景与 UI 几何绘制到同一 4x MSAA 颜色缓冲，SceneNode 的 viewport/scissor 约束 3D 内容范围，随后解析到单采样交换链并由 DirectWrite 叠加文字。默认 Demo 采用顶部工具栏、底部 Output Log、左侧 World Outliner、右侧 Details 和中央 SceneNode 的 UE 编辑器式布局。
 
 FirstPersonCamera 当前默认关闭鼠标观察，等待编辑器视口补齐右键捕获、光标隐藏与恢复协议。Dock 候选在窗口客户区坐标中命中 Leaf，再以相对四分之一边区判定 Left/Right/Top/Bottom，中央 Center 区是 Floating 候选。移除 Panel 后的空 Leaf 会立即折叠其父 Split，并保留晋升子树的稳定 ID。`DockTree::Dump()` 和 `DockWorkspace::Validate()` 用于检查树结构、父子链接及 Docked/Floating 互斥不变量。
 

@@ -178,6 +178,9 @@ void DockWorkspace::BeginDrag(BaseNode &panel, float clientX, float clientY) {
     return;
   Drag = {};
   Drag.State = PanelDragState::Pressed;
+  Drag.PayloadType = DragPayloadType::PanelGroup;
+  Drag.PayloadGroup = dynamic_cast<PanelGroupNode *>(&panel);
+  Drag.SourceGroup = Drag.PayloadGroup;
   Drag.Panel = &panel;
   Drag.SourceWasFloating =
       stateIterator->second.Placement == PanelPlacement::Floating;
@@ -195,6 +198,37 @@ void DockWorkspace::BeginDrag(BaseNode &panel, float clientX, float clientY) {
   Drag.GrabOffsetX = clientX - panel.Left;
   Drag.GrabOffsetY = clientY - panel.Top;
   Drag.FloatingPreviewRect = {panel.Left, panel.Top, panel.Width, panel.Height};
+}
+
+void DockWorkspace::BeginPanelDrag(PanelNode &panel,
+                                   PanelGroupNode &sourceGroup,
+                                   size_t sourceTabIndex, float clientX,
+                                   float clientY) {
+  const auto stateIterator = States.find(&sourceGroup);
+  if (stateIterator == States.end())
+    return;
+  Drag = {};
+  Drag.State = PanelDragState::Pressed;
+  Drag.PayloadType = DragPayloadType::Panel;
+  Drag.PayloadPanel = &panel;
+  Drag.SourceGroup = &sourceGroup;
+  Drag.Panel = &sourceGroup;
+  Drag.SourceTabIndex = static_cast<int>(sourceTabIndex);
+  Drag.SourceWasFloating =
+      stateIterator->second.Placement == PanelPlacement::Floating;
+  Drag.SourceFloatingRect = stateIterator->second.FloatingRect;
+  if (auto *leaf = Tree.FindPanelLeaf(&sourceGroup))
+    Drag.SourceNode = leaf->ID;
+  Drag.PressClientX = clientX;
+  Drag.PressClientY = clientY;
+  Drag.MouseClientX = clientX;
+  Drag.MouseClientY = clientY;
+  Drag.GrabOffsetX = clientX - sourceGroup.Left;
+  Drag.GrabOffsetY = clientY - sourceGroup.Top;
+  // Panel 预览沿用来源 Group 的外框，但不创建临时节点；真实单页 Group
+  // 只允许在 MouseUp Commit 时进入所有权树。
+  Drag.FloatingPreviewRect = {sourceGroup.Left, sourceGroup.Top,
+                              sourceGroup.Width, sourceGroup.Height};
 }
 
 DockSide DockWorkspace::DetectSide(const DockRect &rect, float clientX,
@@ -224,53 +258,65 @@ void DockWorkspace::UpdateDrag(float clientX, float clientY) {
   Drag.FloatingPreviewRect.Top = clientY - Drag.GrabOffsetY;
   auto *target = Tree.FindLeafAt(clientX, clientY);
   Drag.DockTarget = target ? target->ID : 0;
-  Drag.TargetGroupTitle = false;
+  Drag.TargetTabIndex = -1;
+  Drag.TargetGroup = nullptr;
   if (target) {
     auto *targetGroup = target->Panels.size() == 1
-                            ? dynamic_cast<PanelGroupNode *>(target->Panels.front())
+                            ? dynamic_cast<PanelGroupNode *>(
+                                  target->Panels.front())
                             : nullptr;
-    auto *sourceGroup = dynamic_cast<PanelGroupNode *>(Drag.Panel);
-    Drag.TargetGroupTitle = targetGroup && targetGroup != sourceGroup &&
-                            targetGroup->TabBarNode->Contains(clientX, clientY);
-    Drag.Side = Drag.TargetGroupTitle
+    // 单 Panel 投到目标 Group 的整条标题栏都表示加入页签组。标题栏位于
+    // Leaf 顶部边缘，若继续使用通用 25% 分区会被错误解释为 Top Split。
+    const bool joinsTargetGroup =
+        Drag.PayloadType == DragPayloadType::Panel && targetGroup &&
+        targetGroup->HeaderNode &&
+        targetGroup->HeaderNode->Contains(clientX, clientY);
+    if (joinsTargetGroup) {
+      Drag.TargetGroup = targetGroup;
+      for (size_t index = 0; index < targetGroup->Tabs.size(); ++index) {
+        if (!targetGroup->Tabs[index]->Contains(clientX, clientY))
+          continue;
+        Drag.TargetTabIndex = static_cast<int>(index);
+        break;
+      }
+    }
+    Drag.Side = joinsTargetGroup
                     ? DockSide::Center
                     : DetectSide(target->Rect, clientX, clientY);
-    Drag.DockPreviewRect = Drag.TargetGroupTitle
-                               ? DockRect{targetGroup->TabBarNode->Left,
-                                          targetGroup->TabBarNode->Top,
-                                          targetGroup->TabBarNode->Width,
-                                          targetGroup->TabBarNode->Height}
-                               : Tree.GetPreviewRect(*target, Drag.Side);
+    Drag.DockPreviewRect = Tree.GetPreviewRect(*target, Drag.Side);
   } else {
     Drag.DockPreviewRect = {};
+    // Floating Group 不属于 DockTree，但自己的 Tab 仍必须支持同组重排。
+    // 跨浮动窗口的 z-order 命中留给窗口层；这里仅补足当前 source 的确定语义。
+    auto *source = Drag.PayloadType == DragPayloadType::Panel
+                       ? Drag.SourceGroup
+                       : nullptr;
+    if (source && source->HeaderNode &&
+        source->HeaderNode->Contains(clientX, clientY)) {
+      Drag.TargetGroup = source;
+      Drag.Side = DockSide::Center;
+      for (size_t index = 0; index < source->Tabs.size(); ++index) {
+        if (!source->Tabs[index]->Contains(clientX, clientY))
+          continue;
+        Drag.TargetTabIndex = static_cast<int>(index);
+        Drag.DockPreviewRect = {source->Tabs[index]->Left,
+                                source->Tabs[index]->Top,
+                                source->Tabs[index]->Width,
+                                source->Tabs[index]->Height};
+        break;
+      }
+    }
   }
 }
 
 bool DockWorkspace::CommitDrag(float clientX, float clientY) {
-  if (!Drag.Panel || Drag.State == PanelDragState::Idle)
+  if (!Drag.Panel || Drag.State == PanelDragState::Idle ||
+      Drag.PayloadType != DragPayloadType::PanelGroup)
     return false;
   UpdateDrag(clientX, clientY);
   if (Drag.State != PanelDragState::Dragging) {
     CancelDrag();
     return false;
-  }
-  CommittedMergeSource = nullptr;
-  CommittedMergeTarget = nullptr;
-  if (Drag.TargetGroupTitle) {
-    auto *targetLeaf = Tree.Find(Drag.DockTarget);
-    auto *sourceGroup = dynamic_cast<PanelGroupNode *>(Drag.Panel);
-    auto *targetGroup = targetLeaf && targetLeaf->Panels.size() == 1
-                            ? dynamic_cast<PanelGroupNode *>(targetLeaf->Panels.front())
-                            : nullptr;
-    if (sourceGroup && targetGroup && sourceGroup != targetGroup) {
-      Tree.RemovePanel(sourceGroup);
-      States.erase(sourceGroup);
-      sourceGroup->LayoutManaged = false;
-      CommittedMergeSource = sourceGroup;
-      CommittedMergeTarget = targetGroup;
-      CancelDrag();
-      return true;
-    }
   }
   DockTransaction transaction;
   transaction.Panel = Drag.Panel;
@@ -310,6 +356,41 @@ bool DockWorkspace::CommitDrag(float clientX, float clientY) {
 }
 
 void DockWorkspace::CancelDrag() { Drag = {}; }
+
+bool DockWorkspace::PlaceNew(BaseNode &group, DockNodeID target,
+                             DockSide side,
+                             const DockRect &floatingRect) {
+  if (States.contains(&group))
+    return false;
+  const bool floating = target == 0 || side == DockSide::Center;
+  if (floating) {
+    States[&group] = {PanelPlacement::Floating, 0, floatingRect};
+    group.LayoutManaged = false;
+    return true;
+  }
+  if (!Tree.Root) {
+    auto *leaf = Tree.AddPanel(&group);
+    if (!leaf)
+      return false;
+  } else if (!Tree.Commit({&group, 0, target, side, false, {}, 0.5f})) {
+    return false;
+  }
+  auto *leaf = Tree.FindPanelLeaf(&group);
+  if (!leaf)
+    return false;
+  States[&group] = {PanelPlacement::Docked, leaf->ID, {}};
+  group.LayoutManaged = true;
+  return true;
+}
+
+bool DockWorkspace::Remove(BaseNode &panel) {
+  if (Drag.Panel == &panel)
+    CancelDrag();
+  const bool removedFromTree = Tree.RemovePanel(&panel);
+  const bool removedState = States.erase(&panel) != 0;
+  panel.LayoutManaged = false;
+  return removedFromTree || removedState;
+}
 
 const PanelDockState *DockWorkspace::GetState(const BaseNode &panel) const {
   const auto iterator = States.find(const_cast<BaseNode *>(&panel));

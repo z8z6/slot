@@ -2,6 +2,7 @@
 
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/BehaviorNode.h"
+#include "UI/Layout/ImageNode.h"
 #include "UI/Layout/PanelNode.h"
 #include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/RectNode.h"
@@ -16,6 +17,7 @@ ControlFactory::ControlFactory() {
   // 根 UI 节点需要 DockSpace 行为；普通结构节点仍直接使用纯 BaseNode。
   Register("UI", [] { return std::make_unique<BehaviorNode>(); });
   Register("Rect", [] { return std::make_unique<RectNode>(); });
+  Register("Image", [] { return std::make_unique<ImageNode>(); });
   Register("Text", [] { return std::make_unique<TextNode>(); });
   Register("Terminal", [] { return std::make_unique<TerminalNode>(); });
   Register("Scroll", [] { return std::make_unique<ScrollNode>(); });

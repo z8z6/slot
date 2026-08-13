@@ -8,7 +8,9 @@ cbuffer cbPerObject : register(b0)
     float4 BorderColor;
     float4 RectBounds;
     float BorderWidth;
-    float3 ObjectPadding;
+    float CornerRadius;
+    float VisualType;
+    float ImageKind;
 };
 
 cbuffer cbMaterial : register(b1)

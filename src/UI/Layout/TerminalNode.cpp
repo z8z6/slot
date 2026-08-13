@@ -8,6 +8,7 @@
 using namespace z8::ui;
 
 TerminalNode::TerminalNode() {
+  SetProperty("Icon", "asset://texture/icons/lucide/terminal.svg");
   SetProperty("Title", "Output Log");
 
   auto output = std::make_unique<TextNode>();

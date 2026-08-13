@@ -9,7 +9,7 @@ add_definitions(-DNOMINMAX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 # 根据 Shader 描述文件生成相应的 C++ 注册代码
-file(GLOB SHADER_MANIFESTS CONFIGURE_DEPENDS shader/*.shader.json)
+file(GLOB SHADER_MANIFESTS CONFIGURE_DEPENDS asset/shader/*.shader.json)
 set(GENERATED_SHADER_REGISTRY
         "${CMAKE_CURRENT_BINARY_DIR}/generated/ShaderRegistry.generated.cpp")
 add_custom_command(

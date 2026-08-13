@@ -8,12 +8,14 @@
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
 
+#include <algorithm>
 #include <cstdlib>
 
 using namespace z8::ui;
 
 PanelNode::PanelNode()
-    : TitleBarNode(nullptr), TitleNode(nullptr), ScrollAreaNode(nullptr) {
+    : TitleIconNode(nullptr), TitleBarNode(nullptr), TitleNode(nullptr),
+      ScrollAreaNode(nullptr) {
   const auto &style = Theme::Default().Panel;
   // Panel 自身纵向排列；标题栏固定高度，内容宿主占据剩余空间。
   Style.Direction = FlexDirection::Column;
@@ -34,9 +36,19 @@ PanelNode::PanelNode()
   TitleBarNode->SetBorder(style.BorderColor, 0.0f);
   TitleBarNode->Style.Margin = 0.0f;
   TitleBarNode->Style.Padding = 0.0f;
+  TitleBarNode->Style.Direction = FlexDirection::Row;
   TitleBarNode->Style.Height = TitleHeight;
   TitleBarNode->Style.FlexGrow = 0.0f;
   TitleBarNode->Style.FlexShrink = 0.0f;
+
+  auto icon = std::make_unique<ImageNode>();
+  TitleIconNode = icon.get();
+  TitleIconNode->Key = "__title_icon";
+  TitleIconNode->SetProperty("Source", IconSource);
+  TitleIconNode->SetColor(style.TitleTextColor);
+  TitleIconNode->HitTestVisible = false;
+  TitleIconNode->Style.Margin = 7.0f;
+  TitleBarNode->BaseNode::AddChild(std::move(icon));
 
   auto title = std::make_unique<TextNode>();
   TitleNode = title.get();
@@ -46,8 +58,8 @@ PanelNode::PanelNode()
   // 标题文字独占标题栏布局框；背景仍由 Panel 绘制，避免为标题额外创建矩形。
   TitleNode->Style.Margin = 0.0f;
   TitleNode->Style.Height = TitleHeight;
-  TitleNode->Style.FlexGrow = 0.0f;
-  TitleNode->Style.FlexShrink = 0.0f;
+  TitleNode->Style.FlexGrow = 1.0f;
+  TitleNode->Style.FlexShrink = 1.0f;
   TitleBarNode->BaseNode::AddChild(std::move(title));
   BaseNode::AddChild(std::move(titleBar));
 
@@ -84,8 +96,31 @@ bool PanelNode::SetProperty(const std::string &name, const std::string &value) {
                 name == "MaxWidth" || name == "MaxHeight" ||
                 name == "Margin"))
     return Group->RectNode::SetProperty(name, value);
+  if (name == "Icon" || name == "TitleIcon") {
+    if (!TitleIconNode->SetProperty("Source", value))
+      return false;
+    IconSource = value;
+    if (Group) {
+      const auto panel = std::find(Group->Panels.begin(), Group->Panels.end(),
+                                   this);
+      if (panel != Group->Panels.end())
+        Group->Tabs[static_cast<size_t>(panel - Group->Panels.begin())]
+            ->SetIcon(value);
+    }
+    return true;
+  }
   if (name == "Title") {
+    // 即时声明每帧会重复提交相同标题；相同值直接复用现有 DirectWrite 度量。
+    if (TitleNode->Text == value)
+      return true;
     TitleNode->Text = value;
+    if (Group) {
+      const auto panel = std::find(Group->Panels.begin(), Group->Panels.end(),
+                                   this);
+      if (panel != Group->Panels.end())
+        Group->Tabs[static_cast<size_t>(panel - Group->Panels.begin())]
+            ->SetTitle(value);
+    }
     return true;
   }
   if (name == "TitleHeight") {

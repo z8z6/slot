@@ -1,5 +1,7 @@
 #include "UI/Declarative/XamlLoader.h"
+#include "Object/UIObject/UIObject.h"
 #include "UI/Layout/Layout.h"
+#include "UI/Layout/ImageNode.h"
 #include "UI/Layout/PanelNode.h"
 #include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/SceneNode.h"
@@ -95,5 +97,19 @@ TEST(XamlLoaderTest, CreatesPanelGroupWithSwitchablePanels) {
   EXPECT_EQ(group->Tabs[1]->LabelNode->Text, "Game");
   EXPECT_TRUE(group->Panels[0]->Visible);
   EXPECT_FALSE(group->Panels[1]->Visible);
+}
+
+TEST(XamlLoaderTest, CreatesBuiltinImageWithRoundedLayout) {
+  Layout layout;
+  const auto result = XamlLoader().LoadInto(
+      layout,
+      "<UI><Image Id=\"add\" Source=\"builtin://icon/plus\" "
+      "Tint=\"#2A8BFFFF\" CornerRadius=\"4\"/></UI>");
+  ASSERT_TRUE(result) << result.Error;
+
+  auto *image = dynamic_cast<ImageNode *>(layout.Find("add"));
+  ASSERT_NE(image, nullptr);
+  EXPECT_EQ(image->Kind, ImageKind::Plus);
+  EXPECT_FLOAT_EQ(image->UO->GetCornerRadius(), 4.0f);
 }
 } // namespace z8::ui

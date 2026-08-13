@@ -60,6 +60,11 @@ EventReply DragBehavior::OnMouseDrag(MouseMovArgs args) {
     owner->DispatchDragStarted(args);
   }
 
+  // Panel Tab 是拖放句柄而不是可移动窗口；它只驱动 DockWorkspace 的预览，
+  // 保持源 Group 的图标、标题和页签几何不变，直到 MouseUp 原子提交成员迁移。
+  if (PreviewOnly)
+    return EventReply::Handled;
+
   // Docked Panel 的拖动由 Layout 中的唯一 DockWorkspace 会话维护。拖动阶段
   // 只更新预览，不能改 Style 或 DockTree；MouseUp 才提交 Dock/Floating 结果。
   if (const auto *dock = owner->GetBehavior<DockBehavior>();

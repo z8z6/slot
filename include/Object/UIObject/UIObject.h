@@ -18,10 +18,12 @@ struct UIObjectConst {
   // left/top/right/bottom 屏幕像素边界让 Shader 能按固定像素宽度绘制边框。
   DirectX::XMFLOAT4 RectBounds{};
   float BorderWidth = 0.0f;
-  DirectX::XMFLOAT3 Padding{};
+  float CornerRadius = 0.0f;
+  float VisualType = 0.0f;
+  float ImageKind = 0.0f;
 };
 static_assert(sizeof(UIObjectConst) == 144,
-              "UIObjectConst must match shader/Core/Const.hlsl b0 layout.");
+              "UIObjectConst must match asset/shader/Core/Const.hlsl b0 layout.");
 
 /**
  * @brief 屏幕 UI 层的物体
@@ -47,6 +49,12 @@ public:
     return Const.BorderColor;
   }
   float GetBorderWidth() const { return Const.BorderWidth; }
+  float GetCornerRadius() const { return Const.CornerRadius; }
+  void SetCornerRadius(float radius) { Const.CornerRadius = radius; }
+  void SetImageKind(float kind) {
+    Const.VisualType = 1.0f;
+    Const.ImageKind = kind;
+  }
   void Update(Timer*) override;
 };
 }

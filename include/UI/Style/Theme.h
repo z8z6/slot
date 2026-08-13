@@ -26,6 +26,7 @@ struct RectStyle {
   float Padding = PaddingStyle::Small;
   float MinWidth = 30.0f;
   float MinHeight = 24.0f;
+  float CornerRadius = 0.0f;
 };
 
 

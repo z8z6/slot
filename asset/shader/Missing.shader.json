@@ -1,7 +1,7 @@
 {
-  "assetId": "builtin://shader-program/game-object",
-  "name": "GameObject",
-  "source": "shader/GameObject.hlsl",
+  "assetId": "builtin://shader-program/missing",
+  "name": "Missing",
+  "source": "asset/shader/Missing.hlsl",
   "vertex": { "entry": "VS", "target": "vs_6_0" },
   "pixel": { "entry": "PS", "target": "ps_6_0" },
   "enableDepth": true,

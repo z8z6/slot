@@ -24,6 +24,7 @@ struct UIStyle {
   std::optional<DirectX::XMFLOAT4> Color;
   std::optional<DirectX::XMFLOAT4> BorderColor;
   std::optional<float> BorderWidth;
+  std::optional<float> CornerRadius;
   std::optional<FlexDirection> Direction;
 };
 
@@ -42,6 +43,9 @@ public:
   BaseNode *Terminal(const std::string &key, const std::string &title = "Output Log",
                      const UIStyle &style = {});
   void EndPanel();
+  /** 声明内建图标；Source 使用 builtin://icon/* 资源名。 */
+  BaseNode *Image(const std::string &key, const std::string &source,
+                  const UIStyle &style = {});
   BaseNode* Rect(const std::string& key, const UIStyle& style = {});
   /** 声明一个由渲染后端填充的 3D 场景视口。 */
   BaseNode *Scene(const std::string &key, const UIStyle &style = {});

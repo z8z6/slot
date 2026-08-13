@@ -274,10 +274,12 @@ DockRect DockTree::GetPreviewRect(const DockNode &target, DockSide side) const {
     result.Width *= previewRatio;
   else if (side == DockSide::Top || side == DockSide::Bottom)
     result.Height *= previewRatio;
+  // 右侧和下方仍只显示 30% 的预览尺寸，但其起点必须落在目标
+  // 尺寸的 70% 处；若直接累加缩小后的尺寸，预览会错误地停在中间。
   if (side == DockSide::Right)
-    result.Left += result.Width;
+    result.Left += target.Rect.Width - result.Width;
   if (side == DockSide::Bottom)
-    result.Top += result.Height;
+    result.Top += target.Rect.Height - result.Height;
   return result;
 }
 
