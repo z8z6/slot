@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Demo 编辑器界面。保存文件后，主线程会在下一帧完成事务式热重载。 -->
+<UI Direction="Column">
+  <Panel Id="toolbar" Title="Level Editor" Dock="Top" DockExtent="48"
+         MinHeight="34" />
+
+  <Terminal Id="terminal" Title="Output Log" Dock="Bottom"
+            DockExtent="180" />
+
+  <Panel Id="outliner" Title="World Outliner" Dock="Left"
+         DockExtent="260">
+    <Rect Id="outliner-item-0" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#1D354EFF" />
+    <Rect Id="outliner-item-1" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#11171EFF" />
+    <Rect Id="outliner-item-2" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#141B23FF" />
+    <Rect Id="outliner-item-3" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#11171EFF" />
+    <Rect Id="outliner-item-4" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#141B23FF" />
+    <Rect Id="outliner-item-5" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#11171EFF" />
+    <Rect Id="outliner-item-6" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#141B23FF" />
+    <Rect Id="outliner-item-7" Height="32" FlexGrow="0" FlexShrink="0"
+          Margin="2" Color="#99171EFF" />
+  </Panel>
+
+  <Panel Id="details" Title="Details" Dock="Right" DockExtent="300" />
+  <Scene Id="scene-viewport" Title="Perspective" Dock="Fill" />
+</UI>

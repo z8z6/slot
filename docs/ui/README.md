@@ -45,7 +45,7 @@ rect->AddBehavior<z8::ui::ResizeBehavior>();
 
 ```cpp
 z8::ui::XamlLoader loader;
-auto result = loader.LoadFileInto(Layout, "ui/Main.xaml");
+auto result = loader.LoadFileInto(Layout, "asset/xml/Main.xaml");
 if (!result) {
   std::cerr << result.Error << " at " << result.ErrorOffset << '\n';
 }
@@ -101,6 +101,8 @@ ControlFactory::Instance().Register("MyControl", [] {
 ```
 
 当前是刻意收敛的 XAML 子集，尚不支持 XML 命名空间、属性元素、数据绑定、资源字典和文本内容。
+
+Demo 的完整界面声明位于 `asset/xml/Main.xaml`，C++ 只负责创建场景和启用声明入口。`Application::EnableXamlHotReload()` 在首次解析成功后逐帧检查文件签名；保存 XML 后，下一帧会先构造并验证一棵新控件树，再整体替换当前 `Layout`。解析失败只向 Output Log 写入英文诊断并保留上一棵有效树，文件再次保存后自动重试。监视和替换都发生在渲染主线程的布局计算之前，因此不会让 DX12 批次观察到半更新的节点所有权。
 
 ## ImGui 风格声明
 
@@ -187,7 +189,7 @@ Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交�
 
 Rect 支持 `BorderColor` 与像素宽度的 `Border`/`BorderWidth`。边框在 UI Shader 中根据屏幕空间矩形计算，因此控件缩放后不会改变视觉粗细；默认 Rect 不显示边框，Panel 使用主题中的亮色 1 像素边框区分相邻停靠区域。
 
-垂直滚动条使用 16 像素轨道和至少 28 像素长的滑块，两侧视觉内缩后仍保留 12 像素可见宽度。PanelGroup 内拖动 Panel 页签到另一个页签会交换二者顺序，并保持原活动 Panel 的身份；拖到目标 Group 的标题栏空白处仍表示加入该 Group。按数字键 `3` 可切换 Panel 边界调试模式，布局会用独立的红色 2 像素覆盖线显示每个可见 PanelGroup 的实际 Dock 边界，不会覆盖控件自身主题属性。
+垂直滚动条使用 16 像素轨道和至少 28 像素长的滑块，两侧视觉内缩后仍保留 12 像素可见宽度；轨道贴齐 ScrollNode 右边界，Resize 命中宽度不会额外挤出右侧空槽。ImageNode 的 Lucide 轮廓占满自身布局框，仅保留抗锯齿所需的边缘覆盖区。PanelGroup 内拖动 Panel 页签到另一个页签会交换二者顺序，并保持原活动 Panel 的身份；拖到目标 Group 的标题栏空白处仍表示加入该 Group。按数字键 `3` 可切换节点边界调试模式，布局会用独立的红色 2 像素覆盖线显示每个可见 Panel/PanelGroup 子树节点的实际布局框，包括页签、图片、标题文字、标题栏、Pages、滚动 viewport/content、滚动条与滑块；覆盖层沿用节点裁剪范围，不会穿出滚动区域，也不会覆盖控件自身主题属性。
 
 ## 布局和渲染同步
 

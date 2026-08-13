@@ -42,7 +42,9 @@ TEST(LayoutTest, TogglesRedPanelBorderDebugModeWithNumberThree) {
   EXPECT_EQ(layout.OnKeyDown(KeyArgs('3')), EventReply::Handled);
   layout.Calculate(800.0f, 600.0f);
   EXPECT_TRUE(layout.DebugPanelBorders);
-  EXPECT_EQ(layout.GetPanelDebugBorderCount(), 1U);
+  // 自动 PanelGroup、页签、图标、标题文字、滚动 viewport/content、滚动条
+  // 与滑块都应拥有独立诊断框，而不是只显示最外层 Panel 边界。
+  EXPECT_GT(layout.GetPanelDebugBorderCount(), 8U);
 
   EXPECT_EQ(layout.OnKeyDown(KeyArgs('3')), EventReply::Handled);
   EXPECT_FALSE(layout.DebugPanelBorders);

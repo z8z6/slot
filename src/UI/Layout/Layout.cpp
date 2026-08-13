@@ -707,14 +707,19 @@ void Layout::UpdatePanelDebugVisuals() {
   }
   std::vector<const BaseNode *> bounds;
   for (auto *node : Nodes) {
-    auto *panel = dynamic_cast<PanelNode *>(node);
-    if (!panel || !panel->EffectiveVisible)
+    if (!node->EffectiveVisible || node->Width <= 0.0f ||
+        node->Height <= 0.0f)
       continue;
-    // 入组 Panel 的实际布局框只覆盖 Pages；诊断窗口边界应覆盖标题栏在内的
-    // PanelGroup，否则无法观察 Dock Leaf 的真实分割位置。
-    bounds.push_back(panel->Group
-                         ? static_cast<const BaseNode *>(panel->Group)
-                         : static_cast<const BaseNode *>(panel));
+    bool belongsToPanelTree = false;
+    for (auto *ancestor = node; ancestor; ancestor = ancestor->Parent) {
+      if (dynamic_cast<PanelNode *>(ancestor) ||
+          dynamic_cast<PanelGroupNode *>(ancestor)) {
+        belongsToPanelTree = true;
+        break;
+      }
+    }
+    if (belongsToPanelTree)
+      bounds.push_back(node);
   }
   if (PanelDebugVisuals.size() != bounds.size()) {
     PanelDebugVisuals.clear();
@@ -737,7 +742,9 @@ void Layout::UpdatePanelDebugVisuals() {
     visual->Top = bounds[index]->Top;
     visual->Width = bounds[index]->Width;
     visual->Height = bounds[index]->Height;
-    visual->VisibleClip = {0.0f, 0.0f, Root->Width, Root->Height};
+    // 与目标节点使用同一裁剪矩形，滚动内容的诊断线不会穿出 viewport；
+    // Text/Image 等非矩形布局节点仍通过独立 Rect 覆盖显示自己的布局框。
+    visual->VisibleClip = bounds[index]->VisibleClip;
     visual->Visible = true;
     visual->EffectiveVisible = true;
     visual->Synchronize();

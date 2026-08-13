@@ -14,6 +14,9 @@
 namespace z8 {
 class Render;
 class UIObject;
+namespace ui {
+class XamlHotReload;
+}
 class Application {
 public:
   Window Window;
@@ -26,6 +29,8 @@ public:
   Application();
   virtual ~Application();
 
+  /** 装载 XAML 并启用逐帧文件监视；首次解析失败时保持当前 Layout。 */
+  bool EnableXamlHotReload(const std::string &fileName);
   virtual void Init();
   LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
 
@@ -59,5 +64,6 @@ private:
   int WindowY = 0;
   bool HasMousePosition = false;
   bool InSizeMove = false;
+  std::unique_ptr<ui::XamlHotReload> XamlReload;
 };
 } // namespace z8

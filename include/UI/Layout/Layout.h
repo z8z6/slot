@@ -64,7 +64,7 @@ public:
   void WriteTerminal(const std::string &message) const;
   /** 返回当前 Dock 或浮动候选预览；Idle 时返回空矩形。 */
   DockRect GetDockPreview() const;
-  /** 返回当前参与绘制的红色 Panel 边界数量，供调试面板和测试查询。 */
+  /** 返回 Panel 子树中当前参与绘制的红色节点边界数量。 */
   size_t GetPanelDebugBorderCount() const { return PanelDebugVisuals.size(); }
 
   EventReply OnKeyDown(KeyArgs args) override;
@@ -88,7 +88,7 @@ private:
   void NormalizePanelGroups(BaseNode &parent);
   /** 回收请求关闭或已无页面的 Group，并同步清除 Dock/Floating 归属。 */
   bool RemoveClosedPanelGroups(BaseNode &parent);
-  /** 根据最终屏幕坐标刷新诊断覆盖层，不修改 Panel 自身主题状态。 */
+  /** 根据最终屏幕坐标刷新 Panel 子树诊断覆盖层，不修改节点自身主题状态。 */
   void UpdatePanelDebugVisuals();
   void UpdateTree(BaseNode &node, float parentX, float parentY,
                   const DirectX::XMFLOAT4 &clip, bool dispatchAfterLayout,

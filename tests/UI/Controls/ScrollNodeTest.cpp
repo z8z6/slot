@@ -18,6 +18,8 @@ TEST(ScrollNodeTest, OwnsReusableScrollComposition) {
   EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Width.value(), 16.0f);
   EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Width.value(),
                   Theme::Default().ScrollBar.ScrollBarThickness);
+  ASSERT_TRUE(scroll.VerticalScrollBarNode->Style.Right.has_value());
+  EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Right.value(), 0.0f);
 }
 
 TEST(ScrollNodeTest, ReceivesInputAcrossAnEmptyViewport) {

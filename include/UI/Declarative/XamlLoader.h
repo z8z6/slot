@@ -1,12 +1,13 @@
 #pragma once
 
+#include "UI/Layout/BaseNode.h"
+
 #include <cstddef>
 #include <memory>
 #include <string>
 #include <string_view>
 
 namespace z8::ui {
-class BaseNode;
 class ControlFactory;
 class Layout;
 

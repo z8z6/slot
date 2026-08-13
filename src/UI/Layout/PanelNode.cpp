@@ -68,8 +68,7 @@ PanelNode::PanelNode()
   ScrollAreaNode->Key = "__scroll";
   ScrollAreaNode->Style.FlexGrow = 1.0f;
   ScrollAreaNode->Style.FlexShrink = 1.0f;
-  ScrollAreaNode->SetVerticalBarInsets(2.0f, style.ResizeBorder + 2.0f,
-                                       2.0f);
+  ScrollAreaNode->SetVerticalBarInsets(2.0f, 0.0f, 2.0f);
   BaseNode::AddChild(std::move(scroll));
 
   // Panel 只组装视觉和能力。行为优先级由组件自身声明，因此边缘 Resize 会在
@@ -143,14 +142,13 @@ bool PanelNode::SetProperty(const std::string &name, const std::string &value) {
     TitleNode->Color = color;
     return true;
   }
-  // ResizeBorder 同时影响行为命中宽度与滚动条避让距离；这是 Panel 视觉组装
-  // 唯一需要消费的能力属性，其余属性由 BaseNode 自动转发给相应 Behavior。
+  // ResizeBorder 只改变边缘命中范围；滚动条保持贴齐内容区右侧，不能随命中
+  // 宽度向左漂移。其余属性由 BaseNode 自动转发给相应 Behavior。
   if (name == "ResizeBorder") {
     auto *resize = GetBehavior<ResizeBehavior>();
     if (!resize || !resize->SetProperty(name, value))
       return false;
-    ScrollAreaNode->SetVerticalBarInsets(
-        2.0f, resize->Properties.Border + 2.0f, 2.0f);
+    ScrollAreaNode->SetVerticalBarInsets(2.0f, 0.0f, 2.0f);
     return true;
   }
   // 只把滚动能力属性委托给组合子节点；Id、尺寸等通用属性仍必须作用于 Panel，

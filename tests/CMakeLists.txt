@@ -20,6 +20,7 @@ add_library(slot_test_runtime STATIC
         ../src/UI/Behavior/ScrollBehavior.cpp
         ../src/UI/Declarative/ControlFactory.cpp
         ../src/UI/Declarative/ImmediateUI.cpp
+        ../src/UI/Declarative/XamlHotReload.cpp
         ../src/UI/Declarative/XamlLoader.cpp
         ../src/UI/Layout/BaseNode.cpp
         ../src/UI/Layout/BehaviorNode.cpp

@@ -57,6 +57,10 @@ TEST(PanelNodeTest, KeepsTitleAndContentAsInternalChildren) {
   EXPECT_EQ(panel.ContentHost(), panel.ScrollAreaNode->ContentNode);
   EXPECT_EQ(panel.ScrollAreaNode->ContentNode->Parent,
             panel.ScrollAreaNode->ViewportNode);
+  ASSERT_TRUE(
+      panel.ScrollAreaNode->VerticalScrollBarNode->Style.Right.has_value());
+  EXPECT_FLOAT_EQ(
+      panel.ScrollAreaNode->VerticalScrollBarNode->Style.Right.value(), 0.0f);
 
   auto content = std::make_unique<RectNode>();
   auto *contentObserver = content.get();

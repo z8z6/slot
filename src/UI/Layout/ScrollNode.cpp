@@ -34,7 +34,9 @@ ScrollNode::ScrollNode() {
   VerticalScrollBarNode->Style.Position = PositionType::Absolute;
   VerticalScrollBarNode->Style.Width = scrollBarStyle.ScrollBarThickness;
   BaseNode::AddChild(std::move(scrollBar));
-  SetVerticalBarInsets(2.0f, panelStyle.ResizeBorder + 2.0f, 2.0f);
+  // 轨道贴齐 ScrollNode 右边界；ResizeBehavior 只负责命中，不应侵占内容视觉
+  // 空间，否则加宽滚动条后右侧仍会留下明显的空槽。
+  SetVerticalBarInsets(2.0f, 0.0f, 2.0f);
 
   AddBehavior<ScrollBehavior>()->BindVertical(
       ViewportNode, ContentNode, VerticalScrollBarNode);

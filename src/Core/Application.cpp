@@ -15,6 +15,7 @@
 #include "Light/Light.h"
 #include "Object/Object.h"
 #include "Phys/Collider.h"
+#include "UI/Declarative/XamlHotReload.h"
 
 using namespace z8;
 using namespace std;
@@ -96,6 +97,15 @@ int z8::Application::Run() {
     for (auto* App : Apps) {
       App->Timer.Tick();
       App->ShowFrame();
+      if (App->XamlReload) {
+        const auto status = App->XamlReload->Poll(App->Layout);
+        if (status == ui::XamlReloadStatus::Reloaded)
+          App->Layout.WriteTerminal("[XAML] Reloaded: " +
+                                    App->XamlReload->GetPath().string());
+        else if (status == ui::XamlReloadStatus::Failed)
+          App->Layout.WriteTerminal("[XAML] Reload failed: " +
+                                    App->XamlReload->GetLastError());
+      }
       App->Layout.Calculate(static_cast<float>(App->Window.Width),
           static_cast<float>(App->Window.Height));
       App->Render->Update();
@@ -104,6 +114,14 @@ int z8::Application::Run() {
   }
 
   return static_cast<int>(msg.wParam);
+}
+
+bool Application::EnableXamlHotReload(const std::string &fileName) {
+  auto reload = std::make_unique<ui::XamlHotReload>(fileName);
+  if (reload->Poll(Layout) != ui::XamlReloadStatus::Reloaded)
+    return false;
+  XamlReload = std::move(reload);
+  return true;
 }
 
 LRESULT z8::Application::FakeMsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,

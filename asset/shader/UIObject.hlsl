@@ -56,7 +56,10 @@ float4 PS(VertexOut pin) : SV_Target
 
     if (VisualType > 0.5f) {
         float2 uv = (pin.ScreenPosition - RectBounds.xy) / max(size, 1.0f);
-        float2 p = uv * 2.0f - 1.0f;
+        // Lucide SVG 自身已经包含 viewBox 安全边距；若再直接使用完整 [-1,1]
+        // 坐标，轮廓只占 ImageNode 中央约六成。缩小局部坐标等价于放大图标，
+        // 同时保留约一个像素的 MSAA 抗锯齿覆盖区，避免笔画贴边被裁掉。
+        float2 p = (uv * 2.0f - 1.0f) * 0.76f;
         float stroke = 0.12f;
         float iconDistance = 1.0f;
         if (ImageKind < 1.5f) {
