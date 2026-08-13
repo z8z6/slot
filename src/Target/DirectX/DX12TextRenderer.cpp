@@ -33,6 +33,21 @@ std::wstring ToWide(const std::string &text) {
 DX12TextRenderer::DX12TextRenderer(DX12Render *render) : DX12Common(render) {}
 
 void DX12TextRenderer::Init() {
+  CreateDevices();
+  ID3D12Resource *buffers[] = {Render->RenderTarget.Buffer[0].Get(),
+                               Render->RenderTarget.Buffer[1].Get()};
+  CreateTargets(buffers, Render->SwapChain.Format);
+  Initialized = true;
+}
+
+void DX12TextRenderer::Init(ID3D12Resource *const buffers[2],
+                            DXGI_FORMAT format) {
+  CreateDevices();
+  CreateTargets(buffers, format);
+  Initialized = true;
+}
+
+void DX12TextRenderer::CreateDevices() {
   UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
   IUnknown *queues[] = {Render->Cmd.Queue.Get()};
   Ok(D3D11On12CreateDevice(Ctx->Device.Get(), flags, nullptr, 0, queues, 1, 0,
@@ -49,8 +64,6 @@ void DX12TextRenderer::Init() {
   Ok(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                          reinterpret_cast<IUnknown **>(
                              WriteFactory.GetAddressOf())));
-  CreateTargets();
-  Initialized = true;
 }
 
 void DX12TextRenderer::Shutdown() {
@@ -78,16 +91,20 @@ void DX12TextRenderer::Shutdown() {
   Initialized = false;
 }
 
-void DX12TextRenderer::CreateTargets() {
+void DX12TextRenderer::CreateTargets(ID3D12Resource *const buffers[2],
+                                     DXGI_FORMAT format) {
+  SourceBuffers[0] = buffers[0];
+  SourceBuffers[1] = buffers[1];
+  SourceFormat = format;
   const auto properties = D2D1::BitmapProperties1(
       D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-      D2D1::PixelFormat(Render->SwapChain.Format,
+      D2D1::PixelFormat(format,
                         D2D1_ALPHA_MODE_PREMULTIPLIED));
   for (int i = 0; i < 2; ++i) {
     D3D11_RESOURCE_FLAGS flags{};
     flags.BindFlags = D3D11_BIND_RENDER_TARGET;
     Ok(D3D11On12Device->CreateWrappedResource(
-        Render->RenderTarget.Buffer[i].Get(), &flags,
+        buffers[i], &flags,
         D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT,
         IID_PPV_ARGS(WrappedBuffers[i].GetAddressOf())));
     ComPtr<IDXGISurface> surface;
@@ -113,7 +130,9 @@ void DX12TextRenderer::Resize() {
   // DX12Render 初始化时会先创建交换链缓冲、后创建文字设备，首次 Resize 无需处理。
   if (!Initialized)
     return;
-  CreateTargets();
+  ID3D12Resource *buffers[] = {Render->RenderTarget.Buffer[0].Get(),
+                               Render->RenderTarget.Buffer[1].Get()};
+  CreateTargets(buffers, Render->SwapChain.Format);
 }
 
 IDWriteTextFormat *DX12TextRenderer::GetFormat(const ui::TextNode &node) {
@@ -133,14 +152,19 @@ IDWriteTextFormat *DX12TextRenderer::GetFormat(const ui::TextNode &node) {
 }
 
 void DX12TextRenderer::Draw(const ui::Layout &layout) {
+  Draw(layout.GetMainTexts(), Render->RenderTarget.CurRtvId, 0.0f, 0.0f);
+}
+
+void DX12TextRenderer::Draw(const std::vector<ui::TextNode *> &texts,
+                            int bufferIndex, float originX, float originY) {
   // 即使本帧没有文字也必须完成 wrapped-resource 的状态交接，使后备缓冲从
   // RENDER_TARGET 转为 PRESENT；资源状态不能依赖 UI 树是否恰好含有 TextNode。
-  const int index = Render->RenderTarget.CurRtvId;
+  const int index = bufferIndex;
   ID3D11Resource *resource = WrappedBuffers[index].Get();
   D3D11On12Device->AcquireWrappedResources(&resource, 1);
   D2DContext->SetTarget(Targets[index].Get());
   D2DContext->BeginDraw();
-  for (const auto *node : layout.Texts) {
+  for (const auto *node : texts) {
     if (!node->EffectiveVisible || node->Text.empty())
       continue;
     auto *format = GetFormat(*node);
@@ -160,13 +184,15 @@ void DX12TextRenderer::Draw(const ui::Layout &layout) {
     const auto text = ToWide(node->Text);
     const auto clip = node->VisibleClip;
     D2DContext->PushAxisAlignedClip(
-        D2D1::RectF(clip.x, clip.y, clip.z, clip.w),
+        D2D1::RectF(clip.x - originX, clip.y - originY,
+                    clip.z - originX, clip.w - originY),
         D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     D2DContext->DrawTextW(text.c_str(), static_cast<UINT32>(text.size()),
                          format,
-                         D2D1::RectF(node->Left, node->Top,
-                                     node->Left + node->Width,
-                                     node->Top + node->Height),
+                         D2D1::RectF(node->Left - originX,
+                                     node->Top - originY,
+                                     node->Left + node->Width - originX,
+                                     node->Top + node->Height - originY),
                          brush.Get());
     D2DContext->PopAxisAlignedClip();
   }

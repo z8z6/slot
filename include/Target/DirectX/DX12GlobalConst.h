@@ -7,6 +7,7 @@
 
 namespace z8 {
 class DX12Render;
+class DX12RenderBatch;
 
 struct DX12Light {
   DirectX::XMFLOAT3 Position;
@@ -28,10 +29,14 @@ struct  DX12GlobalConst {
   DirectX::XMFLOAT3 Camera;
   float p0;
   DirectX::XMFLOAT2 ScreenSize;
+  /** UI 顶点仍保存 Layout 全局坐标；独立宿主用该原点映射到本地 NDC。 */
+  DirectX::XMFLOAT2 UIOrigin = {0.0f, 0.0f};
   float TimeCost;
   float TimeTotal;
 
   void Update(DX12Render* R);
+  /** 把当前全局状态写入指定批次，供多个交换链复用同一帧状态。 */
+  void WriteToBatch(DX12RenderBatch &batch) const;
   static unsigned AlignedSize();
 
 private:

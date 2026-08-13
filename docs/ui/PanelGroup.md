@@ -255,15 +255,15 @@ CommitDrop();
 
 ---
 
-# 6. Panel 拖到另一个 PanelGroup 的 Center
+# 6. Panel 拖到另一个 PanelGroup 的空白标题栏
 
 这是 Panel Drag 与 PanelGroup Drag 最大的行为区别。
 
-当：
+当且仅当：
 
 ```text
 Payload = Panel
-DropSide = Center
+DropTarget = PanelGroup 的空白标题栏
 ```
 
 时：
@@ -283,7 +283,7 @@ Target Group:
 [Inspector] [Console]
 ```
 
-拖动 `Game` 到 Target Center 后：
+拖动 `Game` 到 Target 的空白标题栏后：
 
 ```text
 Source Group:
@@ -307,9 +307,13 @@ Game
 因此：
 
 ```text
-Panel + Center
+Panel + Empty Group Header
 → Merge into target PanelGroup
 ```
+
+普通 Panel 内容区域的 Center 不表示页签合并；它与 Unity 的窗口拖放语义一致，
+会为被拖动 Panel 创建新的 Floating PanelGroup。目标标题栏中的已有 Tab 也不是
+跨 Group 合并入口；已有 Tab 只用于同一个 Group 内交换排列顺序。
 
 ---
 
@@ -335,7 +339,7 @@ PanelGroup + Center
 
 ```text
 Panel Drag + Center
-→ 加入目标 Group
+→ Floating Group
 
 PanelGroup Drag + Center
 → Floating Group
@@ -575,7 +579,7 @@ Remove empty Floating Group
 
 ---
 
-# 14. Panel 在同一个 Group 内的 Center Drop
+# 14. Panel 在同一个 Group 内的标题栏 Drop
 
 例如：
 
@@ -586,11 +590,11 @@ Group A
 └── Inspector
 ```
 
-拖 `Game`，最后仍 Drop 到 Group A Center。
+拖 `Game`，最后 Drop 到同组另一个已有 Tab 时交换二者顺序；Drop 到同组
+空白标题栏时保持原顺序。普通内容 Center 不属于标题栏操作，会把 Panel
+拆成新的 Floating Group。
 
-第一阶段不要把它解释成 remove + insert。
-
-如果没有实现 Tab reorder：
+空白标题栏的确定行为为：
 
 ```text
 sourceGroup == targetGroup
@@ -607,7 +611,8 @@ remove Panel
 → target reference invalid
 ```
 
-本任务暂时不实现 Tab reorder。
+同组已有 Tab 命中则通过 `TargetTabIndex` 提交交换，不执行 remove + insert，
+避免临时清空 Group 或让 DockTree 的目标引用失效。
 
 ---
 
@@ -757,7 +762,7 @@ PanelGroup Drag
 
 | Payload    | Center          | Edge                   | No Target                |
 | ---------- | --------------- | ---------------------- | ------------------------ |
-| Panel      | 加入目标 PanelGroup | 创建单 Panel Group 后 Dock | 创建单 Panel Floating Group |
+| Panel      | 创建单 Panel Floating Group | 创建单 Panel Group 后 Dock | 创建单 Panel Floating Group |
 | PanelGroup | Floating        | 整个 Group Dock          | 整个 Group Floating        |
 
 其中 Edge 为：
@@ -780,7 +785,7 @@ Bottom
 ```cpp
 void CommitPanelDrop(const DragSession& drag)
 {
-    if (IsCenterTarget(drag))
+    if (IsEmptyGroupHeaderTarget(drag))
     {
         if (drag.sourceGroup == TargetGroup(drag))
             return;
@@ -799,6 +804,8 @@ void CommitPanelDrop(const DragSession& drag)
         return;
     }
 
+    // 内容 Center、跨 Group 已有 Tab、DockTarget 为空时均进入新建
+    // Floating Group 路径；只有 Edge 会把新 Group 放入 DockTree。
     PanelGroupID newGroup =
         CreateGroupContaining(drag.panel);
 
@@ -930,7 +937,7 @@ Panel Drag 在 Commit 时只是：
 6. 单 Panel Dock 时必须先形成 PanelGroup。
 7. Panel Drag Preview 不修改 Source Group。
 8. PanelGroup Drag Preview 不修改 DockTree。
-9. Panel + Center 合并 Group。
+9. Panel 只有投到 PanelGroup 空白标题栏时才合并 Group；内容 Center 创建 Floating Group。
 10. PanelGroup + Center 不合并 Group。
 11. Drag payload 从 MouseDown 确定后，在整个 DragSession 中保持不变。
 12. Commit 后不能有 Panel 同时存在于 Source Group 与 Target Group。
@@ -1000,8 +1007,14 @@ PanelGroup
 
 ```text
 Panel A
-→ 从 Group 1 拖到 Group 2 Center
+→ 从 Group 1 拖到 Group 2 空白标题栏
 → 成为 Group 2 Tab
+```
+
+```text
+Panel A
+→ 拖到 Group 2 内容 Center
+→ 创建新的 Floating Group
 ```
 
 ```text
@@ -1034,6 +1047,13 @@ PanelGroup
 PanelGroup
 → 拖到空白
 → Floating
+```
+
+```text
+PanelGroup
+→ 拖出窗口客户区
+→ 创建独立 Win32 宿主和交换链
+→ 保留完整 Group 并在主窗口外完整显示
 ```
 
 ```text

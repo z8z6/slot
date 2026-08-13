@@ -28,6 +28,7 @@ void DX12GlobalConst::Update(DX12Render* R) {
 
   ScreenSize.x = static_cast<float>(R->GetWindow()->Width);
   ScreenSize.y = static_cast<float>(R->GetWindow()->Height);
+  UIOrigin = {0.0f, 0.0f};
 
   TimeCost = R->GetTimer()->TimeCost;
   TimeTotal = R->GetTimer()->TimeTotal;
@@ -40,12 +41,12 @@ unsigned DX12GlobalConst::AlignedSize() {
   return DX12ConstBuffer::AlignedSize(sizeof(DX12GlobalConst));
 }
 
-void DX12GlobalConst::WriteToBuffer(DX12Render* R) const {
-  auto index = R->GOBatch.Buffer.GetGlobalConstIndex();
-  auto offset = R->GOBatch.Buffer.GetCPUOffset(index);
-  memcpy(offset, this, sizeof(DX12GlobalConst));
+void DX12GlobalConst::WriteToBatch(DX12RenderBatch &batch) const {
+  const auto index = batch.Buffer.GetGlobalConstIndex();
+  memcpy(batch.Buffer.GetCPUOffset(index), this, sizeof(DX12GlobalConst));
+}
 
-  index = R->UOBatch.Buffer.GetGlobalConstIndex();
-  offset = R->UOBatch.Buffer.GetCPUOffset(index);
-  memcpy(offset, this, sizeof(DX12GlobalConst));
+void DX12GlobalConst::WriteToBuffer(DX12Render* R) const {
+  WriteToBatch(R->GOBatch);
+  WriteToBatch(R->UOBatch);
 }

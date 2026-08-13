@@ -7,6 +7,7 @@
 #include "Core/Window.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Shader.h"
+#include "Target/DirectX/DX12FloatingWindow.h"
 #include "Object/Camera/Camera.h"
 #include "UI/Layout/SceneNode.h"
 #include "Util/Math.h"
@@ -37,6 +38,7 @@ void DX12Render::Shutdown() {
   // 此时 Application::Resources、Scene、Layout 和 Window 都仍然存活。
   if (Cmd.Queue && Cmd.Fence)
     Cmd.Synchronize();
+  FloatingWindows.reset();
   TextRenderer.Shutdown();
 }
 
@@ -59,8 +61,9 @@ void DX12Render::Init()
   MaterialManager.Init();
 
   GOBatch.Init(App->ActiveScene.GetGameObjects());
-  UOBatch.Init(App->Layout.GetUO());
+  UOBatch.Init(App->Layout.GetMainUO());
   TextRenderer.Init();
+  FloatingWindows = std::make_unique<DX12FloatingWindowManager>(*this);
   App->Layout.ConsumeDirty();
 
   Cmd.CloseAndExecute();
@@ -70,8 +73,10 @@ void DX12Render::Init()
 void DX12Render::Update()
 {
   // 即时声明只在控件拓扑变化时重建 UI 常量缓冲；稳定帧复用原有 GPU 资源。
-  if (App->Layout.ConsumeDirty())
-    UOBatch.Init(App->Layout.GetUO());
+  bool topologyChanged = App->Layout.ConsumeDirty();
+  topologyChanged = FloatingWindows->Reconcile(topologyChanged);
+  if (topologyChanged)
+    UOBatch.Init(App->Layout.GetMainUO());
   // 1. 更新相机坐标
   if (const auto *scene = App->Layout.GetSceneNode();
       scene && scene->Viewport().Width > 0.0f &&
@@ -84,6 +89,7 @@ void DX12Render::Update()
   // 3. 更新物体数据
   GOBatch.Update();
   UOBatch.Update();
+  FloatingWindows->Update();
 }
 
 void z8::DX12Render::Draw()
@@ -147,6 +153,7 @@ void z8::DX12Render::Draw()
   TextRenderer.Draw(App->Layout);
 
   SwapChain.Present();
+  FloatingWindows->Draw();
 }
 
 void DX12Render::Resize()

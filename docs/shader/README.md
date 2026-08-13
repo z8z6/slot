@@ -12,7 +12,7 @@ Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS�
 | 1 | b1 | 根 CBV | Material |
 | 2 | b2 | CBV 描述符表 | 全局常量 |
 
-全局常量依次包含转置后的 ViewProj、方向光、环境光、相机位置、屏幕尺寸、帧耗时和累计时间。`DX12GlobalConst` 与 `asset/shader/Core/Const.hlsl` 必须保持字段顺序、类型宽度和 16 字节打包兼容；CBV 区间按 256 字节对齐。
+全局常量依次包含转置后的 ViewProj、方向光、环境光、相机位置、宿主屏幕尺寸、UI 坐标原点、帧耗时和累计时间。主交换链的 UI 原点为零；Floating PanelGroup 的独立交换链以 Group 左上角为原点，把同一 Layout 全局坐标映射到本地 HWND，而不改写控件常量。`DX12GlobalConst` 与 `asset/shader/Core/Const.hlsl` 必须保持字段顺序、类型宽度和 16 字节打包兼容；CBV 区间按 256 字节对齐。
 
 3D Shader 使用 Lambert 漫反射、Blinn-Phong 高光与 Schlick Fresnel。非均匀缩放下法线应使用世界矩阵逆转置，当前代码尚未处理。
 

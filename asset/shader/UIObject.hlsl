@@ -31,7 +31,9 @@ VertexOut VS(VertexIn vin)
     VertexOut vout;
     float4 posW = mul(float4(vin.LocalPositon, 1.0f), World);
     float2 ScreenPosition = posW.xy;
-    vout.SVPosition = ScreenToNDC(ScreenPosition, ScreenSize);
+    // Layout 始终保存主工作区坐标；不同 HWND 只通过 UIOrigin 建立本地视口，
+    // 不复制或临时改写控件常量，因此 Dock/Floating 仍共享同一棵控件树。
+    vout.SVPosition = ScreenToNDC(ScreenPosition - UIOrigin, ScreenSize);
     vout.Color = ObjectColor;
     vout.ScreenPosition = ScreenPosition;
     return vout;

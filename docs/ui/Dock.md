@@ -314,6 +314,11 @@ Split Horizontal
 
 # 7. Center Dock
 
+以下是 DockTree 原始 Leaf 模型的基础语义。当前 UI 架构已由
+`PanelGroupNode` 显式拥有页签，DockTree Leaf 只保存 Group，因此交互层不会再把
+普通 Center 直接提交为隐式 Tab：Panel 内容 Center 创建 Floating Group，只有
+PanelGroup 的空白标题栏会在控件所有权层合入 Panel；PanelGroup Center 整体浮动。
+
 Center Dock 不应该创建 Split。
 
 Center 表示将 Panel 插入目标 Leaf：

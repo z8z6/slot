@@ -6,6 +6,7 @@
 #include <d3d11on12.h>
 #include <dwrite.h>
 #include <unordered_map>
+#include <vector>
 
 namespace z8::ui {
 class Layout;
@@ -25,14 +26,19 @@ public:
   explicit DX12TextRenderer(DX12Render *render);
 
   void Init();
+  /** 为附加交换链建立独立 DirectWrite 包装目标。 */
+  void Init(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
   /** 按 Direct2D → wrapped resource → D3D11On12 的依赖顺序显式释放。 */
   void Shutdown();
   void PrepareResize();
   void Resize();
   void Draw(const ui::Layout &layout);
+  void Draw(const std::vector<ui::TextNode *> &texts, int bufferIndex,
+            float originX, float originY);
 
 private:
-  void CreateTargets();
+  void CreateDevices();
+  void CreateTargets(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
   IDWriteTextFormat *GetFormat(const ui::TextNode &node);
 
   ComPtr<ID3D11Device> D3D11Device;
@@ -46,6 +52,8 @@ private:
   ComPtr<ID2D1Bitmap1> Targets[2];
   std::unordered_map<unsigned, ComPtr<IDWriteTextFormat>> Formats;
   bool Initialized = false;
+  ID3D12Resource *SourceBuffers[2]{};
+  DXGI_FORMAT SourceFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 };
 
 } // namespace z8

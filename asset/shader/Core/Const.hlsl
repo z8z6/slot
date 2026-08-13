@@ -28,6 +28,7 @@ cbuffer cbPass : register(b2)
     float3 Camera;
     float p5;
     float2 ScreenSize;
+    float2 UIOrigin;
     float TimeCost;
     float TimeTotal;
 };

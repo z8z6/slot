@@ -26,6 +26,7 @@ class Window;
 class Timer;
 class Light;
 class Application;
+class DX12FloatingWindowManager;
 
 // 这个类是每个窗口独立的
 class DX12Render : public Render {
@@ -53,6 +54,8 @@ public:
   DX12RenderBatch GOBatch;
   DX12RenderBatch UOBatch;
   DX12TextRenderer TextRenderer;
+  /** Floating PanelGroup 的原生 HWND/交换链投影层。 */
+  std::unique_ptr<DX12FloatingWindowManager> FloatingWindows;
 
   explicit DX12Render(Application* app);
   ~DX12Render() override;

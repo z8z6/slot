@@ -1,10 +1,12 @@
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/RectNode.h"
 #include "UI/Layout/SceneNode.h"
+#include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/PanelNode.h"
 #include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
+#include <ranges>
 
 namespace z8::ui {
 TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
@@ -22,6 +24,32 @@ TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
   EXPECT_NE(layout.Find("content"), nullptr);
   EXPECT_TRUE(layout.ConsumeDirty());
   EXPECT_FALSE(layout.ConsumeDirty());
+}
+
+TEST(LayoutTest, SeparatesFloatingSubtreeFromMainWindowDrawLists) {
+  Layout layout;
+  auto first = std::make_unique<PanelNode>();
+  auto second = std::make_unique<PanelNode>();
+  auto *firstPanel = first.get();
+  layout.Root->AddChild(std::move(first));
+  layout.Root->AddChild(std::move(second));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+  auto *group = firstPanel->Group;
+  ASSERT_NE(group, nullptr);
+
+  layout.Dock.BeginDrag(*group, group->DragHandleNode->Left + 8.0f,
+                        group->DragHandleNode->Top + 8.0f);
+  layout.Dock.UpdateDrag(900.0f, 300.0f);
+  ASSERT_TRUE(layout.Dock.CommitDrag(900.0f, 300.0f));
+  layout.Calculate(800.0f, 600.0f);
+
+  const auto mainObjects = layout.GetMainUO();
+  const auto floatingObjects = layout.GetSubtreeUO(*group);
+  ASSERT_FALSE(floatingObjects.empty());
+  for (auto *object : floatingObjects)
+    EXPECT_EQ(std::ranges::find(mainObjects, object), mainObjects.end());
+  EXPECT_FALSE(layout.GetSubtreeTexts(*group).empty());
 }
 
 TEST(LayoutTest, CalculatesWithoutApplicationOrWindow) {

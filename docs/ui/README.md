@@ -159,7 +159,9 @@ Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再�
 </PanelGroup>
 ```
 
-Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交管线。拖动期只更新 Payload、候选目标和半透明预览，不改变 Group 成员、节点 Style 或 DockTree。Panel 投到目标 Center 时成为目标 Group 的活动 Tab，投到边缘或空白时只在 Commit 阶段创建新的单页 Group；PanelGroup 投到 Center 或空白时整体 Floating，投到边缘时整体 Dock。边缘预览占目标区域的 30%，鼠标释放后的 Split 初始比例仍为 50%。Floating 或未被 DockTree 管理的节点仍可从边缘和四角拉伸；停靠 Panel 不允许通用 Resize 直接写几何，共享边界由 Splitter 仅修改 `SplitRatio`。
+Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交管线。拖动期只更新 Payload、候选目标和半透明预览，不改变 Group 成员、节点 Style 或 DockTree。Panel 只有投到目标 PanelGroup 的空白标题栏时才成为该组的活动 Tab；投到内容 Center、已有跨组 Tab 或窗口外都会在 Commit 阶段创建新的单页 Floating Group，投到边缘则创建新的单页 Dock Group。同组已有 Tab 仍用于交换排列顺序。PanelGroup 投到 Center 或窗口外时整体 Floating，窗口外坐标不会被客户区夹紧，投到边缘时整体 Dock。边缘预览占目标区域的 30%，鼠标释放后的 Split 初始比例仍为 50%。Floating 或未被 DockTree 管理的节点仍可从边缘和四角拉伸；停靠 Panel 不允许通用 Resize 直接写几何，共享边界由 Splitter 仅修改 `SplitRatio`。
+
+每个 Floating PanelGroup 由独立的 Win32 顶层工具窗口承载，并使用自己的 DXGI 交换链、4x MSAA 颜色缓冲和 DirectWrite 包装目标，因此移出主窗口后仍可完整显示、调整尺寸和接收输入。原生宿主不拥有或复制 Panel：主 `Layout` 仍独占控件树与 Dock 状态，主窗口和浮动 HWND 只分别生成对应子树的绘制批次。浮动窗口输入先从屏幕坐标统一换算回主工作区 UI 坐标，因此拖回主窗口边缘或标题栏时继续复用相同的 Dock Target、Preview 和 MouseUp Commit 管线。
 
 默认 `Drag.Region` 为 `TitleBar`。默认滚动总开关开启，仅允许垂直方向；水平滚动条为 `Hidden`，垂直滚动条为 `Auto`，滚轮步长为 40。Panel 根据内容范围计算并夹紧偏移；滚轮移动内容，轨道点击按一页移动，滑块拖拽通过指针捕获连续更新 value。`ScrollBarNode` 只管理 range/value 和滑块，不拥有内容，因而可被后续独立 ScrollView、列表和水平滚动复用。
 

@@ -201,7 +201,7 @@ TEST(PanelGroupNodeTest, PanelDropOnEmptyGroupHeaderJoinsTargetTabs) {
   EXPECT_TRUE(layout.Dock.Validate());
 }
 
-TEST(PanelGroupNodeTest, PanelCenterDropMovesTabToTargetGroup) {
+TEST(PanelGroupNodeTest, PanelContentCenterDropCreatesFloatingGroup) {
   Layout layout;
   auto source = std::make_unique<PanelGroupNode>();
   auto target = std::make_unique<PanelGroupNode>();
@@ -220,16 +220,22 @@ TEST(PanelGroupNodeTest, PanelCenterDropMovesTabToTargetGroup) {
   drag.DeltaX = 580;
   drag.DeltaY = 285;
   ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
+  EXPECT_EQ(layout.Dock.Drag.TargetGroup, nullptr);
+  EXPECT_EQ(layout.Dock.Drag.Side, DockSide::Center);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
 
   ASSERT_EQ(sourceGroup->Panels.size(), 1U);
-  ASSERT_EQ(targetGroup->Panels.size(), 2U);
-  EXPECT_EQ(scene->Group, targetGroup);
-  EXPECT_EQ(targetGroup->Panels[targetGroup->ActivePanel], scene);
+  ASSERT_EQ(targetGroup->Panels.size(), 1U);
+  ASSERT_NE(scene->Group, nullptr);
+  EXPECT_NE(scene->Group, sourceGroup);
+  EXPECT_NE(scene->Group, targetGroup);
+  ASSERT_NE(layout.Dock.GetState(*scene->Group), nullptr);
+  EXPECT_EQ(layout.Dock.GetState(*scene->Group)->Placement,
+            PanelPlacement::Floating);
   EXPECT_TRUE(layout.Dock.Validate());
 }
 
-TEST(PanelGroupNodeTest, PanelCenterDropIntoSourceGroupIsNoOp) {
+TEST(PanelGroupNodeTest, PanelContentCenterInSourceCreatesFloatingGroup) {
   Layout layout;
   auto group = std::make_unique<PanelGroupNode>();
   auto *observer = group.get();
@@ -246,9 +252,49 @@ TEST(PanelGroupNodeTest, PanelCenterDropIntoSourceGroupIsNoOp) {
   ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
 
-  ASSERT_EQ(observer->Panels.size(), 2U);
-  EXPECT_EQ(observer->Panels.front(), scene);
-  EXPECT_EQ(scene->Group, observer);
+  ASSERT_EQ(observer->Panels.size(), 1U);
+  ASSERT_NE(scene->Group, nullptr);
+  EXPECT_NE(scene->Group, observer);
+  ASSERT_NE(layout.Dock.GetState(*scene->Group), nullptr);
+  EXPECT_EQ(layout.Dock.GetState(*scene->Group)->Placement,
+            PanelPlacement::Floating);
+  EXPECT_TRUE(layout.Dock.Validate());
+}
+
+TEST(PanelGroupNodeTest, PanelDropOnExistingTargetTabCreatesFloatingGroup) {
+  Layout layout;
+  auto source = std::make_unique<PanelGroupNode>();
+  auto target = std::make_unique<PanelGroupNode>();
+  auto *sourceGroup = source.get();
+  auto *targetGroup = target.get();
+  auto *scene = source->AddPanel(MakePanel("Scene"));
+  source->AddPanel(MakePanel("Game"));
+  target->AddPanel(MakePanel("Inspector"));
+  layout.Root->AddChild(std::move(source));
+  layout.Root->AddChild(std::move(target));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+
+  const int startX = static_cast<int>(sourceGroup->Tabs[0]->Left + 12.0f);
+  const int startY = static_cast<int>(sourceGroup->Tabs[0]->Top + 12.0f);
+  const int targetX = static_cast<int>(targetGroup->Tabs[0]->Left + 12.0f);
+  const int targetY = static_cast<int>(targetGroup->Tabs[0]->Top + 12.0f);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)),
+            EventReply::Ignored);
+  auto drag = LeftClick(targetX, targetY);
+  drag.DeltaX = targetX - startX;
+  drag.DeltaY = targetY - startY;
+  ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
+  EXPECT_EQ(layout.Dock.Drag.TargetGroup, nullptr);
+  ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
+
+  ASSERT_EQ(sourceGroup->Panels.size(), 1U);
+  ASSERT_EQ(targetGroup->Panels.size(), 1U);
+  ASSERT_NE(scene->Group, nullptr);
+  EXPECT_NE(scene->Group, sourceGroup);
+  EXPECT_NE(scene->Group, targetGroup);
+  EXPECT_EQ(layout.Dock.GetState(*scene->Group)->Placement,
+            PanelPlacement::Floating);
   EXPECT_TRUE(layout.Dock.Validate());
 }
 
@@ -464,6 +510,39 @@ TEST(PanelGroupNodeTest, CenterDropFloatsWholeGroupWithoutMergingTabs) {
   EXPECT_EQ(layout.Dock.GetState(*sourceGroup)->Placement,
             PanelPlacement::Floating);
   EXPECT_TRUE(layout.Dock.Tree.Validate());
+}
+
+TEST(PanelGroupNodeTest, WholeGroupCanRemainFloatingOutsideClientArea) {
+  Layout layout;
+  auto first = std::make_unique<PanelNode>();
+  auto second = std::make_unique<PanelNode>();
+  auto *firstPanel = first.get();
+  layout.Root->AddChild(std::move(first));
+  layout.Root->AddChild(std::move(second));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+  auto *group = firstPanel->Group;
+  ASSERT_NE(group, nullptr);
+
+  const int startX = static_cast<int>(group->DragHandleNode->Left + 12.0f);
+  const int startY = static_cast<int>(group->DragHandleNode->Top + 12.0f);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)),
+            EventReply::Ignored);
+  auto drag = LeftClick(-120, -80);
+  drag.DeltaX = -120 - startX;
+  drag.DeltaY = -80 - startY;
+  ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
+
+  const auto *state = layout.Dock.GetState(*group);
+  ASSERT_NE(state, nullptr);
+  EXPECT_EQ(state->Placement, PanelPlacement::Floating);
+  EXPECT_LT(state->FloatingRect.Left, 0.0f);
+  EXPECT_LT(state->FloatingRect.Top, 0.0f);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_FLOAT_EQ(group->Left, state->FloatingRect.Left);
+  EXPECT_FLOAT_EQ(group->Top, state->FloatingRect.Top);
+  EXPECT_TRUE(layout.Dock.Validate());
 }
 
 TEST(PanelGroupNodeTest, CloseButtonRemovesDockedGroupAndCollapsesTree) {

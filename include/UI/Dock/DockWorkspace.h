@@ -19,7 +19,10 @@ struct PanelDragSession {
   PanelNode *PayloadPanel = nullptr;
   PanelGroupNode *PayloadGroup = nullptr;
   PanelGroupNode *SourceGroup = nullptr;
-  /** 标题栏命中的页签目标；浮动 Group 不在 DockTree 中，不能只依赖 DockTarget。 */
+  /**
+   * 明确的标题栏操作目标：空白区用于跨组加入，同组已有 Tab 用于交换。
+   * 普通 Center Leaf 不设置它，避免把内容区域误解释为页签合并。
+   */
   PanelGroupNode *TargetGroup = nullptr;
   /** 参与预览与 DockTree 查询的 Group；Panel 拖动时仍指向来源 Group。 */
   BaseNode *Panel = nullptr;
@@ -36,7 +39,7 @@ struct PanelDragSession {
   DockRect FloatingPreviewRect;
   DockNodeID DockTarget = 0;
   DockSide Side = DockSide::Center;
-  /** 同组 Panel 拖动时命中的目标页签；-1 表示标题栏空白或非页签目标。 */
+  /** 同组 Panel 拖动时命中的目标页签；-1 表示空白标题栏合入或非页签目标。 */
   int TargetTabIndex = -1;
   DockRect DockPreviewRect;
 };
@@ -66,7 +69,10 @@ public:
   DockSide DetectSide(const DockRect &rect, float clientX,
                       float clientY) const;
   const PanelDockState *GetState(const BaseNode &panel) const;
+  /** 返回当前所有 Floating Group；调用者不得通过结果转移节点所有权。 */
+  std::vector<BaseNode *> GetFloatingPanels() const;
   bool IsDocked(const BaseNode &panel) const;
+  bool IsFloating(const BaseNode &panel) const;
   /** 为 Commit 阶段新建的单页 Group 建立唯一 Dock/Floating 归属。 */
   bool PlaceNew(BaseNode &group, DockNodeID target, DockSide side,
                 const DockRect &floatingRect);
@@ -74,6 +80,8 @@ public:
   /** 在控件所有权释放前清除 Group 的 Dock/Floating 唯一归属。 */
   bool Remove(BaseNode &panel);
   void UpdateDrag(float clientX, float clientY);
+  /** 原生浮动宿主调整尺寸后回写唯一 FloatingRect，不修改 DockTree。 */
+  bool UpdateFloatingRect(BaseNode &panel, const DockRect &rect);
   bool ResizeSplitter(DockNodeID split, float clientX, float clientY);
   std::string DumpDebug() const;
   /** 校验 Docked/Floating 互斥与树内 Panel 唯一归属。 */

@@ -265,22 +265,33 @@ void DockWorkspace::UpdateDrag(float clientX, float clientY) {
                             ? dynamic_cast<PanelGroupNode *>(
                                   target->Panels.front())
                             : nullptr;
-    // 单 Panel 投到目标 Group 的整条标题栏都表示加入页签组。标题栏位于
-    // Leaf 顶部边缘，若继续使用通用 25% 分区会被错误解释为 Top Split。
-    const bool joinsTargetGroup =
+    int targetTabIndex = -1;
+    const bool hitsGroupHeader =
         Drag.PayloadType == DragPayloadType::Panel && targetGroup &&
         targetGroup->HeaderNode &&
         targetGroup->HeaderNode->Contains(clientX, clientY);
-    if (joinsTargetGroup) {
-      Drag.TargetGroup = targetGroup;
+    if (hitsGroupHeader) {
       for (size_t index = 0; index < targetGroup->Tabs.size(); ++index) {
         if (!targetGroup->Tabs[index]->Contains(clientX, clientY))
           continue;
-        Drag.TargetTabIndex = static_cast<int>(index);
+        targetTabIndex = static_cast<int>(index);
         break;
       }
     }
-    Drag.Side = joinsTargetGroup
+    // 只有 Tab 与关闭按钮之间的 DragHandle 才是“加入 Group”的明确落点。
+    // 已有 Tab 仅允许在来源 Group 内交换；跨 Group 的已有 Tab 和内容区
+    // Center 都保持 Center 语义，并在 Commit 时形成独立 Floating Group。
+    const bool hitsEmptyHeader =
+        hitsGroupHeader && targetGroup->DragHandleNode &&
+        targetGroup->DragHandleNode->Contains(clientX, clientY);
+    const bool reordersSourceTab =
+        hitsGroupHeader && targetGroup == Drag.SourceGroup &&
+        targetTabIndex >= 0;
+    if (hitsEmptyHeader || reordersSourceTab) {
+      Drag.TargetGroup = targetGroup;
+      Drag.TargetTabIndex = targetTabIndex;
+    }
+    Drag.Side = hitsGroupHeader
                     ? DockSide::Center
                     : DetectSide(target->Rect, clientX, clientY);
     Drag.DockPreviewRect = Tree.GetPreviewRect(*target, Drag.Side);
@@ -403,9 +414,33 @@ const PanelDockState *DockWorkspace::GetState(const BaseNode &panel) const {
   return groupIterator == States.end() ? nullptr : &groupIterator->second;
 }
 
+std::vector<BaseNode *> DockWorkspace::GetFloatingPanels() const {
+  std::vector<BaseNode *> result;
+  result.reserve(States.size());
+  for (const auto &[panel, state] : States)
+    if (state.Placement == PanelPlacement::Floating)
+      result.push_back(panel);
+  return result;
+}
+
 bool DockWorkspace::IsDocked(const BaseNode &panel) const {
   const auto *state = GetState(panel);
   return state && state->Placement == PanelPlacement::Docked;
+}
+
+bool DockWorkspace::IsFloating(const BaseNode &panel) const {
+  const auto *state = GetState(panel);
+  return state && state->Placement == PanelPlacement::Floating;
+}
+
+bool DockWorkspace::UpdateFloatingRect(BaseNode &panel,
+                                       const DockRect &rect) {
+  auto iterator = States.find(&panel);
+  if (iterator == States.end() ||
+      iterator->second.Placement != PanelPlacement::Floating)
+    return false;
+  iterator->second.FloatingRect = rect;
+  return true;
 }
 
 bool DockWorkspace::ResizeSplitter(DockNodeID split, float clientX,

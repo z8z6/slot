@@ -54,10 +54,18 @@ public:
   void RebuildIndex();
   BaseNode *Find(const std::string &key) const;
   void Calculate(float width, float height);
+  /** 原生 Floating HWND 激活时同步画家顺序和输入命中优先级。 */
+  void ActivateFloating(BaseNode &node);
   void MarkDirty() { Dirty = true; }
   bool ConsumeDirty();
   void SetRoot(std::unique_ptr<BaseNode> root);
   std::vector<GameObject *> GetUO() const;
+  /** 主 HWND 只绘制 DockTree 内容；Floating 子树由各自原生宿主呈现。 */
+  std::vector<GameObject *> GetMainUO() const;
+  /** 返回指定节点完整子树的视觉对象，供原生 Floating 宿主建立批次。 */
+  std::vector<GameObject *> GetSubtreeUO(const BaseNode &root) const;
+  std::vector<TextNode *> GetMainTexts() const;
+  std::vector<TextNode *> GetSubtreeTexts(const BaseNode &root) const;
   /** 返回第一个可见场景视口；当前 DX12 后端以单场景相机渲染该视口。 */
   SceneNode *GetSceneNode() const;
   /** 把运行时消息广播给当前布局中的所有 TerminalNode。 */

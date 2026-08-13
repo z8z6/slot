@@ -73,6 +73,8 @@ Layout::Layout(): Root(std::make_unique<BehaviorNode>()) {
 
 Layout::~Layout() = default;
 
+void Layout::ActivateFloating(BaseNode &node) { BringToFront(&node); }
+
 void Layout::SetRoot(std::unique_ptr<BaseNode> root) {
   Root = std::move(root);
   RebuildIndex();
@@ -418,7 +420,7 @@ DockRect Layout::GetDockPreview() const {
                  Dock.Drag.Side != DockSide::Center
              ? Dock.Drag.DockPreviewRect
          : Dock.Drag.PayloadType == DragPayloadType::Panel &&
-                   Dock.Drag.TargetTabIndex >= 0
+                   Dock.Drag.TargetGroup
              ? Dock.Drag.DockPreviewRect
              : Dock.Drag.FloatingPreviewRect;
 }
@@ -449,19 +451,10 @@ bool Layout::CommitPanelDrop(float clientX, float clientY) {
     return false;
   }
 
+  // TargetGroup 只由 UpdateDrag 在空白标题栏或同组 Tab 上设置。不能根据
+  // Center Leaf 反查 Group，否则普通内容区 Center 会被错误解释成合并页签。
   auto *targetGroup = drag.TargetGroup;
-  if (!targetGroup) {
-    auto *targetLeaf = Dock.Tree.Find(drag.DockTarget);
-    targetGroup = targetLeaf && targetLeaf->Panels.size() == 1
-                      ? dynamic_cast<PanelGroupNode *>(
-                            targetLeaf->Panels.front())
-                      : nullptr;
-  }
   if (targetGroup && drag.Side == DockSide::Center) {
-    if (!targetGroup) {
-      Dock.CancelDrag();
-      return false;
-    }
     if (targetGroup == drag.SourceGroup) {
       // 同组标题栏空白处不改变顺序；命中另一个 Tab 时交换完整的 Panel/Tab
       // 所有权槽位，拖拽期间仍不触碰真实结构。
@@ -492,7 +485,8 @@ bool Layout::CommitPanelDrop(float clientX, float clientY) {
 
   // 唯一 Panel 投向自己的边缘没有可保留的目标 Leaf；保持原结构比先删除
   // 来源再尝试命中失效 ID 更确定。多 Panel 来源仍可正常拆出新 Group。
-  if (drag.DockTarget == drag.SourceNode &&
+  if (drag.Side != DockSide::Center &&
+      drag.DockTarget == drag.SourceNode &&
       drag.SourceGroup->Panels.size() == 1) {
     Dock.CancelDrag();
     return true;
@@ -606,6 +600,60 @@ std::vector<GameObject *> Layout::GetUO() const {
   return result;
 }
 
+std::vector<GameObject *> Layout::GetMainUO() const {
+  std::vector<GameObject *> result;
+  for (auto *visual : Visuals) {
+    const BaseNode *rootChild = visual;
+    while (rootChild->Parent && rootChild->Parent != Root.get())
+      rootChild = rootChild->Parent;
+    if (!Dock.IsFloating(*rootChild))
+      result.push_back(visual->UO.get());
+  }
+  if (DockPreviewVisual && Dock.Drag.State == PanelDragState::Dragging)
+    result.push_back(DockPreviewVisual->UO.get());
+  for (const auto &visual : PanelDebugVisuals)
+    result.push_back(visual->UO.get());
+  return result;
+}
+
+std::vector<GameObject *> Layout::GetSubtreeUO(const BaseNode &root) const {
+  std::vector<GameObject *> result;
+  for (auto *visual : Visuals) {
+    for (const BaseNode *node = visual; node; node = node->Parent) {
+      if (node != &root)
+        continue;
+      result.push_back(visual->UO.get());
+      break;
+    }
+  }
+  return result;
+}
+
+std::vector<TextNode *> Layout::GetMainTexts() const {
+  std::vector<TextNode *> result;
+  for (auto *text : Texts) {
+    const BaseNode *rootChild = text;
+    while (rootChild->Parent && rootChild->Parent != Root.get())
+      rootChild = rootChild->Parent;
+    if (!Dock.IsFloating(*rootChild))
+      result.push_back(text);
+  }
+  return result;
+}
+
+std::vector<TextNode *> Layout::GetSubtreeTexts(const BaseNode &root) const {
+  std::vector<TextNode *> result;
+  for (auto *text : Texts) {
+    for (const BaseNode *node = text; node; node = node->Parent) {
+      if (node != &root)
+        continue;
+      result.push_back(text);
+      break;
+    }
+  }
+  return result;
+}
+
 SceneNode *Layout::GetSceneNode() const {
   for (auto *scene : Scenes)
     if (scene->Visible)
@@ -672,8 +720,16 @@ void Layout::UpdateTree(BaseNode &node, float parentX, float parentY,
 
   // 5. 迭代子节点
   for (const auto &child : node.Children) {
+    DirectX::XMFLOAT4 resolvedClip = childClip;
+    if (&node == Root.get() && Dock.IsFloating(*child)) {
+      // Floating 子树由独立 HWND 呈现，不能继承主客户区裁剪；仍保存 Layout
+      // 全局坐标，使跨窗口拖回 DockTree 时无需切换坐标空间或复制节点状态。
+      resolvedClip = {child->Computed.Left, child->Computed.Top,
+                      child->Computed.Left + child->Computed.Width,
+                      child->Computed.Top + child->Computed.Height};
+    }
     UpdateTree(*child, absX + node.ChildOffsetX, absY + node.ChildOffsetY,
-               childClip, dispatchAfterLayout, node.EffectiveVisible);
+               resolvedClip, dispatchAfterLayout, node.EffectiveVisible);
   }
 
   // 6. 事件通知
