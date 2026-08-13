@@ -39,7 +39,7 @@ TEST(BaseNodeTest, OwnsVisualAndChildren) {
     EXPECT_EQ(root.AddChild(std::move(child)), childObserver);
     EXPECT_EQ(childObserver->Parent, &root);
     EXPECT_EQ(root.Children.size(), 1U);
-    EXPECT_EQ(YGNodeGetParent(childObserver->Node), root.Node);
+    EXPECT_EQ(childObserver->Parent, &root);
   }
   EXPECT_EQ(TrackingObject::DestructionCount, 1);
 }

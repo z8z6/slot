@@ -3,8 +3,6 @@
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/RectNode.h"
 
-#include "yoga/YGNodeStyle.h"
-
 #include <gtest/gtest.h>
 
 namespace z8::ui {
@@ -34,11 +32,11 @@ TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
   dragProperties.Region = DragRegion::Anywhere;
   drag->Properties = dragProperties;
 
-  YGNodeStyleSetWidth(rect->Node, 200.0f);
-  YGNodeStyleSetHeight(rect->Node, 120.0f);
-  YGNodeStyleSetFlexGrow(rect->Node, 0.0f);
-  YGNodeStyleSetFlexShrink(rect->Node, 0.0f);
-  YGNodeStyleSetMargin(rect->Node, YGEdgeAll, 0.0f);
+  rect->Style.Width = 200.0f;
+  rect->Style.Height = 120.0f;
+  rect->Style.FlexGrow = 0.0f;
+  rect->Style.FlexShrink = 0.0f;
+  rect->Style.Margin = 0.0f;
   layout.Root->AddChild(std::move(rect));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
@@ -74,9 +72,9 @@ TEST(BehaviorCompositionTest, CancelsGestureWhenTopologyChanges) {
   DragProperty properties;
   properties.Region = DragRegion::Anywhere;
   drag->Properties = properties;
-  YGNodeStyleSetWidth(rect->Node, 100.0f);
-  YGNodeStyleSetHeight(rect->Node, 100.0f);
-  YGNodeStyleSetMargin(rect->Node, YGEdgeAll, 0.0f);
+  rect->Style.Width = 100.0f;
+  rect->Style.Height = 100.0f;
+  rect->Style.Margin = 0.0f;
   layout.Root->AddChild(std::move(rect));
   layout.RebuildIndex();
   layout.Calculate(400.0f, 300.0f);

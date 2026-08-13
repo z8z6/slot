@@ -64,5 +64,6 @@ void DrawNode::Synchronize() {
   assert (UO);
   UO->SetPosition(Left, Top, Width, Height);
   UO->SetScale(Width, Height);
-  UO->SetClipRect(Visible ? VisibleClip : DirectX::XMFLOAT4{0, 0, 0, 0});
+  UO->SetClipRect(EffectiveVisible ? VisibleClip
+                                  : DirectX::XMFLOAT4{0, 0, 0, 0});
 }

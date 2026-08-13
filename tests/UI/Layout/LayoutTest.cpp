@@ -3,8 +3,6 @@
 #include "UI/Layout/SceneNode.h"
 #include "UI/Layout/PanelNode.h"
 
-#include "yoga/YGNodeLayout.h"
-
 #include <gtest/gtest.h>
 
 namespace z8::ui {
@@ -28,8 +26,8 @@ TEST(LayoutTest, BuildsNodeAndRenderableIndexes) {
 TEST(LayoutTest, CalculatesWithoutApplicationOrWindow) {
   Layout layout;
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_FLOAT_EQ(YGNodeLayoutGetWidth(layout.Root->Node), 800.0f);
-  EXPECT_FLOAT_EQ(YGNodeLayoutGetHeight(layout.Root->Node), 600.0f);
+  EXPECT_FLOAT_EQ(layout.Root->Computed.Width, 800.0f);
+  EXPECT_FLOAT_EQ(layout.Root->Computed.Height, 600.0f);
 }
 
 TEST(LayoutTest, RoutesSceneViewportInputPastUIOverlay) {
@@ -80,5 +78,39 @@ TEST(LayoutTest, ReservesEditorPanelsAroundSceneViewport) {
   EXPECT_FLOAT_EQ(sceneObserver->Height, 572.0f);
   EXPECT_FLOAT_EQ(sceneObserver->Viewport().Top, 78.0f);
   EXPECT_FLOAT_EQ(sceneObserver->Viewport().Height, 542.0f);
+}
+
+TEST(LayoutTest, DocksPanelWhenDroppedOverSceneViewport) {
+  Layout layout;
+  auto panel = std::make_unique<PanelNode>();
+  auto scene = std::make_unique<SceneNode>();
+  auto *panelObserver = panel.get();
+  auto *sceneObserver = scene.get();
+  layout.Root->AddChild(std::move(panel));
+  layout.Root->AddChild(std::move(scene));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+
+  MouseMovArgs pointer;
+  pointer.State = MK_LBUTTON;
+  pointer.Button = MouseButton::Left;
+  pointer.X = 100;
+  pointer.Y = 16;
+  ASSERT_NE(layout.OnMouseDown(pointer), EventReply::Ignored);
+  pointer.X = static_cast<int>(sceneObserver->Left +
+                               sceneObserver->Width * 0.8f);
+  pointer.Y = static_cast<int>(sceneObserver->Top +
+                               sceneObserver->Height * 0.5f);
+  pointer.DeltaX = pointer.X - 100;
+  pointer.DeltaY = pointer.Y - 16;
+  ASSERT_NE(layout.OnMouseDrag(pointer), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(pointer), EventReply::Ignored);
+
+  const auto *panelLeaf = layout.Dock.Tree.FindPanelLeaf(panelObserver);
+  ASSERT_NE(panelLeaf, nullptr);
+  EXPECT_EQ(panelLeaf->Parent->Axis, SplitAxis::Vertical);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_GE(panelObserver->Left,
+            sceneObserver->Left + sceneObserver->Width);
 }
 } // namespace z8::ui

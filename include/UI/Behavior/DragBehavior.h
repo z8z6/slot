@@ -40,6 +40,8 @@ public:
   void SetHandle(BaseNode *handle) { Handle = handle; }
 
   bool IsDragging() const { return Dragging; }
+  /** 区分标题单击与已经产生位移的真实拖拽，供日志和 Dock 生命周期使用。 */
+  bool HasGestureMoved() const { return GestureMoved; }
   bool HasInteractiveGeometry() const { return InteractiveGeometry; }
 
   EventReply OnMouseDown(MouseMovArgs args) override;

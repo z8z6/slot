@@ -141,7 +141,7 @@ void DX12TextRenderer::Draw(const ui::Layout &layout) {
   D2DContext->SetTarget(Targets[index].Get());
   D2DContext->BeginDraw();
   for (const auto *node : layout.Texts) {
-    if (!node->Visible || node->Text.empty())
+    if (!node->EffectiveVisible || node->Text.empty())
       continue;
     auto *format = GetFormat(*node);
     format->SetWordWrapping(node->Wrap ? DWRITE_WORD_WRAPPING_WRAP

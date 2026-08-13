@@ -12,7 +12,7 @@ class BehaviorNode;
  * 可挂载到任意 BehaviorNode 的交互行为基类。
  *
  * Behavior 只观察宿主，不拥有节点或视觉子树。
- * 宿主先销毁 Behavior，再销毁UIObject、子节点和 Yoga 句柄
+ * 宿主先销毁 Behavior，再销毁 UIObject 和子节点
  */
 class IBehavior : public IProperty, public EventTarget {
 public:
@@ -24,7 +24,7 @@ public:
   IBehavior(const IBehavior &) = delete;
   IBehavior &operator=(const IBehavior &) = delete;
 
-  // Yoga 计算前更新容器约束；仅布局类 Behavior 应覆写该阶段。
+  // 布局计算前更新容器约束；仅布局类 Behavior 应覆写该阶段。
   virtual void OnBeforeLayout(float, float) {}
   virtual void OnAfterLayout() {}
 

@@ -8,13 +8,8 @@ bringing developers an efficient and reliable native interface development solut
 
 ## Env
 
-```shell
-git submodule update --init --recursive
-```
-
-1. Visual Studio 2022
+1. Visual Studio 2026
 2. DirectX 12
-3. yoga
 
 
 ## Document

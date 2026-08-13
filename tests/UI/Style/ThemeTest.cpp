@@ -24,6 +24,8 @@ TEST(ThemeTest, MapsUnrealEditorPaletteToControlRoles) {
   ExpectColor(theme.ScrollBar.ScrollBarColor, Color::ControlPressed);
   ExpectColor(theme.ScrollBar.ScrollThumbColor, Color::Divider);
   ExpectColor(theme.Demo.SelectedRowColor, Color::SelectionInactive);
+  EXPECT_FLOAT_EQ(theme.Panel.BorderWidth, 2.0f);
+  EXPECT_NE(theme.Panel.Color.x, theme.Panel.TitleColor.x);
   EXPECT_LT(theme.Panel.TitleHeight, 36.0f);
   EXPECT_GT(theme.Text.FontSize, 0.0f);
 }

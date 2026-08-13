@@ -37,6 +37,7 @@ private:
   float CurrentTop = 0.0f;
   float CurrentWidth = 0.0f;
   float CurrentHeight = 0.0f;
+  BehaviorNode *ResizeTarget = nullptr;
 public:
   static constexpr int DefaultPriority = 200;
   ResizeProperty Properties;
@@ -47,12 +48,18 @@ public:
   bool SetProperty(const std::string &name, const std::string &value) override;
   ResizeRegion HitTest(MouseMovArgs args) const;
   bool IsResizing() const { return ActiveRegion != ResizeRegion::None; }
+  ResizeRegion GetActiveRegion() const { return ActiveRegion; }
+  /** 返回当前被拉伸的浮动节点；Dock 分隔条由 DockTree 单独处理。 */
+  BehaviorNode *GetResizeTarget() const { return ResizeTarget; }
   bool HasInteractiveGeometry() const { return InteractiveGeometry; }
 
   EventReply OnMouseDown(MouseMovArgs args) override;
   EventReply OnMouseDrag(MouseMovArgs args) override;
   EventReply OnMouseUp(MouseMovArgs args) override;
-  void OnPointerCaptureLost() override { ActiveRegion = ResizeRegion::None; }
+  void OnPointerCaptureLost() override {
+    ActiveRegion = ResizeRegion::None;
+    ResizeTarget = nullptr;
+  }
   MouseCursor GetMouseCursor(MouseMovArgs args) const override;
   void OnAttached() override;
 

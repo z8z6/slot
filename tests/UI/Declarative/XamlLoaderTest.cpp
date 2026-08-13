@@ -1,7 +1,9 @@
 #include "UI/Declarative/XamlLoader.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/SceneNode.h"
+#include "UI/Layout/TerminalNode.h"
 
 #include <gtest/gtest.h>
 
@@ -64,5 +66,34 @@ TEST(XamlLoaderTest, CreatesSceneViewportNode) {
   ASSERT_NE(layout.GetSceneNode(), nullptr);
   EXPECT_EQ(static_cast<BaseNode *>(layout.GetSceneNode()),
             layout.Find("viewport"));
+}
+
+TEST(XamlLoaderTest, CreatesTerminalNode) {
+  Layout layout;
+  XamlLoader loader;
+  const auto result = loader.LoadInto(
+      layout, "<UI><Terminal Id=\"output\" Title=\"Messages\" /></UI>");
+  ASSERT_TRUE(result) << result.Error;
+
+  auto *terminal = dynamic_cast<TerminalNode *>(layout.Find("output"));
+  ASSERT_NE(terminal, nullptr);
+  EXPECT_EQ(terminal->TitleNode->Text, "Messages");
+}
+
+TEST(XamlLoaderTest, CreatesPanelGroupWithSwitchablePanels) {
+  Layout layout;
+  const auto result = XamlLoader().LoadInto(
+      layout,
+      "<UI><PanelGroup Id=\"editors\"><Panel Title=\"Scene\"/>"
+      "<Panel Title=\"Game\"/></PanelGroup></UI>");
+  ASSERT_TRUE(result) << result.Error;
+
+  auto *group = dynamic_cast<PanelGroupNode *>(layout.Find("editors"));
+  ASSERT_NE(group, nullptr);
+  ASSERT_EQ(group->Panels.size(), 2U);
+  EXPECT_EQ(group->Tabs[0]->LabelNode->Text, "Scene");
+  EXPECT_EQ(group->Tabs[1]->LabelNode->Text, "Game");
+  EXPECT_TRUE(group->Panels[0]->Visible);
+  EXPECT_FALSE(group->Panels[1]->Visible);
 }
 } // namespace z8::ui

@@ -34,6 +34,7 @@ bringing developers an efficient and reliable native interface development solut
 
 1. LLVM 风格，成员变量大驼峰，不要使用下划线
 2. 提示，消息和警告等字符串应该使用英文
+3. 类成员变量在函数前，成员函数按名称排序
 
 ### 代码注释要求
 

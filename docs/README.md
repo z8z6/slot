@@ -12,7 +12,7 @@
 6. [材质](material/README.md)：材质数据与绑定方式。
 7. [着色器](shader/README.md)：ShaderProgram 生成、根签名和常量 ABI。
 8. [D3D12 渲染](render/README.md)：资源、批次和逐帧绘制。
-9. [UI](ui/README.md)：Yoga 布局和屏幕空间渲染。
+9. [UI](ui/README.md)：原生 Flex 布局和屏幕空间渲染。
 10. [限制与演进](roadmap/README.md)：已知问题及推荐改造顺序。
 
 ## 模块索引
@@ -31,10 +31,9 @@
 
 ## 构建
 
-项目使用 Windows、C++20、Direct3D 12、CMake、MSVC 和 Ninja，第三方依赖为 Yoga。
+项目使用 Windows、C++20、Direct3D 12、CMake、MSVC 和 Ninja。UI 布局由项目内置求解器实现。
 
 ```powershell
-git submodule update --init --recursive
 cmake -S . -B cmake-build-debug -G Ninja
 cmake --build cmake-build-debug --target slot
 ```

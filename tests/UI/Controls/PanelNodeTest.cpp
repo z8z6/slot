@@ -1,11 +1,9 @@
 #include "UI/Layout/PanelNode.h"
+#include "UI/Layout/PanelGroupNode.h"
 #include "Object/UIObject/UIObject.h"
 #include "UI/Declarative/ImmediateUI.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Style/Theme.h"
-
-#include "yoga/YGNodeLayout.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <gtest/gtest.h>
 
@@ -27,16 +25,15 @@ PanelNode *AddPanel(Layout &layout, float width = 300.0f,
                     float height = 200.0f) {
   auto panel = std::make_unique<PanelNode>();
   auto *result = panel.get();
-  YGNodeStyleSetWidth(panel->Node, width);
-  YGNodeStyleSetHeight(panel->Node, height);
-  YGNodeStyleSetFlexGrow(panel->Node, 0.0f);
-  YGNodeStyleSetFlexShrink(panel->Node, 0.0f);
+  panel->Style.Width = width;
+  panel->Style.Height = height;
+  panel->Style.FlexGrow = 0.0f;
+  panel->Style.FlexShrink = 0.0f;
   // 交互坐标测试关闭主题外边距，使边界和输入坐标保持直观的一一对应。
-  YGNodeStyleSetMargin(panel->Node, YGEdgeAll, 0.0f);
-  // 通用交互测试使用浮动模式，避免根 DockSpace 有意覆盖显式测试几何。
+  panel->Style.Margin = 0.0f;
+  // 通用行为测试关闭 Dock，使显式测试几何不被根 DockSpace 覆盖。
   auto *dock = result->GetBehavior<DockBehavior>();
   dock->Properties.Enabled = false;
-  dock->Properties.Placement = DockPlacement::Floating;
   layout.Root->AddChild(std::move(panel));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
@@ -47,6 +44,7 @@ PanelNode *AddPanel(Layout &layout, float width = 300.0f,
 
 TEST(PanelNodeTest, KeepsTitleAndContentAsInternalChildren) {
   PanelNode panel;
+  ASSERT_NE(panel.TitleBarNode, nullptr);
   ASSERT_NE(panel.TitleNode, nullptr);
   ASSERT_NE(panel.ScrollAreaNode, nullptr);
   ASSERT_NE(panel.ScrollAreaNode->ViewportNode, nullptr);
@@ -54,6 +52,8 @@ TEST(PanelNodeTest, KeepsTitleAndContentAsInternalChildren) {
   ASSERT_NE(panel.ScrollAreaNode->VerticalScrollBarNode, nullptr);
   ASSERT_NE(panel.ScrollAreaNode->VerticalScrollThumbNode, nullptr);
   EXPECT_EQ(panel.Children.size(), 2U);
+  EXPECT_EQ(panel.Children[0].get(), panel.TitleBarNode);
+  EXPECT_EQ(panel.TitleNode->Parent, panel.TitleBarNode);
   EXPECT_EQ(panel.ContentHost(), panel.ScrollAreaNode->ContentNode);
   EXPECT_EQ(panel.ScrollAreaNode->ContentNode->Parent,
             panel.ScrollAreaNode->ViewportNode);
@@ -71,8 +71,10 @@ TEST(PanelNodeTest, UsesVisibleDefaultBorder) {
   PanelNode panel;
   const auto &style = Theme::Default().Panel;
 
-  EXPECT_GT(panel.UO->GetBorderWidth(), 0.0f);
+  EXPECT_FLOAT_EQ(panel.UO->GetBorderWidth(), 2.0f);
   EXPECT_FLOAT_EQ(panel.UO->GetBorderColor().x, style.BorderColor.x);
+  EXPECT_FLOAT_EQ(panel.TitleBarNode->UO->GetColor().x, style.TitleColor.x);
+  EXPECT_NE(panel.TitleBarNode->UO->GetColor().x, panel.UO->GetColor().x);
 }
 
 TEST(PanelNodeTest, ComposesIndependentBehaviors) {
@@ -95,16 +97,15 @@ TEST(PanelNodeTest, BehaviorConfigurationMaintainsLayoutInvariants) {
   ResizeProperty resize = resizable->Properties;
   resize.MinWidth = 320.0f;
   resizable->SetProperties(resize);
-  // 行为 setter 必须同时更新 Yoga，确保配置与布局约束不会分离。
-  EXPECT_FLOAT_EQ(YGNodeStyleGetMinWidth(panel.Node).value, 320.0f);
+  // 行为 setter 必须同时更新布局样式，确保配置与布局约束不会分离。
+  EXPECT_FLOAT_EQ(panel.Style.MinWidth, 320.0f);
 
   auto *scrollable = panel.ScrollAreaNode->GetScrollBehavior();
   ScrollProperty scroll = scrollable->Properties;
   scroll.Enabled = false;
   scrollable->SetProperties(scroll);
   EXPECT_FALSE(scrollable->Properties.Enabled);
-  EXPECT_EQ(YGNodeStyleGetOverflow(panel.ScrollAreaNode->ViewportNode->Node),
-            YGOverflowVisible);
+  EXPECT_FALSE(panel.ScrollAreaNode->ViewportNode->ClipChildren);
 }
 
 TEST(PanelNodeTest, ScrollsOverflowAndShowsVerticalThumb) {
@@ -112,10 +113,10 @@ TEST(PanelNodeTest, ScrollsOverflowAndShowsVerticalThumb) {
   auto *panel = AddPanel(layout, 300.0f, 200.0f);
   for (int i = 0; i < 8; ++i) {
     auto item = std::make_unique<RectNode>();
-    YGNodeStyleSetHeight(item->Node, 48.0f);
-    YGNodeStyleSetFlexGrow(item->Node, 0.0f);
-    YGNodeStyleSetFlexShrink(item->Node, 0.0f);
-    YGNodeStyleSetMargin(item->Node, YGEdgeAll, 2.0f);
+    item->Style.Height = 48.0f;
+    item->Style.FlexGrow = 0.0f;
+    item->Style.FlexShrink = 0.0f;
+    item->Style.Margin = 2.0f;
     panel->ContentHost()->AddChild(std::move(item));
   }
   layout.RebuildIndex();
@@ -145,14 +146,20 @@ TEST(PanelNodeTest, AppliesTitleAndTitleHeight) {
   EXPECT_TRUE(panel.SetProperty("Title", "Inspector"));
   EXPECT_TRUE(panel.SetProperty("TitleHeight", "40"));
   EXPECT_EQ(panel.TitleNode->Text, "Inspector");
+  EXPECT_FLOAT_EQ(panel.TitleBarNode->Style.Height.value_or(0.0f), 40.0f);
 
-  YGNodeStyleSetWidth(panel.Node, 300.0f);
-  YGNodeStyleSetHeight(panel.Node, 200.0f);
-  YGNodeCalculateLayout(panel.Node, 300.0f, 200.0f, YGDirectionLTR);
-  EXPECT_FLOAT_EQ(YGNodeLayoutGetHeight(panel.TitleNode->Node), 40.0f);
+  Layout layout;
+  auto ownedPanel = std::make_unique<PanelNode>();
+  ownedPanel->SetProperty("TitleHeight", "40");
+  auto *observer = ownedPanel.get();
+  ownedPanel->Style.Width = 300.0f;
+  ownedPanel->Style.Height = 200.0f;
+  layout.Root->AddChild(std::move(ownedPanel));
+  layout.Calculate(300.0f, 200.0f);
+  EXPECT_FLOAT_EQ(observer->TitleNode->Computed.Height, 40.0f);
 }
 
-TEST(PanelNodeTest, DragsFromTitleAndKeepsYogaPosition) {
+TEST(PanelNodeTest, DragsFromTitleAndKeepsAbsolutePosition) {
   Layout layout;
   auto *panel = AddPanel(layout);
   const float originalWidth = panel->Width;
@@ -164,7 +171,7 @@ TEST(PanelNodeTest, DragsFromTitleAndKeepsYogaPosition) {
   EXPECT_NE(layout.OnMouseUp(MouseArgs(80, 46)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
 
-  EXPECT_EQ(YGNodeStyleGetPositionType(panel->Node), YGPositionTypeAbsolute);
+  EXPECT_EQ(panel->Style.Position, PositionType::Absolute);
   EXPECT_FLOAT_EQ(panel->Left, 30.0f);
   EXPECT_FLOAT_EQ(panel->Top, 30.0f);
   EXPECT_FLOAT_EQ(panel->Width, originalWidth);
@@ -175,13 +182,12 @@ TEST(PanelNodeTest, BorderClickDoesNotMovePanelWithThemeMargin) {
   Layout layout;
   auto panel = std::make_unique<PanelNode>();
   auto *panelObserver = panel.get();
-  YGNodeStyleSetWidth(panel->Node, 300.0f);
-  YGNodeStyleSetHeight(panel->Node, 200.0f);
-  YGNodeStyleSetFlexGrow(panel->Node, 0.0f);
-  YGNodeStyleSetFlexShrink(panel->Node, 0.0f);
+  panel->Style.Width = 300.0f;
+  panel->Style.Height = 200.0f;
+  panel->Style.FlexGrow = 0.0f;
+  panel->Style.FlexShrink = 0.0f;
   auto *dock = panelObserver->GetBehavior<DockBehavior>();
   dock->Properties.Enabled = false;
-  dock->Properties.Placement = DockPlacement::Floating;
   layout.Root->AddChild(std::move(panel));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
@@ -194,8 +200,7 @@ TEST(PanelNodeTest, BorderClickDoesNotMovePanelWithThemeMargin) {
             EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
 
-  EXPECT_EQ(YGNodeStyleGetPositionType(panelObserver->Node),
-            YGPositionTypeRelative);
+  EXPECT_EQ(panelObserver->Style.Position, PositionType::Relative);
   EXPECT_FALSE(panelObserver->HasInteractiveGeometry());
   EXPECT_FLOAT_EQ(panelObserver->Left, originalX);
   EXPECT_FLOAT_EQ(panelObserver->Top, originalY);
@@ -293,11 +298,104 @@ TEST(PanelNodeTest, AutomaticallyTilesMultiplePanelsInDockSpace) {
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
 
-  EXPECT_FLOAT_EQ(firstObserver->Left, 0.0f);
-  EXPECT_FLOAT_EQ(firstObserver->Width, 400.0f);
-  EXPECT_FLOAT_EQ(secondObserver->Left, 400.0f);
-  EXPECT_FLOAT_EQ(secondObserver->Width, 400.0f);
-  EXPECT_FLOAT_EQ(firstObserver->Height, 600.0f);
+  ASSERT_NE(firstObserver->Group, nullptr);
+  ASSERT_NE(secondObserver->Group, nullptr);
+  EXPECT_FLOAT_EQ(firstObserver->Group->Left, 0.0f);
+  EXPECT_FLOAT_EQ(firstObserver->Group->Width, 400.0f);
+  EXPECT_FLOAT_EQ(secondObserver->Group->Left, 400.0f);
+  EXPECT_FLOAT_EQ(secondObserver->Group->Width, 400.0f);
+  EXPECT_FLOAT_EQ(firstObserver->Group->Height, 600.0f);
+}
+
+TEST(PanelNodeTest, ResizesSharedDockBoundaryPersistently) {
+  Layout layout;
+  auto first = std::make_unique<PanelNode>();
+  auto second = std::make_unique<PanelNode>();
+  auto *firstObserver = first.get();
+  auto *secondObserver = second.get();
+  layout.Root->AddChild(std::move(first));
+  layout.Root->AddChild(std::move(second));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(400, 300)), EventReply::Ignored);
+  ASSERT_NE(layout.CapturedSplitter, 0U);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(500, 300, 100, 0)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(500, 300)), EventReply::Ignored);
+
+  // 连续两帧都必须保持新分隔位置，证明结果已进入 Dock 状态而非临时布局值。
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_FLOAT_EQ(firstObserver->Width, 500.0f);
+  EXPECT_FLOAT_EQ(secondObserver->Left, 500.0f);
+  EXPECT_FLOAT_EQ(secondObserver->Width, 300.0f);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_FLOAT_EQ(firstObserver->Width, 500.0f);
+  EXPECT_FLOAT_EQ(secondObserver->Width, 300.0f);
+}
+
+TEST(PanelNodeTest, ResizesTopDockFromSharedLowerPanelEdge) {
+  Layout layout;
+  auto top = std::make_unique<PanelNode>();
+  auto fill = std::make_unique<PanelNode>();
+  auto *topObserver = top.get();
+  auto *fillObserver = fill.get();
+  auto *topDock = topObserver->GetBehavior<DockBehavior>();
+  topDock->Properties.Placement = DockPlacement::Top;
+  topDock->Properties.Extent = 200.0f;
+  auto *fillDock = fillObserver->GetBehavior<DockBehavior>();
+  fillDock->Properties.Placement = DockPlacement::Fill;
+  layout.Root->AddChild(std::move(top));
+  layout.Root->AddChild(std::move(fill));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+
+  // 共享边界由 DockTree Splitter 捕获，不再启动任一 Panel 的 ResizeBehavior。
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(400, 200)), EventReply::Ignored);
+  ASSERT_NE(layout.CapturedSplitter, 0U);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(400, 250, 0, 50)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(400, 250)), EventReply::Ignored);
+  layout.Calculate(800.0f, 600.0f);
+
+  EXPECT_EQ(layout.Dock.Tree.Root->Axis, SplitAxis::Horizontal);
+  EXPECT_FLOAT_EQ(topObserver->Group->Height, 250.0f);
+  EXPECT_FLOAT_EQ(fillObserver->Group->Top, 250.0f);
+  EXPECT_FLOAT_EQ(fillObserver->Group->Height, 350.0f);
+}
+
+TEST(PanelNodeTest, StopsDockDividerAtMinimumHeight) {
+  Layout layout;
+  auto top = std::make_unique<PanelNode>();
+  auto fill = std::make_unique<PanelNode>();
+  auto *topObserver = top.get();
+  auto *fillObserver = fill.get();
+  auto *topDock = topObserver->GetBehavior<DockBehavior>();
+  topDock->Properties.Placement = DockPlacement::Top;
+  topDock->Properties.Extent = 200.0f;
+  fillObserver->GetBehavior<DockBehavior>()->Properties.Placement =
+      DockPlacement::Fill;
+  layout.Root->AddChild(std::move(top));
+  layout.Root->AddChild(std::move(fill));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+
+  const float minimum =
+      topObserver->GetBehavior<ResizeBehavior>()->Properties.MinHeight;
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(400, 199)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(400, 0, 0, -300)),
+            EventReply::Ignored);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_FLOAT_EQ(topObserver->Height, minimum);
+  const float stoppedTop = fillObserver->Top;
+
+  // 已到最小高度后继续同向移动不应再改变分隔线位置。
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(400, -100, 0, -100)),
+            EventReply::Ignored);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_FLOAT_EQ(topObserver->Height, minimum);
+  EXPECT_FLOAT_EQ(fillObserver->Top, stoppedTop);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(400, -100)), EventReply::Ignored);
 }
 
 TEST(PanelNodeTest, DocksPanelAtNearestEdgeAfterDragging) {
@@ -315,45 +413,38 @@ TEST(PanelNodeTest, DocksPanelAtNearestEdgeAfterDragging) {
   ASSERT_NE(layout.OnMouseDrag(MouseArgs(790, 100, 690, 84)),
             EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(MouseArgs(790, 100)), EventReply::Ignored);
-  EXPECT_EQ(firstObserver->GetBehavior<DockBehavior>()->Properties.Placement,
-            DockPlacement::Right);
-
   layout.Calculate(800.0f, 600.0f);
+  EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(firstObserver)->Parent->Axis,
+            SplitAxis::Vertical);
   EXPECT_FLOAT_EQ(firstObserver->Left, 400.0f);
   EXPECT_FLOAT_EQ(firstObserver->Width, 400.0f);
   EXPECT_FLOAT_EQ(secondObserver->Left, 0.0f);
   EXPECT_FLOAT_EQ(secondObserver->Width, 400.0f);
 }
 
-TEST(PanelNodeTest, KeepsFloatingTitleReachableAndDraggableAgain) {
+TEST(PanelNodeTest, CenterDropCreatesFloatingWindow) {
   Layout layout;
-  auto *panel = AddPanel(layout);
+  auto first = std::make_unique<PanelNode>();
+  auto second = std::make_unique<PanelNode>();
+  auto *panel = first.get();
   auto *dock = panel->GetBehavior<DockBehavior>();
-  dock->Properties.Enabled = true;
-  // 此用例只验证浮动可恢复命中，关闭停靠避免释放点触发根边缘吸附。
-  dock->Properties.EdgeThreshold = -1.0f;
-
-  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseDrag(MouseArgs(1600, 900, 1500, 884)),
-            EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseUp(MouseArgs(1600, 900)), EventReply::Ignored);
+  dock->Properties.EdgeThreshold = 0.0f;
+  layout.Root->AddChild(std::move(first));
+  layout.Root->AddChild(std::move(second));
+  layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_LE(panel->Top, 600.0f - panel->TitleNode->Height);
-  EXPECT_GE(panel->Left + panel->Width, 48.0f);
-
-  const int titleX = static_cast<int>((std::min)(
-      panel->Left + 24.0f, layout.Root->Width - 24.0f));
-  const int titleY = static_cast<int>(panel->Top + 12.0f);
-  ASSERT_NE(layout.OnMouseDown(MouseArgs(titleX, titleY)),
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(200, 300, 100, 284)),
             EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseDrag(MouseArgs(titleX - 20, titleY, -20, 0)),
-            EventReply::Ignored);
-  EXPECT_TRUE(panel->GetBehavior<DragBehavior>()->IsDragging());
-  EXPECT_NE(layout.OnMouseUp(MouseArgs(titleX - 20, titleY)),
-            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(200, 300)), EventReply::Ignored);
+  layout.Calculate(800.0f, 600.0f);
+  const auto *state = layout.Dock.GetState(*panel);
+  ASSERT_NE(state, nullptr);
+  EXPECT_EQ(state->Placement, PanelPlacement::Floating);
+  EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(panel), nullptr);
 }
 
-TEST(PanelNodeTest, DocksFloatingPanelAgainstSiblingAndReflowsWorkspace) {
+TEST(PanelNodeTest, DocksPanelAgainstSiblingAndReflowsWorkspace) {
   Layout layout;
   auto first = std::make_unique<PanelNode>();
   auto second = std::make_unique<PanelNode>();
@@ -370,8 +461,8 @@ TEST(PanelNodeTest, DocksFloatingPanelAgainstSiblingAndReflowsWorkspace) {
   ASSERT_NE(layout.OnMouseUp(MouseArgs(790, 300)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
 
-  EXPECT_EQ(firstObserver->GetBehavior<DockBehavior>()->Properties.Placement,
-            DockPlacement::Right);
+  EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(firstObserver)->Parent->Axis,
+            SplitAxis::Vertical);
   EXPECT_FLOAT_EQ(firstObserver->Width, secondObserver->Width);
   EXPECT_LE(secondObserver->Left + secondObserver->Width,
             firstObserver->Left);
@@ -390,9 +481,6 @@ TEST(PanelNodeTest, DocksPanelsOnBothHorizontalSides) {
     layout.Calculate(800.0f, 600.0f);
     EXPECT_FLOAT_EQ(movingObserver->Width, targetObserver->Width);
 
-    auto *dock = movingObserver->GetBehavior<DockBehavior>();
-    // 此用例验证兄弟四向区域，避免根边缘优先规则截获释放点。
-    dock->Properties.EdgeThreshold = 0.0f;
     ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
     const int dropX = static_cast<int>(targetObserver->Left +
                                        targetObserver->Width *
@@ -403,8 +491,9 @@ TEST(PanelNodeTest, DocksPanelsOnBothHorizontalSides) {
                   MouseArgs(dropX, dropY, dropX - 100, dropY - 16)),
               EventReply::Ignored);
     ASSERT_NE(layout.OnMouseUp(MouseArgs(dropX, dropY)), EventReply::Ignored);
-    EXPECT_EQ(dock->Properties.Placement,
-              dockLeft ? DockPlacement::Left : DockPlacement::Right);
+    const auto *movingLeaf = layout.Dock.Tree.FindPanelLeaf(movingObserver);
+    ASSERT_NE(movingLeaf, nullptr);
+    EXPECT_EQ(movingLeaf->Parent->Axis, SplitAxis::Vertical);
 
     layout.Calculate(800.0f, 600.0f);
     if (dockLeft)
@@ -435,8 +524,8 @@ TEST(PanelNodeTest, KeepsInteractiveSizeAcrossImmediateDeclarations) {
   ASSERT_TRUE(ui.EndFrame());
   auto *initialPanel = dynamic_cast<PanelNode *>(layout.Find("panel"));
   ASSERT_NE(initialPanel, nullptr);
-  initialPanel->GetBehavior<DockBehavior>()->Properties.Placement =
-      DockPlacement::Floating;
+  ASSERT_NE(initialPanel->Group, nullptr);
+  initialPanel->Group->GetBehavior<DockBehavior>()->Properties.Enabled = false;
   layout.Calculate(800.0f, 600.0f);
   ASSERT_NE(layout.OnMouseDown(MouseArgs(299, 199)), EventReply::Ignored);
   ASSERT_NE(layout.OnMouseDrag(MouseArgs(349, 239, 50, 40)),
@@ -451,7 +540,7 @@ TEST(PanelNodeTest, KeepsInteractiveSizeAcrossImmediateDeclarations) {
   layout.Calculate(800.0f, 600.0f);
   auto *panel = dynamic_cast<PanelNode *>(layout.Find("panel"));
   ASSERT_NE(panel, nullptr);
-  EXPECT_FLOAT_EQ(panel->Width, 350.0f);
-  EXPECT_FLOAT_EQ(panel->Height, 240.0f);
+  EXPECT_FLOAT_EQ(panel->Group->Width, 350.0f);
+  EXPECT_FLOAT_EQ(panel->Group->Height, 240.0f);
 }
 } // namespace z8::ui

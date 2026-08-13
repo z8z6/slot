@@ -2,7 +2,6 @@
 
 #include "UI/Behavior/DockBehavior.h"
 #include "UI/Layout/Layout.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <gtest/gtest.h>
 
@@ -24,7 +23,7 @@ TEST(SceneNodeTest, DefinesFillViewportWithInteractiveTitle) {
   const auto *dock = scene.GetBehavior<DockBehavior>();
   ASSERT_NE(dock, nullptr);
   EXPECT_EQ(dock->Properties.Placement, DockPlacement::Fill);
-  EXPECT_FLOAT_EQ(YGNodeStyleGetMargin(scene.Node, YGEdgeAll).value, 0.0f);
+  EXPECT_FLOAT_EQ(scene.Style.Margin, 0.0f);
 }
 
 TEST(SceneNodeTest, DragsFromTitleAndResizesFromBorder) {
@@ -33,11 +32,10 @@ TEST(SceneNodeTest, DragsFromTitleAndResizesFromBorder) {
   auto *observer = scene.get();
   auto *dock = observer->GetBehavior<DockBehavior>();
   dock->Properties.Enabled = false;
-  dock->Properties.Placement = DockPlacement::Floating;
-  YGNodeStyleSetWidth(scene->Node, 400.0f);
-  YGNodeStyleSetHeight(scene->Node, 300.0f);
-  YGNodeStyleSetFlexGrow(scene->Node, 0.0f);
-  YGNodeStyleSetFlexShrink(scene->Node, 0.0f);
+  scene->Style.Width = 400.0f;
+  scene->Style.Height = 300.0f;
+  scene->Style.FlexGrow = 0.0f;
+  scene->Style.FlexShrink = 0.0f;
   layout.Root->AddChild(std::move(scene));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);

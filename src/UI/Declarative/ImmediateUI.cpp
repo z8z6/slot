@@ -6,9 +6,10 @@
 #include "UI/Layout/DrawNode.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/SceneNode.h"
+#include "UI/Layout/TerminalNode.h"
 #include "UI/Style/Theme.h"
-#include "yoga/YGNodeStyle.h"
 
 using namespace z8::ui;
 
@@ -42,7 +43,7 @@ BaseNode *ImmediateUI::Acquire(const std::string &type,
                        ? scope.Host->Children[scope.NextChild].get()
                        : nullptr;
   if (!node || node->Key != key || node->TypeName() != type) {
-    // 顺序或类型变化后只截断受影响的后缀，稳定前缀仍保持对象和 Yoga 缓存。
+    // 顺序或类型变化后只截断受影响的后缀，稳定前缀仍保持对象和布局状态。
     scope.Host->RemoveChildrenFrom(scope.NextChild);
     auto created = ControlFactory::Instance().Create(type);
     if (!created) {
@@ -68,21 +69,17 @@ void ImmediateUI::ResetStyle(BaseNode &node,
   // Immediate UI 会复用稳定 key 对应的节点，因此省略字段表示恢复控件默认值，
   // 而不是继承上一帧的声明。交互后的窗口几何是运行时状态，需单独保留。
   if (!keepsInteractiveGeometry) {
-    YGNodeStyleSetWidthAuto(node.Node);
-    YGNodeStyleSetHeightAuto(node.Node);
-    YGNodeStyleSetMargin(node.Node, YGEdgeAll,
-                         isScene ? 0.0f : style.Margin);
+    node.Style.Width.reset();
+    node.Style.Height.reset();
+    node.Style.Margin = isScene ? 0.0f : style.Margin;
   }
   const auto &sceneStyle = Theme::Default().Panel;
-  YGNodeStyleSetMinWidth(node.Node,
-                         isScene ? sceneStyle.MinWidth : style.MinWidth);
-  YGNodeStyleSetMinHeight(node.Node,
-                          isScene ? sceneStyle.MinHeight : style.MinHeight);
-  YGNodeStyleSetFlexGrow(node.Node, 1.0f);
-  YGNodeStyleSetFlexShrink(node.Node, 1.0f);
-  YGNodeStyleSetPadding(node.Node, YGEdgeAll,
-                        isScene ? 0.0f : style.Padding);
-  YGNodeStyleSetFlexDirection(node.Node, YGFlexDirectionColumn);
+  node.Style.MinWidth = isScene ? sceneStyle.MinWidth : style.MinWidth;
+  node.Style.MinHeight = isScene ? sceneStyle.MinHeight : style.MinHeight;
+  node.Style.FlexGrow = 1.0f;
+  node.Style.FlexShrink = 1.0f;
+  node.Style.Padding = isScene ? 0.0f : style.Padding;
+  node.Style.Direction = FlexDirection::Column;
   if (auto *visual = dynamic_cast<DrawNode *>(&node)) {
     visual->SetColor(style.Color);
     visual->SetBorder(style.BorderColor, style.BorderWidth);
@@ -91,29 +88,31 @@ void ImmediateUI::ResetStyle(BaseNode &node,
 
 void ImmediateUI::ApplyStyle(BaseNode &node, const UIStyle &style) {
   auto *panel = dynamic_cast<PanelNode *>(&node);
+  auto *group = dynamic_cast<PanelGroupNode *>(&node);
   auto *scene = dynamic_cast<SceneNode *>(&node);
   // Immediate UI 会逐帧重放初始样式；交互后的 Panel 几何必须优先，否则用户
   // 刚完成的拖动或缩放会在下一次声明时被 Width/Height 覆盖。
   const bool keepsInteractiveGeometry =
       (panel && panel->HasInteractiveGeometry()) ||
+      (group && group->HasInteractiveGeometry()) ||
       (scene && scene->HasInteractiveGeometry());
   ResetStyle(node, keepsInteractiveGeometry);
   if (style.Width && !keepsInteractiveGeometry)
-    YGNodeStyleSetWidth(node.Node, *style.Width);
+    node.Style.Width = *style.Width;
   if (style.Height && !keepsInteractiveGeometry)
-    YGNodeStyleSetHeight(node.Node, *style.Height);
+    node.Style.Height = *style.Height;
   if (style.MinWidth)
-    YGNodeStyleSetMinWidth(node.Node, *style.MinWidth);
+    node.Style.MinWidth = *style.MinWidth;
   if (style.MinHeight)
-    YGNodeStyleSetMinHeight(node.Node, *style.MinHeight);
+    node.Style.MinHeight = *style.MinHeight;
   if (style.FlexGrow)
-    YGNodeStyleSetFlexGrow(node.Node, *style.FlexGrow);
+    node.Style.FlexGrow = *style.FlexGrow;
   if (style.FlexShrink)
-    YGNodeStyleSetFlexShrink(node.Node, *style.FlexShrink);
+    node.Style.FlexShrink = *style.FlexShrink;
   if (style.Margin && !keepsInteractiveGeometry)
-    YGNodeStyleSetMargin(node.Node, YGEdgeAll, *style.Margin);
+    node.Style.Margin = *style.Margin;
   if (style.Padding)
-    YGNodeStyleSetPadding(node.Node, YGEdgeAll, *style.Padding);
+    node.Style.Padding = *style.Padding;
   // 强类型即时样式直接访问视觉层；纯布局节点没有颜色状态，也无需空对象占位。
   if (style.Color)
     if (auto *visual = dynamic_cast<DrawNode *>(&node))
@@ -128,19 +127,46 @@ void ImmediateUI::ApplyStyle(BaseNode &node, const UIStyle &style) {
     visual->SetBorder(color, width);
   }
   if (style.Direction)
-    YGNodeStyleSetFlexDirection(node.Node, *style.Direction);
+    node.Style.Direction = *style.Direction;
 }
 
 bool ImmediateUI::BeginPanel(const std::string &key, const std::string &title,
                              const UIStyle &style) {
-  auto *node = Acquire("Panel", key);
-  auto *panel = dynamic_cast<PanelNode *>(node);
+  auto *node = Acquire("PanelGroup", key);
+  auto *group = dynamic_cast<PanelGroupNode *>(node);
+  if (!group)
+    return false;
+  auto *panel = group->Panels.empty()
+                    ? group->AddPanel(std::make_unique<PanelNode>())
+                    : group->Panels.front();
   if (!panel)
     return false;
   panel->SetProperty("Title", title);
-  ApplyStyle(*panel, style);
+  if (!group->Tabs.empty())
+    group->Tabs.front()->LabelNode->Text = title;
+  ApplyStyle(*group, style);
   ScopeStack.push_back({panel->ContentHost(), 0});
   return true;
+}
+
+BaseNode *ImmediateUI::Terminal(const std::string &key,
+                                const std::string &title,
+                                const UIStyle &style) {
+  auto *node = Acquire("PanelGroup", key);
+  auto *group = dynamic_cast<PanelGroupNode *>(node);
+  if (!group)
+    return nullptr;
+  auto *terminal = group->Panels.empty()
+                       ? dynamic_cast<TerminalNode *>(group->AddPanel(
+                             std::make_unique<TerminalNode>()))
+                       : dynamic_cast<TerminalNode *>(group->Panels.front());
+  if (!terminal)
+    return nullptr;
+  terminal->SetProperty("Title", title);
+  if (!group->Tabs.empty())
+    group->Tabs.front()->LabelNode->Text = title;
+  ApplyStyle(*group, style);
+  return terminal;
 }
 
 void ImmediateUI::CloseScope() {

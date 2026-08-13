@@ -2,8 +2,6 @@
 
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/BehaviorNode.h"
-#include "yoga/YGNodeLayout.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -40,13 +38,13 @@ void ResizeBehavior::OnAttached() { ApplyMinimumSize(); }
 void ResizeBehavior::ApplyMinimumSize() const {
   if (!Owner)
     return;
-  YGNodeStyleSetMinWidth(Owner->Node, Properties.MinWidth);
-  YGNodeStyleSetMinHeight(Owner->Node, Properties.MinHeight);
+  Owner->Style.MinWidth = Properties.MinWidth;
+  Owner->Style.MinHeight = Properties.MinHeight;
 }
 
 ResizeRegion ResizeBehavior::HitTest(MouseMovArgs args) const {
   const auto *owner = Owner;
-  if (!owner || !Properties.Enabled ||
+  if (!owner || owner->LayoutManaged || !Properties.Enabled ||
       !owner->Contains(static_cast<float>(args.X),
                        static_cast<float>(args.Y)))
     return ResizeRegion::None;
@@ -108,10 +106,11 @@ EventReply ResizeBehavior::OnMouseDown(MouseMovArgs args) {
     return EventReply::Ignored;
 
   auto *owner = Owner;
-  CurrentLeft = YGNodeLayoutGetLeft(owner->Node);
-  CurrentTop = YGNodeLayoutGetTop(owner->Node);
+  CurrentLeft = owner->Computed.Left;
+  CurrentTop = owner->Computed.Top;
   CurrentWidth = owner->Width;
   CurrentHeight = owner->Height;
+  ResizeTarget = owner;
   return EventReply::Capture;
 }
 
@@ -144,36 +143,38 @@ EventReply ResizeBehavior::OnMouseDrag(MouseMovArgs args) {
     CurrentLeft += CurrentWidth - nextWidth;
     CurrentWidth = nextWidth;
   }
-  if (changesRight)
+  if (changesRight) {
     CurrentWidth = (std::max)(Properties.MinWidth, CurrentWidth + deltaX);
+  }
   if (changesTop) {
     const float nextHeight =
         (std::max)(Properties.MinHeight, CurrentHeight - deltaY);
     CurrentTop += CurrentHeight - nextHeight;
     CurrentHeight = nextHeight;
   }
-  if (changesBottom)
+  if (changesBottom) {
     CurrentHeight = (std::max)(Properties.MinHeight, CurrentHeight + deltaY);
+  }
 
-  auto yogaNode = owner->Node;
   if (!InteractiveGeometry) {
     // 与拖拽使用相同的流式到绝对定位转换，避免主题 Margin 造成首次跳变。
-    YGNodeStyleSetMargin(yogaNode, YGEdgeAll, 0.0f);
+    owner->Style.Margin = 0.0f;
     InteractiveGeometry = true;
   }
-  YGNodeStyleSetPositionType(yogaNode, YGPositionTypeAbsolute);
-  YGNodeStyleSetPosition(yogaNode, YGEdgeLeft, CurrentLeft);
-  YGNodeStyleSetPosition(yogaNode, YGEdgeTop, CurrentTop);
-  YGNodeStyleSetWidth(yogaNode, CurrentWidth);
-  YGNodeStyleSetHeight(yogaNode, CurrentHeight);
-  YGNodeStyleSetFlexGrow(yogaNode, 0.0f);
-  YGNodeStyleSetFlexShrink(yogaNode, 0.0f);
+  owner->Style.Position = PositionType::Absolute;
+  owner->Style.Left = CurrentLeft;
+  owner->Style.Top = CurrentTop;
+  owner->Style.Width = CurrentWidth;
+  owner->Style.Height = CurrentHeight;
+  owner->Style.FlexGrow = 0.0f;
+  owner->Style.FlexShrink = 0.0f;
   return EventReply::Handled;
 }
 
 EventReply ResizeBehavior::OnMouseUp(MouseMovArgs) {
   const bool handled = IsResizing();
   ActiveRegion = ResizeRegion::None;
+  ResizeTarget = nullptr;
   return handled ? EventReply::Handled : EventReply::Ignored;
 }
 

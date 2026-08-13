@@ -1,6 +1,5 @@
 #include "UI/Layout/ScrollNode.h"
 #include "UI/Layout/Layout.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <gtest/gtest.h>
 
@@ -20,8 +19,8 @@ TEST(ScrollNodeTest, ReceivesInputAcrossAnEmptyViewport) {
   Layout layout;
   auto scroll = std::make_unique<ScrollNode>();
   auto *observer = scroll.get();
-  YGNodeStyleSetWidth(scroll->Node, 200.0f);
-  YGNodeStyleSetHeight(scroll->Node, 120.0f);
+  scroll->Style.Width = 200.0f;
+  scroll->Style.Height = 120.0f;
   layout.Root->AddChild(std::move(scroll));
   layout.RebuildIndex();
   layout.Calculate(400.0f, 300.0f);

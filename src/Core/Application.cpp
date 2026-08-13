@@ -83,20 +83,23 @@ int z8::Application::Run() {
   MSG msg = {nullptr};
 
   while (msg.message != WM_QUIT) {
-    // If there are Window messages then process them.
-    if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    // 一次排空当前消息批次后仍绘制一帧。拖拽会连续产生 WM_MOUSEMOVE；若把
+    // 绘制放在“没有消息”的分支中，Terminal 虽已收到日志却会一直没有呈现机会。
+    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
       TranslateMessage(&msg);
       DispatchMessageW(&msg);
+      if (msg.message == WM_QUIT)
+        break;
     }
-    else {
-      for (auto* App : Apps) {
-        App->Timer.Tick();
-        App->ShowFrame();
-        App->Layout.Calculate(static_cast<float>(App->Window.Width),
-            static_cast<float>(App->Window.Height));
-        App->Render->Update();
-        App->Render->Draw();
-      }
+    if (msg.message == WM_QUIT)
+      break;
+    for (auto* App : Apps) {
+      App->Timer.Tick();
+      App->ShowFrame();
+      App->Layout.Calculate(static_cast<float>(App->Window.Width),
+          static_cast<float>(App->Window.Height));
+      App->Render->Update();
+      App->Render->Draw();
     }
   }
 
@@ -125,6 +128,34 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     // when it becomes active.
   case WM_ACTIVATE:
     return 0;
+
+  case WM_NCHITTEST: {
+    const LRESULT nativeHit = DefWindowProcW(Wnd, Msg, wParam, lParam);
+    if (nativeHit != HTCLIENT || IsZoomed(Wnd))
+      return nativeHit;
+
+    POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+    ScreenToClient(Wnd, &point);
+    RECT client{};
+    GetClientRect(Wnd, &client);
+    const int resizeInset = (std::max)(1, MulDiv(6, GetDpiForWindow(Wnd), 96));
+    const bool left = point.x < resizeInset;
+    const bool right = point.x >= client.right - resizeInset;
+    const bool top = point.y < resizeInset;
+    const bool bottom = point.y >= client.bottom - resizeInset;
+
+    // DWM 主题下可见窗口边框很薄，指针容易落入客户区并被最外层 Panel
+    // 捕获。把紧邻外框的客户区明确交还给 Win32，稳定触发系统尺寸循环。
+    if (top && left) return HTTOPLEFT;
+    if (top && right) return HTTOPRIGHT;
+    if (bottom && left) return HTBOTTOMLEFT;
+    if (bottom && right) return HTBOTTOMRIGHT;
+    if (left) return HTLEFT;
+    if (right) return HTRIGHT;
+    if (top) return HTTOP;
+    if (bottom) return HTBOTTOM;
+    return nativeHit;
+  }
 
   case WM_SETCURSOR:
     if (LOWORD(lParam) == HTCLIENT) {

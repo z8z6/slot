@@ -1,9 +1,8 @@
 #include "UI/Behavior/DragBehavior.h"
 
+#include "UI/Behavior/DockBehavior.h"
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/BehaviorNode.h"
-#include "yoga/YGNodeLayout.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <algorithm>
 
@@ -37,10 +36,10 @@ EventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
   if (!inAllowedRegion)
     return EventReply::Ignored;
 
-  // 快照 Yoga 的父空间坐标与已解析尺寸，使整个手势只累加相对位移，避免布局
+  // 快照父空间坐标与已解析尺寸，使整个手势只累加相对位移，避免布局
   // 在两帧之间重新测量后造成拖动反馈跳变。
-  CurrentLeft = YGNodeLayoutGetLeft(owner->Node);
-  CurrentTop = YGNodeLayoutGetTop(owner->Node);
+  CurrentLeft = owner->Computed.Left;
+  CurrentTop = owner->Computed.Top;
   CurrentWidth = owner->Width;
   CurrentHeight = owner->Height;
   Dragging = true;
@@ -57,9 +56,15 @@ EventReply DragBehavior::OnMouseDrag(MouseMovArgs args) {
 
   if (!GestureMoved) {
     GestureMoved = true;
-    // 只在产生真实位移后通知，避免单击标题栏把已停靠 Panel 变成浮动窗口。
+    // 只在产生真实位移后通知，避免单击标题栏触发停靠重排。
     owner->DispatchDragStarted(args);
   }
+
+  // Docked Panel 的拖动由 Layout 中的唯一 DockWorkspace 会话维护。拖动阶段
+  // 只更新预览，不能改 Style 或 DockTree；MouseUp 才提交 Dock/Floating 结果。
+  if (const auto *dock = owner->GetBehavior<DockBehavior>();
+      dock && dock->Properties.Enabled)
+    return EventReply::Handled;
 
   CurrentLeft += static_cast<float>(args.DeltaX);
   CurrentTop += static_cast<float>(args.DeltaY);
@@ -73,21 +78,20 @@ EventReply DragBehavior::OnMouseDrag(MouseMovArgs args) {
     CurrentTop = (std::clamp)(CurrentTop, 0.0f,
         (std::max)(0.0f, parent->Height - handleHeight));
   }
-  auto yogaNode = owner->Node;
   if (!InteractiveGeometry) {
     // 流式位置已经包含 Margin；转换为绝对定位时清除它，防止首次拖动跳变。
-    YGNodeStyleSetMargin(yogaNode, YGEdgeAll, 0.0f);
+    owner->Style.Margin = 0.0f;
     InteractiveGeometry = true;
   }
-  YGNodeStyleSetPositionType(yogaNode, YGPositionTypeAbsolute);
-  YGNodeStyleSetPosition(yogaNode, YGEdgeLeft, CurrentLeft);
-  YGNodeStyleSetPosition(yogaNode, YGEdgeTop, CurrentTop);
-  // 脱离 Flex 流时固化完整布局框并关闭伸缩，否则 Yoga 会按内容重新测量，
+  owner->Style.Position = PositionType::Absolute;
+  owner->Style.Left = CurrentLeft;
+  owner->Style.Top = CurrentTop;
+  // 脱离 Flex 流时固化完整布局框并关闭伸缩，否则内容测量会改变交互框，
   // 表现为第一次拖动时控件尺寸突然变化。
-  YGNodeStyleSetWidth(yogaNode, CurrentWidth);
-  YGNodeStyleSetHeight(yogaNode, CurrentHeight);
-  YGNodeStyleSetFlexGrow(yogaNode, 0.0f);
-  YGNodeStyleSetFlexShrink(yogaNode, 0.0f);
+  owner->Style.Width = CurrentWidth;
+  owner->Style.Height = CurrentHeight;
+  owner->Style.FlexGrow = 0.0f;
+  owner->Style.FlexShrink = 0.0f;
   return EventReply::Handled;
 }
 

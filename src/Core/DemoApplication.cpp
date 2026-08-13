@@ -47,8 +47,7 @@ void DemoApplication::PrepareScene() {
   const auto &demoStyle = Theme::Default().Demo;
   if (ui.BeginPanel("toolbar", "Level Editor"))
     ui.EndPanel();
-  if (ui.BeginPanel("content-drawer", "Content Drawer"))
-    ui.EndPanel();
+  ui.Terminal("terminal", "Output Log");
   if (ui.BeginPanel("outliner", "World Outliner")) {
     UIStyle itemStyle;
     itemStyle.Height = demoStyle.RowHeight;
@@ -79,7 +78,12 @@ void DemoApplication::PrepareScene() {
     }
   };
   configureDock("toolbar", "Top", demoStyle.ToolbarHeight);
-  configureDock("content-drawer", "Bottom", demoStyle.BottomPanelHeight);
+  // 工具栏允许从 48px 向上或向下调整；不能继承普通内容 Panel 的 160px
+  // 最小高度，否则初始 DockExtent 与 ResizeBehavior 约束互相矛盾。
+  if (auto *toolbar = Layout.Find("toolbar"))
+    toolbar->SetProperty("MinHeight",
+                         std::to_string(Theme::Default().Panel.TitleHeight));
+  configureDock("terminal", "Bottom", demoStyle.BottomPanelHeight);
   configureDock("outliner", "Left", demoStyle.LeftPanelWidth);
   configureDock("details", "Right", demoStyle.RightPanelWidth);
 }

@@ -1,6 +1,6 @@
 ---
 name: add-slot-resource
-description: Add or modify Slot project Mesh, Material, ShaderProgram, and UI Node types using the ResourceManager, generated Shader manifest registry, RenderableComponent bindings, Yoga layout ownership, tests, and project documentation. Use for requests to create a new render resource, bind resources to scene objects, add HLSL programs, or extend declarative/immediate UI controls in Slot.
+description: Add or modify Slot project Mesh, Material, ShaderProgram, and UI Node types using the ResourceManager, generated Shader manifest registry, RenderableComponent bindings, native layout ownership, tests, and project documentation. Use for requests to create a new render resource, bind resources to scene objects, add HLSL programs, or extend declarative/immediate UI controls in Slot.
 ---
 
 # Add Slot Resource
@@ -12,7 +12,7 @@ Read the repository `AGENTS.md` and inspect `git status` before editing. Preserv
 - For geometry or imported vertex/index data, follow **Mesh**.
 - For shared surface parameters, follow **Material**.
 - For ordinary VS/PS programs, follow **ShaderProgram**. Do not add per-Shader C++ subclasses.
-- For Yoga-backed controls, follow **UI Node**.
+- For native-layout controls, follow **UI Node**.
 - When a request crosses types, add dependencies first: ShaderProgram, Material, Mesh, then scene/UI binding.
 
 Use canonical lowercase asset IDs such as `builtin://mesh/name`. Add the constant to `include/Resource/BuiltinResource.h`. Keep asset IDs at serialization/loading boundaries; store `ResourceHandle<T>` in render caches rather than querying strings per frame.
@@ -48,7 +48,7 @@ Reserve hand-written C++ classes for render-pass behavior such as shadow, post-p
 
 ## Add a UI Node
 
-1. Add the Node under `include/UI/Layout` and `src/UI/Layout`. Use `unique_ptr` ownership through `BaseNode`; keep Yoga and C++ child trees synchronized.
+1. Add the Node under `include/UI/Layout` and `src/UI/Layout`. Use `unique_ptr` ownership through `BaseNode`; keep `LayoutStyle`, `LayoutBox`, and the C++ child tree consistent.
 2. Create or reuse a `UIObject` visual. Bind its mesh/material/program through `RenderableComponent`.
 3. Override `TypeName`, `ContentHost`, or `SetProperty` only when needed. Property values and errors exposed to users must be English.
 4. Register XAML construction in `UI/Declarative/ControlFactory.cpp`.
@@ -60,7 +60,7 @@ Reserve hand-written C++ classes for render-pass behavior such as shadow, post-p
 Run from an MSVC 2026 developer shell:
 
 ```powershell
-cmake --build cmake-build-debug --target slot slot_ui_tests --config Debug
+cmake --build cmake-build-debug --target slot slot_ui_controls_tests --config Debug
 ctest --test-dir cmake-build-debug -C Debug --output-on-failure
 git diff --check
 ```

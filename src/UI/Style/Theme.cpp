@@ -13,7 +13,7 @@ const Theme& Theme::UnrealEditor() {
       .Text = {Color::Text, Color::TextMuted, Color::TextDisabled, 14.0f,
                20.0f},
       .ScrollBar = {Color::ControlPressed, Color::Divider, 10.0f, 24.0f},
-      .Panel = {{Color::PanelBackground, Color::Divider, 1.0f,
+      .Panel = {{Color::PanelBackground, Color::Divider, 2.0f,
                  MarginStyle::Medium, PaddingStyle::Small, 240.0f, 160.0f},
                 Color::HeaderBackground, Color::Text, 30.0f,
                 PaddingStyle::Medium, 5.0f},

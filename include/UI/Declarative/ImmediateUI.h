@@ -5,14 +5,13 @@
 #include <vector>
 
 #include <DirectXMath.h>
-
-#include "yoga/YGEnums.h"
+#include "UI/Layout/LayoutTypes.h"
 
 namespace z8::ui {
 class BaseNode;
 class Layout;
 
-/** 常用 Yoga 样式的强类型声明；未填写字段不会覆盖控件已有样式。 */
+/** 常用布局样式的强类型声明；未填写字段不会覆盖控件已有样式。 */
 struct UIStyle {
   std::optional<float> Width;
   std::optional<float> Height;
@@ -25,12 +24,12 @@ struct UIStyle {
   std::optional<DirectX::XMFLOAT4> Color;
   std::optional<DirectX::XMFLOAT4> BorderColor;
   std::optional<float> BorderWidth;
-  std::optional<YGFlexDirection> Direction;
+  std::optional<FlexDirection> Direction;
 };
 
 /**
  * ImGui 风格声明入口，但内部保留并复用控件。
- * 同级 key 和调用顺序稳定时不会重新分配 Yoga 节点或 UIObject。
+ * 同级 key 和调用顺序稳定时不会重新分配布局节点或 UIObject。
  */
 class ImmediateUI {
 public:
@@ -39,6 +38,9 @@ public:
   void BeginFrame();
   bool BeginPanel(const std::string& key, const std::string& title,
                   const UIStyle& style = {});
+  /** 声明消息输出面板；其内容由 Layout 的运行时消息通道维护。 */
+  BaseNode *Terminal(const std::string &key, const std::string &title = "Output Log",
+                     const UIStyle &style = {});
   void EndPanel();
   BaseNode* Rect(const std::string& key, const UIStyle& style = {});
   /** 声明一个由渲染后端填充的 3D 场景视口。 */

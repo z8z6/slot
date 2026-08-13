@@ -2,7 +2,6 @@
 #include "Object/UIObject/RectUIObject.h"
 #include "UI/Property/IProperty.h"
 #include "UI/Style/Theme.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <gtest/gtest.h>
 
@@ -20,10 +19,8 @@ TEST(RectNodeTest, CreatesRectVisual) {
   RectNode node;
   EXPECT_STREQ(node.TypeName(), "Rect");
   EXPECT_NE(dynamic_cast<RectUIObject *>(node.UO.get()), nullptr);
-  EXPECT_EQ(YGNodeGetContext(node.Node), &node);
   const auto &theme = Theme::Default().Rect;
-  EXPECT_FLOAT_EQ(YGNodeStyleGetMargin(node.Node, YGEdgeAll).value,
-                  theme.Margin);
+  EXPECT_FLOAT_EQ(node.Style.Margin, theme.Margin);
   EXPECT_FLOAT_EQ(node.UO->GetColor().x, theme.Color.x);
   EXPECT_FLOAT_EQ(node.UO->GetColor().y, theme.Color.y);
 }

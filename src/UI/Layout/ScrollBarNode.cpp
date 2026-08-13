@@ -1,7 +1,6 @@
 #include "UI/Layout/ScrollBarNode.h"
 
 #include "UI/Style/Theme.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <algorithm>
 
@@ -12,24 +11,24 @@ ScrollBarNode::ScrollBarNode(ScrollBarOrientation orientation)
     : ThumbNode(nullptr), Orientation(orientation) {
   const auto &style = Theme::Default().ScrollBar;
   SetColor(style.ScrollBarColor);
-  YGNodeStyleSetMargin(Node, YGEdgeAll, 0.0f);
-  YGNodeStyleSetMinWidth(Node, 0.0f);
-  YGNodeStyleSetMinHeight(Node, 0.0f);
+  Style.Margin = 0.0f;
+  Style.MinWidth = 0.0f;
+  Style.MinHeight = 0.0f;
 
   auto thumb = std::make_unique<RectNode>();
   ThumbNode = thumb.get();
   ThumbNode->Key = "__thumb";
   ThumbNode->SetColor(style.ScrollThumbColor);
-  YGNodeStyleSetPositionType(ThumbNode->Node, YGPositionTypeAbsolute);
-  YGNodeStyleSetMargin(ThumbNode->Node, YGEdgeAll, 0.0f);
-  YGNodeStyleSetMinWidth(ThumbNode->Node, 0.0f);
-  YGNodeStyleSetMinHeight(ThumbNode->Node, 0.0f);
+  ThumbNode->Style.Position = PositionType::Absolute;
+  ThumbNode->Style.Margin = 0.0f;
+  ThumbNode->Style.MinWidth = 0.0f;
+  ThumbNode->Style.MinHeight = 0.0f;
   if (Orientation == ScrollBarOrientation::Vertical) {
-    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeLeft, 2.0f);
-    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeRight, 2.0f);
+    ThumbNode->Style.Left = 2.0f;
+    ThumbNode->Style.Right = 2.0f;
   } else {
-    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeTop, 2.0f);
-    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeBottom, 2.0f);
+    ThumbNode->Style.Top = 2.0f;
+    ThumbNode->Style.Bottom = 2.0f;
   }
   AddChild(std::move(thumb));
 }
@@ -108,10 +107,10 @@ void ScrollBarNode::OnAfterLayout() {
   const float travel = (std::max)(0.0f, track - thumb);
   const float position = Maximum > 0.0f ? travel * Value / Maximum : 0.0f;
   if (Orientation == ScrollBarOrientation::Vertical) {
-    YGNodeStyleSetHeight(ThumbNode->Node, thumb);
-    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeTop, position);
+    ThumbNode->Style.Height = thumb;
+    ThumbNode->Style.Top = position;
   } else {
-    YGNodeStyleSetWidth(ThumbNode->Node, thumb);
-    YGNodeStyleSetPosition(ThumbNode->Node, YGEdgeLeft, position);
+    ThumbNode->Style.Width = thumb;
+    ThumbNode->Style.Left = position;
   }
 }

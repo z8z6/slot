@@ -2,8 +2,6 @@
 
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/ScrollBarNode.h"
-#include "yoga/YGNodeLayout.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -76,10 +74,8 @@ void ScrollBehavior::ApplyProperties() {
     return;
   const bool scrolls =
       Properties.Enabled && (Properties.Horizontal || Properties.Vertical);
-  // Yoga 的 overflow 只控制测量语义；渲染裁剪和输入命中仍消费同一个
-  // ClipsChildren 标志，确保视觉与交互区域不会分离。
-  YGNodeStyleSetOverflow(Viewport->Node,
-                         scrolls ? YGOverflowScroll : YGOverflowVisible);
+  // 裁剪与输入命中消费同一个标志，确保视觉与交互区域不会分离；原生求解器
+  // 始终按内容固有尺寸测量滚动宿主，不需要额外的 overflow 测量状态。
   Viewport->ClipChildren = scrolls;
   if (VerticalScrollBar) {
     VerticalScrollBar->Visible = false;
@@ -93,10 +89,8 @@ void ScrollBehavior::UpdateRange() {
     return;
   float contentExtent = 0.0f;
   for (const auto &child : Content->Children) {
-    const auto yogaNode = child->Node;
-    contentExtent =
-        (std::max)(contentExtent, YGNodeLayoutGetTop(yogaNode) +
-                                      YGNodeLayoutGetHeight(yogaNode));
+    contentExtent = (std::max)(contentExtent, child->Computed.Top +
+                                                 child->Computed.Height);
   }
   const float viewportExtent = Viewport->Height;
   MaximumOffsetY = Properties.Enabled && Properties.Vertical

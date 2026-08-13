@@ -2,7 +2,6 @@
 
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
-#include "yoga/YGNodeStyle.h"
 
 #include <cstdlib>
 
@@ -13,9 +12,9 @@ TextNode::TextNode() {
   Color = style.Color;
   FontSize = style.FontSize;
   // 文字自身不应像普通容器一样填满父级；默认单行高度由字号留出抗锯齿边缘。
-  YGNodeStyleSetFlexGrow(Node, 0.0f);
-  YGNodeStyleSetFlexShrink(Node, 1.0f);
-  YGNodeStyleSetMinHeight(Node, style.LineHeight);
+  Style.FlexGrow = 0.0f;
+  Style.FlexShrink = 1.0f;
+  Style.MinHeight = style.LineHeight;
 }
 
 TextNode::TextNode(std::string text) : TextNode() { Text = std::move(text); }
@@ -28,7 +27,7 @@ bool TextNode::SetProperty(const std::string &name,
   }
   if (name == "FontSize") {
     FontSize = (std::max)(1.0f, std::strtof(value.c_str(), nullptr));
-    YGNodeStyleSetMinHeight(Node, FontSize * 1.25f);
+    Style.MinHeight = FontSize * 1.25f;
     return true;
   }
   if (name == "TextColor")

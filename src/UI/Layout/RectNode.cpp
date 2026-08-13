@@ -6,7 +6,6 @@
 
 #include "Object/UIObject/RectUIObject.h"
 #include "UI/Style/Theme.h"
-#include "yoga/YGNodeStyle.h"
 
 using namespace z8::ui;
 
@@ -14,8 +13,8 @@ RectNode::RectNode() : DrawNode(std::make_unique<RectUIObject>()) {
   const auto &style = Theme::Default().Rect;
   SetColor(style.Color);
   SetBorder(style.BorderColor, style.BorderWidth);
-  YGNodeStyleSetMargin(Node, YGEdgeAll, style.Margin);
-  YGNodeStyleSetPadding(Node, YGEdgeAll, style.Padding);
-  YGNodeStyleSetMinWidth(Node, style.MinWidth);
-  YGNodeStyleSetMinHeight(Node, style.MinHeight);
+  Style.Margin = style.Margin;
+  Style.Padding = style.Padding;
+  Style.MinWidth = style.MinWidth;
+  Style.MinHeight = style.MinHeight;
 }

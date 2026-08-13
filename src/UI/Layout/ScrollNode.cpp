@@ -1,7 +1,6 @@
 #include "UI/Layout/ScrollNode.h"
 
 #include "UI/Style/Theme.h"
-#include "yoga/YGNodeStyle.h"
 
 using namespace z8::ui;
 
@@ -14,17 +13,16 @@ ScrollNode::ScrollNode() {
   auto viewport = std::make_unique<BaseNode>();
   ViewportNode = viewport.get();
   ViewportNode->Key = "__viewport";
-  YGNodeStyleSetFlexGrow(ViewportNode->Node, 1.0f);
-  YGNodeStyleSetFlexShrink(ViewportNode->Node, 1.0f);
+  ViewportNode->Style.FlexGrow = 1.0f;
+  ViewportNode->Style.FlexShrink = 1.0f;
 
   auto content = std::make_unique<BaseNode>();
   ContentNode = content.get();
   ContentNode->Key = "__content";
-  YGNodeStyleSetFlexGrow(ContentNode->Node, 0.0f);
-  YGNodeStyleSetFlexShrink(ContentNode->Node, 0.0f);
-  YGNodeStyleSetWidthPercent(ContentNode->Node, 100.0f);
-  YGNodeStyleSetPadding(ContentNode->Node, YGEdgeAll,
-                        panelStyle.ContentPadding);
+  ContentNode->Style.FlexGrow = 0.0f;
+  ContentNode->Style.FlexShrink = 0.0f;
+  ContentNode->Style.WidthPercent = 100.0f;
+  ContentNode->Style.Padding = panelStyle.ContentPadding;
   ViewportNode->AddChild(std::move(content));
   BaseNode::AddChild(std::move(viewport));
 
@@ -33,10 +31,8 @@ ScrollNode::ScrollNode() {
   VerticalScrollBarNode = scrollBar.get();
   VerticalScrollThumbNode = scrollBar->ThumbNode;
   VerticalScrollBarNode->Key = "__vertical_scrollbar";
-  YGNodeStyleSetPositionType(VerticalScrollBarNode->Node,
-                             YGPositionTypeAbsolute);
-  YGNodeStyleSetWidth(VerticalScrollBarNode->Node,
-                      scrollBarStyle.ScrollBarThickness);
+  VerticalScrollBarNode->Style.Position = PositionType::Absolute;
+  VerticalScrollBarNode->Style.Width = scrollBarStyle.ScrollBarThickness;
   BaseNode::AddChild(std::move(scrollBar));
   SetVerticalBarInsets(2.0f, panelStyle.ResizeBorder + 2.0f, 2.0f);
 
@@ -45,7 +41,7 @@ ScrollNode::ScrollNode() {
 }
 
 void ScrollNode::SetVerticalBarInsets(float top, float right, float bottom) {
-  YGNodeStyleSetPosition(VerticalScrollBarNode->Node, YGEdgeTop, top);
-  YGNodeStyleSetPosition(VerticalScrollBarNode->Node, YGEdgeRight, right);
-  YGNodeStyleSetPosition(VerticalScrollBarNode->Node, YGEdgeBottom, bottom);
+  VerticalScrollBarNode->Style.Top = top;
+  VerticalScrollBarNode->Style.Right = right;
+  VerticalScrollBarNode->Style.Bottom = bottom;
 }

@@ -7,7 +7,7 @@
 
 namespace z8::ui {
 
-/** 文本水平对齐方式；垂直方向由 Yoga 节点框和行高共同约束。 */
+/** 文本水平对齐方式；垂直方向由原生布局框和行高共同约束。 */
 enum class TextAlignment { Leading, Center, Trailing };
 
 /**

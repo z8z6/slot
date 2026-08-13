@@ -20,7 +20,8 @@ class DX12PipelineState : public DX12Common{
   enum {
     Default,
     WireFrame
-  } PSOTy = WireFrame;
+  // 拖拽只是 UI 结构交互，不应隐式改变场景光栅化模式。
+  } PSOTy = Default;
 public:
   ComPtr<ID3D12PipelineState> NormalPipe;
   ComPtr<ID3D12PipelineState> WireFramePipe;

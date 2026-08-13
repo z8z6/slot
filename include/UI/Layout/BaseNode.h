@@ -4,9 +4,8 @@
 
 #pragma once
 #include "Core/Event.h"
+#include "UI/Layout/LayoutTypes.h"
 #include "UI/Property/IProperty.h"
-#include "Util/Owner.h"
-#include "yoga/YGNode.h"
 
 #include <DirectXMath.h>
 
@@ -18,7 +17,7 @@ namespace z8::ui {
 /**
  * 保留式 UI 树的非视觉基础节点，同时也是所有声明属性的根接口实现。
  *
- * BaseNode 只维护 Yoga 几何、树关系和裁剪传播，不拥有渲染或交互状态。
+ * BaseNode 只维护布局样式、计算几何、树关系和裁剪传播，不拥有渲染或交互状态。
  * Root、Viewport、Content 等结构节点因此不会伪装成可绘制对象；需要绘制的
  * 控件继承 DrawNode，需要事件/Behavior 的节点显式继承 BehaviorNode。
  */
@@ -26,7 +25,8 @@ using ClipRect = DirectX::XMFLOAT4;
 class BaseNode : public virtual IProperty {
 public:
   std::string Key;
-  GSL_OWNER YGNodeRef Node;
+  LayoutStyle Style;
+  LayoutBox Computed;
   BaseNode *Parent = nullptr;
   std::vector<std::unique_ptr<BaseNode>> Children;
 
@@ -38,6 +38,13 @@ public:
   float ChildOffsetY = 0.0f;
   bool ClipChildren = false;
   bool Visible = true;
+  /** 父级可见性传播后的帧内结果；不覆盖控件自身的 Visible 配置。 */
+  bool EffectiveVisible = true;
+  /**
+   * 几何是否由 DockTree 等上层结构统一管理。为 true 时通用
+   * ResizeBehavior 不得直接修改 Style，避免出现两个布局真值。
+   */
+  bool LayoutManaged = false;
   ClipRect VisibleClip = {-100000.0f, -100000.0f, 100000.0f, 100000.0f};
 
 public:
@@ -53,7 +60,11 @@ public:
   virtual BaseNode *ContentHost();
   bool Contains(float x, float y) const;
   bool Contains(MouseMovArgs args) const;
-  BaseNode *AddChild(std::unique_ptr<BaseNode> child);
+  /**
+   * 转移子节点所有权并维护 Parent。复合容器可覆写该入口，
+   * 将声明子节点转发到内部内容宿主。
+   */
+  virtual BaseNode *AddChild(std::unique_ptr<BaseNode> child);
   void RemoveChildrenFrom(size_t first);
 
   virtual void OnAfterLayout() {}
