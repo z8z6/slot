@@ -30,7 +30,16 @@ jobs:
         working-directory: build
 
       - name: Build
-        run: cmake --build . --config Debug --target yogacore slot
+        run: cmake --build . --config Debug --target slot
+        working-directory: build
+
+      # 测试目标使用无窗口运行时，不要求 CI runner 提供图形桌面或 DX12 设备。
+      - name: Build tests
+        run: cmake --build . --config Debug --target slot_tests
+        working-directory: build
+
+      - name: Run tests
+        run: ctest --build-config Debug --output-on-failure --no-tests=error
         working-directory: build
 
       - name: Install Doxygen & Graphviz
