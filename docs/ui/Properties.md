@@ -168,8 +168,8 @@ Scroll 和 Dock 属性组。“专属属性”列列出该控件额外接受的�
 | `TextAlignment` | 文本框内的水平对齐 | `Leading`、`Center` 或 `Trailing` |
 | `TextWrap` | 是否允许换行 | 布尔值 |
 
-`FontFamily` 当前固定由 C++/Theme 提供，没有声明属性。`Text` 也不接受
-`Color`，应使用 `TextColor`。
+`FontFamily` 当前由 C++/Theme 提供，默认值为 `Microsoft YaHei`（微软雅黑），
+没有声明属性。`Text` 也不接受 `Color`，应使用 `TextColor`。
 
 ### `Image`
 

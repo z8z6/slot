@@ -20,7 +20,7 @@ enum class TextAlignment { Leading, Center, Trailing };
 class TextNode : public BaseNode {
 public:
   std::string Text;
-  std::wstring FontFamily = L"Segoe UI";
+  std::wstring FontFamily;
   float FontSize = 16.0f;
   DirectX::XMFLOAT4 Color = {0.95f, 0.95f, 0.95f, 1.0f};
   TextAlignment Alignment = TextAlignment::Leading;

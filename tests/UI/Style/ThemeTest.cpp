@@ -51,6 +51,7 @@ TEST(ThemeTest, MapsUnrealEditorPaletteToControlRoles) {
   EXPECT_EQ(theme.ToolBar.Height, theme.Demo.ToolbarHeight);
   EXPECT_NE(theme.Panel.Color.x, theme.Panel.TitleColor.x);
   EXPECT_LT(theme.Panel.TitleHeight, 36.0f);
+  EXPECT_EQ(theme.Text.FontFamily, L"Microsoft YaHei");
   EXPECT_GT(theme.Text.FontSize, 0.0f);
 }
 

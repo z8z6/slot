@@ -27,7 +27,8 @@ IDWriteFactory *GetTextFactory() {
   return factory.Get();
 }
 
-float MeasureTabTextWidth(const std::string &text, float fontSize) {
+float MeasureTabTextWidth(const std::string &text,
+                          const std::wstring &fontFamily, float fontSize) {
   const int characterCount =
       MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(),
                           static_cast<int>(text.size()), nullptr, 0);
@@ -41,12 +42,13 @@ float MeasureTabTextWidth(const std::string &text, float fontSize) {
   float glyphWidth = static_cast<float>(wideText.size()) * fontSize * 0.56f;
   Microsoft::WRL::ComPtr<IDWriteTextFormat> format;
   Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
-  // 页签宽度与最终文本通道共用 Segoe UI/DirectWrite 度量，避免宽窄字形标题
-  // 依赖经验系数。创建失败时保留确定性回退，使无图形设备的布局测试仍可运行。
+  // 页签宽度与最终文本通道共用 Theme 字体和 DirectWrite 度量，避免更换字体后
+  // 绘制字形宽度与命中区域脱节。创建失败时保留确定性回退，使无图形设备的
+  // 布局测试仍可运行。
   auto *factory = GetTextFactory();
   if (factory &&
       SUCCEEDED(factory->CreateTextFormat(
-          L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+          fontFamily.c_str(), nullptr, DWRITE_FONT_WEIGHT_NORMAL,
           DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fontSize,
           L"zh-cn", format.GetAddressOf())) &&
       SUCCEEDED(factory->CreateTextLayout(
@@ -213,7 +215,9 @@ void PanelGroupTabNode::SetTitle(const std::string &title) {
   if (!LabelNode)
     return;
   LabelNode->Text = title;
-  Style.Width = MeasureTabTextWidth(title, Theme::Default().Text.FontSize);
+  const auto &textStyle = Theme::Default().Text;
+  Style.Width =
+      MeasureTabTextWidth(title, textStyle.FontFamily, textStyle.FontSize);
 }
 
 PanelGroupNode::PanelGroupNode() {

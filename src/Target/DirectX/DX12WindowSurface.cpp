@@ -27,8 +27,12 @@ void DX12WindowSurface::Init(HWND window, int width, int height,
                              unsigned sampleCount, unsigned sampleQuality,
                              const DirectX::XMFLOAT4 &clearColor) {
   Shutdown();
+  Window = window;
   Width = (std::max)(1, width);
   Height = (std::max)(1, height);
+  const UINT dpi = GetDpiForWindow(Window);
+  DpiScale = static_cast<float>(dpi ? dpi : USER_DEFAULT_SCREEN_DPI) /
+             USER_DEFAULT_SCREEN_DPI;
   SampleCount = (std::max)(1U, sampleCount);
   SampleQuality = sampleQuality;
   ClearColor = clearColor;
@@ -38,7 +42,7 @@ void DX12WindowSurface::Init(HWND window, int width, int height,
                          ClearColor);
   ID3D12Resource *buffers[] = {ColorTarget.Buffer[0].Get(),
                                ColorTarget.Buffer[1].Get()};
-  TextRenderer.Init(buffers, SwapChain.Format);
+  TextRenderer.Init(buffers, SwapChain.Format, DpiScale);
   RefreshViewport();
   Initialized = true;
 }
@@ -63,6 +67,9 @@ void DX12WindowSurface::Resize(int width, int height) {
     return;
   Width = (std::max)(1, width);
   Height = (std::max)(1, height);
+  const UINT dpi = GetDpiForWindow(Window);
+  DpiScale = static_cast<float>(dpi ? dpi : USER_DEFAULT_SCREEN_DPI) /
+             USER_DEFAULT_SCREEN_DPI;
   // D3D11On12 包装必须先于交换链 COM 引用释放；顺序集中在这里后，主窗口
   // 与 Floating host 不会再维护两份容易漂移的 ResizeBuffers 协议。
   TextRenderer.PrepareResize();
@@ -72,7 +79,7 @@ void DX12WindowSurface::Resize(int width, int height) {
                          ClearColor);
   ID3D12Resource *buffers[] = {ColorTarget.Buffer[0].Get(),
                                ColorTarget.Buffer[1].Get()};
-  TextRenderer.Resize(buffers, SwapChain.Format);
+  TextRenderer.Resize(buffers, SwapChain.Format, DpiScale);
   RefreshViewport();
 }
 
@@ -83,5 +90,6 @@ void DX12WindowSurface::Shutdown() {
   TextRenderer.Shutdown();
   ColorTarget.ResetBuffer();
   SwapChain.Reset();
+  Window = nullptr;
   Initialized = false;
 }

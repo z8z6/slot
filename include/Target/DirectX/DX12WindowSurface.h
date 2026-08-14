@@ -31,12 +31,14 @@ public:
   D3D12_RECT Scissor{};
   int Width = 1;
   int Height = 1;
+  float DpiScale = 1.0f;
 
 private:
   DirectX::XMFLOAT4 ClearColor{};
   unsigned SampleCount = 1;
   unsigned SampleQuality = 0;
   bool Initialized = false;
+  HWND Window = nullptr;
 
 public:
   explicit DX12WindowSurface(DX12Render *render);

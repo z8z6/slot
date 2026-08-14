@@ -30,8 +30,10 @@ const Theme &Theme::UnrealEditor() {
       .Rect = {Color::ControlBackground, Color::Border, 0.0f,
                SpacingStyle::ExtraSmall, SpacingStyle::ExtraSmall, 30.0f, 24.0f,
                2.0f},
-      .Text = {Color::Text, Color::TextMuted, Color::TextDisabled, 14.0f, 12.0f,
-               15.0f, 20.0f},
+      // 微软雅黑覆盖中英文常用字形，避免 Segoe UI 绘制中文时依赖系统回退，
+      // 从而让同一行中的中英文保持一致的 hinting、基线和视觉粗细。
+      .Text = {Color::Text, Color::TextMuted, Color::TextDisabled,
+               L"Microsoft YaHei", 14.0f, 12.0f, 15.0f, 20.0f},
       .Icon = {{Color::TextMuted, Color::Text, Color::Text, Color::Text,
                 Color::TextDisabled, Color::Accent},
                12.0f,

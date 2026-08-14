@@ -1,6 +1,7 @@
 #include "Core/Win32WindowHost.h"
 
 #include <WindowsX.h>
+#include <cmath>
 
 using namespace z8;
 
@@ -43,9 +44,10 @@ bool Win32WindowHost::DispatchInputMessage(HWND window, UINT message,
       return false;
     if (POINT point{}; GetCursorPos(&point)) {
       ScreenToClient(InputCoordinateWindow, &point);
+      const float scale = ResolveCoordinateScale();
       MouseMovArgs args;
-      args.X = point.x;
-      args.Y = point.y;
+      args.X = static_cast<int>(std::lround(point.x / scale));
+      args.Y = static_cast<int>(std::lround(point.y / scale));
       // 使用系统 DPI 感知光标；UI 只提供平台无关语义，避免主/浮动窗口
       // 分别维护一份易漂移的 IDC_* 映射。
       SetCursor(LoadCursorW(nullptr,
@@ -98,8 +100,11 @@ bool Win32WindowHost::DispatchInputMessage(HWND window, UINT message,
   case WM_MOUSEWHEEL: {
     POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
     ScreenToClient(InputCoordinateWindow, &point);
+    const float scale = ResolveCoordinateScale();
     InputTarget->OnMouseWheel(
-        {static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam)), point.x, point.y,
+        {static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam)),
+         static_cast<int>(std::lround(point.x / scale)),
+         static_cast<int>(std::lround(point.y / scale)),
          GET_WHEEL_DELTA_WPARAM(wParam)});
     result = 0;
     return true;
@@ -178,16 +183,29 @@ MouseMovArgs Win32WindowHost::ResolveMouseArgs(HWND sourceWindow,
     ClientToScreen(sourceWindow, &point);
     ScreenToClient(InputCoordinateWindow, &point);
   }
+  const float scale = ResolveCoordinateScale();
+  POINT logicalPoint{static_cast<LONG>(std::lround(point.x / scale)),
+                     static_cast<LONG>(std::lround(point.y / scale))};
   MouseMovArgs args;
   args.State = static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam));
-  args.X = point.x;
-  args.Y = point.y;
-  args.DeltaX = HasPointerPosition ? point.x - LastPointer.x : 0;
-  args.DeltaY = HasPointerPosition ? point.y - LastPointer.y : 0;
+  args.X = logicalPoint.x;
+  args.Y = logicalPoint.y;
+  args.DeltaX = HasPointerPosition ? logicalPoint.x - LastPointer.x : 0;
+  args.DeltaY = HasPointerPosition ? logicalPoint.y - LastPointer.y : 0;
   args.Button = ResolveMouseButton(message, wParam);
-  LastPointer = point;
+  LastPointer = logicalPoint;
   HasPointerPosition = true;
   return args;
+}
+
+float Win32WindowHost::ResolveCoordinateScale() const {
+  if (!InputCoordinateWindow)
+    return 1.0f;
+  // 所有事件最终进入主 Layout 坐标系；即使消息来自 Floating HWND，也按
+  // coordinateWindow 的 DPI 还原为同一套 96 DPI 逻辑像素。
+  const UINT dpi = GetDpiForWindow(InputCoordinateWindow);
+  return static_cast<float>(dpi ? dpi : USER_DEFAULT_SCREEN_DPI) /
+         USER_DEFAULT_SCREEN_DPI;
 }
 
 LPCWSTR Win32WindowHost::ResolveSystemCursor(MouseCursor cursor) {

@@ -32,6 +32,7 @@ void DX12GlobalConst::Update(DX12Render* R) {
 
   TimeCost = R->GetTimer()->TimeCost;
   TimeTotal = R->GetTimer()->TimeTotal;
+  UIScale = R->GetWindow()->DpiScale;
 
   // 写入常量缓冲区
   WriteToBuffer(R);

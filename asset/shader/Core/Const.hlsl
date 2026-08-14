@@ -33,5 +33,7 @@ cbuffer cbPass : register(b2)
     float2 UIOrigin;
     float TimeCost;
     float TimeTotal;
+    float UIScale;
+    float p6;
 };
 

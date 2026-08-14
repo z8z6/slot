@@ -107,12 +107,17 @@ void z8::DX12Render::Draw()
   if (const auto *scene = App->Layout.GetSceneNode();
       scene && !App->Layout.Dock.IsFloating(*scene)) {
     const auto &viewport = scene->Viewport();
-    const auto left = static_cast<LONG>((std::max)(0.0f, viewport.Left));
-    const auto top = static_cast<LONG>((std::max)(0.0f, viewport.Top));
+    const float uiScale = App->Window.DpiScale;
+    const auto left =
+        static_cast<LONG>((std::max)(0.0f, viewport.Left * uiScale));
+    const auto top =
+        static_cast<LONG>((std::max)(0.0f, viewport.Top * uiScale));
     const auto right = static_cast<LONG>((std::min)(
-        static_cast<float>(GetWindow()->Width), viewport.Left + viewport.Width));
+        static_cast<float>(GetWindow()->Width),
+        (viewport.Left + viewport.Width) * uiScale));
     const auto bottom = static_cast<LONG>((std::min)(
-        static_cast<float>(GetWindow()->Height), viewport.Top + viewport.Height));
+        static_cast<float>(GetWindow()->Height),
+        (viewport.Top + viewport.Height) * uiScale));
     if (right > left && bottom > top) {
       DepthStencil.ClearBuffer();
       const D3D12_VIEWPORT sceneView{

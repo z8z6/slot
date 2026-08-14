@@ -81,8 +81,8 @@ int z8::Application::Run() {
           App->Layout.WriteTerminal("[XAML] Reload failed: " +
                                     App->XamlReload->GetLastError());
       }
-      App->Layout.Calculate(static_cast<float>(App->Window.Width),
-                            static_cast<float>(App->Window.Height));
+      App->Layout.Calculate(App->Window.LogicalWidth(),
+                            App->Window.LogicalHeight());
       App->Render->Update();
       App->Render->Draw();
     }
@@ -158,8 +158,7 @@ LRESULT Application::HandleWindowMessage(HWND Wnd, UINT Msg, WPARAM wParam,
     Window.Height = HIWORD(lParam);
     if (wParam == SIZE_MINIMIZED)
       return 0;
-    Layout.Calculate(static_cast<float>(Window.Width),
-                     static_cast<float>(Window.Height));
+    Layout.Calculate(Window.LogicalWidth(), Window.LogicalHeight());
     if (Render) {
       Render->Resize();
       if (InSizeMove) {
@@ -173,6 +172,18 @@ LRESULT Application::HandleWindowMessage(HWND Wnd, UINT Msg, WPARAM wParam,
         DwmFlush();
       }
     }
+    return 0;
+  }
+
+  case WM_DPICHANGED: {
+    Window.UpdateDpi(HIWORD(wParam));
+    const auto *suggested = reinterpret_cast<const RECT *>(lParam);
+    // PMv2 不会替应用缩放客户内容；采用系统建议的物理窗口矩形后，随后的
+    // WM_SIZE 会按新 DPI 重建交换链，而 Layout 继续看到稳定的逻辑尺寸。
+    SetWindowPos(Wnd, nullptr, suggested->left, suggested->top,
+                 suggested->right - suggested->left,
+                 suggested->bottom - suggested->top,
+                 SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
     return 0;
   }
 
@@ -196,8 +207,7 @@ LRESULT Application::HandleWindowMessage(HWND Wnd, UINT Msg, WPARAM wParam,
     // Here we reset everything based on the new window dimensions.
   case WM_EXITSIZEMOVE:
     InSizeMove = false;
-    Layout.Calculate(static_cast<float>(Window.Width),
-                     static_cast<float>(Window.Height));
+    Layout.Calculate(Window.LogicalWidth(), Window.LogicalHeight());
     if (Render)
       Render->Resize();
     return 0;
@@ -215,8 +225,10 @@ LRESULT Application::HandleWindowMessage(HWND Wnd, UINT Msg, WPARAM wParam,
   }
     // Catch this message so to prevent the window from becoming too small.
   case WM_GETMINMAXINFO:
-    reinterpret_cast<MINMAXINFO *>(lParam)->ptMinTrackSize.x = 200;
-    reinterpret_cast<MINMAXINFO *>(lParam)->ptMinTrackSize.y = 200;
+    reinterpret_cast<MINMAXINFO *>(lParam)->ptMinTrackSize.x =
+        MulDiv(200, static_cast<int>(Window.Dpi), USER_DEFAULT_SCREEN_DPI);
+    reinterpret_cast<MINMAXINFO *>(lParam)->ptMinTrackSize.y =
+        MulDiv(200, static_cast<int>(Window.Dpi), USER_DEFAULT_SCREEN_DPI);
     return 0;
 
   }

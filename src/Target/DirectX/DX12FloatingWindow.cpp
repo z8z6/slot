@@ -79,6 +79,8 @@ private:
   std::unique_ptr<DX12RenderBatch> Batch;
   int Width = 1;
   int Height = 1;
+  unsigned Dpi = USER_DEFAULT_SCREEN_DPI;
+  float DpiScale = 1.0f;
   bool ResizePending = false;
   bool SuppressWindowSync = false;
   bool ClosePending = false;
@@ -111,7 +113,8 @@ private:
     RECT client{};
     GetClientRect(Wnd, &client);
     const int border = (std::max)(
-        1, static_cast<int>(std::ceil(ui::Theme::Default().Panel.ResizeBorder)));
+        1, static_cast<int>(std::ceil(
+               ui::Theme::Default().Panel.ResizeBorder * DpiScale)));
     const bool left = point.x < border;
     const bool right = point.x >= client.right - border;
     const bool top = point.y < border;
@@ -136,8 +139,8 @@ private:
     // Panel tab 仍走 Layout 的 Panel Dock 手势；只有 Tab 与关闭按钮之间的
     // 空白标题区作为原生 caption 移动整个 HWND，不产生 DockSession。
     if (Group && Group->DragHandleNode &&
-        Group->DragHandleNode->Contains(Root->Left + point.x,
-                                        Root->Top + point.y))
+        Group->DragHandleNode->Contains(Root->Left + point.x / DpiScale,
+                                        Root->Top + point.y / DpiScale))
       return HTCAPTION;
     return HTCLIENT;
   }
@@ -180,6 +183,22 @@ private:
           RenderInteractiveResizeFrame();
       }
       return 0;
+    case WM_DPICHANGED: {
+      Dpi = HIWORD(wParam);
+      DpiScale = static_cast<float>(Dpi ? Dpi : USER_DEFAULT_SCREEN_DPI) /
+                 USER_DEFAULT_SCREEN_DPI;
+      const auto *suggested = reinterpret_cast<const RECT *>(lParam);
+      // Suggested rect 保持窗口在新显示器上的逻辑尺寸；先更新比例再调整 HWND，
+      // 同步产生的 WM_SIZE 才会用正确 DPI 重建文字目标和交换链。
+      SuppressWindowSync = true;
+      SetWindowPos(Wnd, nullptr, suggested->left, suggested->top,
+                   suggested->right - suggested->left,
+                   suggested->bottom - suggested->top,
+                   SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+      SuppressWindowSync = false;
+      SynchronizeRectFromWindow();
+      return 0;
+    }
     case WM_ENTERSIZEMOVE:
       InSizeMove = true;
       return 0;
@@ -229,12 +248,13 @@ private:
     ClientToScreen(Wnd, &origin);
     ScreenToClient(Render->App->Window.Wnd, &origin);
     const ui::DockRect rect{
-        static_cast<float>(origin.x), static_cast<float>(origin.y),
-        static_cast<float>(Width), static_cast<float>(Height)};
+        static_cast<float>(origin.x) / Render->App->Window.DpiScale,
+        static_cast<float>(origin.y) / Render->App->Window.DpiScale,
+        static_cast<float>(Width) / DpiScale,
+        static_cast<float>(Height) / DpiScale};
     if (Render->App->Layout.Dock.UpdateFloatingRect(*Root, rect))
-      Render->App->Layout.Calculate(
-          static_cast<float>(Render->App->Window.Width),
-          static_cast<float>(Render->App->Window.Height));
+      Render->App->Layout.Calculate(Render->App->Window.LogicalWidth(),
+                                    Render->App->Window.LogicalHeight());
   }
 
 public:
@@ -245,14 +265,18 @@ public:
     RegisterFloatingWindowClass();
     const auto *state = Render->App->Layout.Dock.GetState(root);
     const auto rect = state ? state->FloatingRect : ui::DockRect{};
-    Width = (std::max)(1, static_cast<int>(rect.Width));
-    Height = (std::max)(1, static_cast<int>(rect.Height));
-    POINT screenOrigin{static_cast<LONG>(rect.Left),
-                       static_cast<LONG>(rect.Top)};
+    Dpi = Render->App->Window.Dpi;
+    DpiScale = Render->App->Window.DpiScale;
+    Width = (std::max)(1, static_cast<int>(std::lround(rect.Width * DpiScale)));
+    Height =
+        (std::max)(1, static_cast<int>(std::lround(rect.Height * DpiScale)));
+    POINT screenOrigin{
+        static_cast<LONG>(std::lround(rect.Left * Render->App->Window.DpiScale)),
+        static_cast<LONG>(std::lround(rect.Top * Render->App->Window.DpiScale))};
     ClientToScreen(Render->App->Window.Wnd, &screenOrigin);
     RECT frame{0, 0, Width, Height};
-    AdjustWindowRectEx(&frame, FloatingWindowStyle, FALSE,
-                       FloatingWindowExtendedStyle);
+    AdjustWindowRectExForDpi(&frame, FloatingWindowStyle, FALSE,
+                             FloatingWindowExtendedStyle, Dpi);
     Wnd = CreateWindowExW(FloatingWindowExtendedStyle, FloatingWindowClass,
                           Scene ? L"Slot Viewport" : L"Slot Panel",
                           FloatingWindowStyle,
@@ -260,6 +284,13 @@ public:
                           screenOrigin.y + frame.top, frame.right - frame.left,
                           frame.bottom - frame.top, Render->App->Window.Wnd,
                           nullptr, Window::Instance, nullptr);
+    Dpi = GetDpiForWindow(Wnd);
+    DpiScale = static_cast<float>(Dpi ? Dpi : USER_DEFAULT_SCREEN_DPI) /
+               USER_DEFAULT_SCREEN_DPI;
+    RECT client{};
+    GetClientRect(Wnd, &client);
+    Width = (std::max)(1, static_cast<int>(client.right));
+    Height = (std::max)(1, static_cast<int>(client.bottom));
     // WS_THICKFRAME 继续提供系统级缩放命中和阴影。Windows 仍会为该非客户区
     // 绘制顶边，因此将 Border/Caption 同步为 Panel 标题主题色，而不是依赖
     // 随系统浅色模式变化的默认白色。
@@ -316,13 +347,14 @@ public:
     if (Render->App->Layout.Dock.Drag.Panel == Root &&
         Render->App->Layout.Dock.Drag.State == ui::PanelDragState::Dragging)
       rect = Render->App->Layout.Dock.Drag.FloatingPreviewRect;
-    POINT screenOrigin{static_cast<LONG>(rect.Left),
-                       static_cast<LONG>(rect.Top)};
+    POINT screenOrigin{
+        static_cast<LONG>(std::lround(rect.Left * Render->App->Window.DpiScale)),
+        static_cast<LONG>(std::lround(rect.Top * Render->App->Window.DpiScale))};
     ClientToScreen(Render->App->Window.Wnd, &screenOrigin);
-    RECT frame{0, 0, static_cast<LONG>(rect.Width),
-               static_cast<LONG>(rect.Height)};
-    AdjustWindowRectEx(&frame, FloatingWindowStyle, FALSE,
-                       FloatingWindowExtendedStyle);
+    RECT frame{0, 0, static_cast<LONG>(std::lround(rect.Width * DpiScale)),
+               static_cast<LONG>(std::lround(rect.Height * DpiScale))};
+    AdjustWindowRectExForDpi(&frame, FloatingWindowStyle, FALSE,
+                             FloatingWindowExtendedStyle, Dpi);
     RECT currentFrame{};
     GetWindowRect(Wnd, &currentFrame);
     const int targetX = screenOrigin.x + frame.left;
@@ -348,6 +380,7 @@ public:
     constants.ScreenSize = {static_cast<float>(Width),
                             static_cast<float>(Height)};
     constants.UIOrigin = {Root->Left, Root->Top};
+    constants.UIScale = DpiScale;
     constants.WriteToBatch(*Batch);
   }
 
@@ -361,15 +394,15 @@ public:
     if (Scene && Scene->EffectiveVisible) {
       const auto &sceneViewport = Scene->Viewport();
       const auto left = static_cast<LONG>((std::max)(
-          0.0f, sceneViewport.Left - Root->Left));
+          0.0f, (sceneViewport.Left - Root->Left) * DpiScale));
       const auto top = static_cast<LONG>((std::max)(
-          0.0f, sceneViewport.Top - Root->Top));
+          0.0f, (sceneViewport.Top - Root->Top) * DpiScale));
       const auto right = static_cast<LONG>((std::min)(
           static_cast<float>(Width),
-          sceneViewport.Left + sceneViewport.Width - Root->Left));
+          (sceneViewport.Left + sceneViewport.Width - Root->Left) * DpiScale));
       const auto bottom = static_cast<LONG>((std::min)(
           static_cast<float>(Height),
-          sceneViewport.Top + sceneViewport.Height - Root->Top));
+          (sceneViewport.Top + sceneViewport.Height - Root->Top) * DpiScale));
       if (right > left && bottom > top) {
         // Scene 的布局仍保存在主 Layout 坐标系；减去 Floating root 原点后
         // 得到本地 viewport，使 3D 与同一子树的标题/文字精确对齐。

@@ -4,6 +4,7 @@
 
 #pragma once
 #include <DirectXMath.h>
+#include <cstddef>
 
 namespace z8 {
 class DX12Render;
@@ -33,6 +34,9 @@ struct  DX12GlobalConst {
   DirectX::XMFLOAT2 UIOrigin = {0.0f, 0.0f};
   float TimeCost;
   float TimeTotal;
+  /** 96 DPI Layout 坐标到当前交换链物理像素的比例。 */
+  float UIScale = 1.0f;
+  float Padding = 0.0f;
 
   void Update(DX12Render* R);
   /** 把当前全局状态写入指定批次，供多个交换链复用同一帧状态。 */
@@ -42,6 +46,10 @@ struct  DX12GlobalConst {
 private:
   void WriteToBuffer(DX12Render* R) const;
 };
+static_assert(offsetof(DX12GlobalConst, UIScale) == 168,
+              "UI scale must match cbPass packing in Const.hlsl.");
+static_assert(sizeof(DX12GlobalConst) == 176,
+              "Global constants must match cbPass size in Const.hlsl.");
 
 
 }

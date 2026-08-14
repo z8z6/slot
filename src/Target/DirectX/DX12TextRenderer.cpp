@@ -31,9 +31,9 @@ std::wstring ToWide(const std::string &text) {
 DX12TextRenderer::DX12TextRenderer(DX12Render *render) : DX12Common(render) {}
 
 void DX12TextRenderer::Init(ID3D12Resource *const buffers[2],
-                            DXGI_FORMAT format) {
+                            DXGI_FORMAT format, float dpiScale) {
   CreateDevices();
-  CreateTargets(buffers, format);
+  CreateTargets(buffers, format, dpiScale);
   Initialized = true;
 }
 
@@ -51,6 +51,9 @@ void DX12TextRenderer::CreateDevices() {
   Ok(D2DFactory->CreateDevice(dxgiDevice.Get(), D2DDevice.GetAddressOf()));
   Ok(D2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
                                     D2DContext.GetAddressOf()));
+  // 交换链在 DX12 阶段已经绘制为完全不透明表面；显式使用 ClearType 才能
+  // 利用 LCD RGB 子像素覆盖，达到系统原生桌面控件的小字号清晰度。
+  D2DContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
   Ok(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                          reinterpret_cast<IUnknown **>(
                              WriteFactory.GetAddressOf())));
@@ -82,11 +85,16 @@ void DX12TextRenderer::Shutdown() {
 }
 
 void DX12TextRenderer::CreateTargets(ID3D12Resource *const buffers[2],
-                                     DXGI_FORMAT format) {
+                                     DXGI_FORMAT format, float dpiScale) {
+  const float dpi =
+      USER_DEFAULT_SCREEN_DPI * (std::max)(dpiScale, 0.01f);
+  // SetTarget 不会继承目标位图记录的 DPI；必须显式同步 DeviceContext，
+  // 才能让 DirectWrite 的 DIP 与 DX12 UI 按 UIScale 放大后的像素坐标重合。
+  // 否则文字仍按 96 DPI 绘制，在高 DPI 显示器上会相对控件向左上方错位。
+  D2DContext->SetDpi(dpi, dpi);
   const auto properties = D2D1::BitmapProperties1(
       D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-      D2D1::PixelFormat(format,
-                        D2D1_ALPHA_MODE_PREMULTIPLIED));
+      D2D1::PixelFormat(format, D2D1_ALPHA_MODE_IGNORE), dpi, dpi);
   for (int i = 0; i < 2; ++i) {
     D3D11_RESOURCE_FLAGS flags{};
     flags.BindFlags = D3D11_BIND_RENDER_TARGET;
@@ -114,10 +122,10 @@ void DX12TextRenderer::PrepareResize() {
 }
 
 void DX12TextRenderer::Resize(ID3D12Resource *const buffers[2],
-                              DXGI_FORMAT format) {
+                              DXGI_FORMAT format, float dpiScale) {
   if (!Initialized)
     return;
-  CreateTargets(buffers, format);
+  CreateTargets(buffers, format, dpiScale);
 }
 
 IDWriteTextFormat *DX12TextRenderer::GetFormat(const ui::TextNode &node) {

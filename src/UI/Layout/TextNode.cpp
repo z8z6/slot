@@ -10,6 +10,9 @@ using namespace z8::ui;
 TextNode::TextNode() {
   const auto &style = Theme::Default().Text;
   Color = style.Color;
+  // 所有复合控件最终都通过 TextNode 输出文字；从主题复制字体可以同时覆盖
+  // Panel、Tree、Menu 和输入框，又允许单个 C++ 节点在必要时显式替换。
+  FontFamily = style.FontFamily;
   FontSize = style.FontSize;
   // 文字自身不应像普通容器一样填满父级；默认单行高度由字号留出抗锯齿边缘。
   Style.FlexGrow = 0.0f;

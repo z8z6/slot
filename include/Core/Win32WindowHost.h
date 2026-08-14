@@ -23,6 +23,7 @@ private:
   bool ReleasingCapture = false;
 
   static MouseButton ResolveMouseButton(UINT message, WPARAM wParam);
+  float ResolveCoordinateScale() const;
   MouseMovArgs ResolveMouseArgs(HWND sourceWindow, UINT message,
                                 WPARAM wParam, LPARAM lParam);
   static LPCWSTR ResolveSystemCursor(MouseCursor cursor);

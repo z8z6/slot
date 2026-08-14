@@ -1,6 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include <string>
 
 namespace z8::ui {
 
@@ -51,11 +52,12 @@ struct RectStyle {
   float CornerRadius = 0.0f;
 };
 
-/** 编辑器文字层级；目前由 DirectWrite 使用同一字体族，仅区分尺寸和语义色。 */
+/** 编辑器文字层级；字体族与尺寸集中配置，保证绘制和布局测量使用同一字形。 */
 struct TextStyle {
   DirectX::XMFLOAT4 Color;
   DirectX::XMFLOAT4 MutedColor;
   DirectX::XMFLOAT4 DisabledColor;
+  std::wstring FontFamily = L"Microsoft YaHei";
   float FontSize = 14.0f;
   float SmallFontSize = 12.0f;
   float HeadingFontSize = 15.0f;

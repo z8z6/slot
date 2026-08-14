@@ -26,6 +26,7 @@ TEST(TextNodeTest, IsPureLayoutTextAndRegistersWithLayout) {
   EXPECT_EQ(layout.Texts.front(), observer);
   EXPECT_TRUE(layout.Visuals.empty());
   EXPECT_EQ(observer->Text, "Hello, Slot");
+  EXPECT_EQ(observer->FontFamily, L"Microsoft YaHei");
   EXPECT_FLOAT_EQ(observer->FontSize, 18.0f);
   EXPECT_EQ(observer->Alignment, TextAlignment::Center);
 }

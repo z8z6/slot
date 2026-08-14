@@ -33,7 +33,10 @@ VertexOut VS(VertexIn vin)
     float2 ScreenPosition = posW.xy;
     // Layout 始终保存主工作区坐标；不同 HWND 只通过 UIOrigin 建立本地视口，
     // 不复制或临时改写控件常量，因此 Dock/Floating 仍共享同一棵控件树。
-    vout.SVPosition = ScreenToNDC(ScreenPosition - UIOrigin, ScreenSize);
+    // Layout 保持 96 DPI 逻辑坐标，最终顶点才映射到交换链物理像素；这样
+    // 高 DPI 下控件尺寸稳定，同时避免 DWM 对整帧做模糊的位图放大。
+    vout.SVPosition =
+        ScreenToNDC((ScreenPosition - UIOrigin) * UIScale, ScreenSize);
     vout.Color = ObjectColor;
     vout.ScreenPosition = ScreenPosition;
     return vout;

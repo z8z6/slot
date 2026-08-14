@@ -26,7 +26,7 @@ flowchart LR
 
 场景 `Object`、`Layout`、`BehaviorNode` 和 `IBehavior` 共同继承 Core 的 `EventTarget`，鼠标与键盘事件统一返回 `EventReply::Ignored/Handled/Capture`。`BaseNode` 只负责布局、属性与树所有权；纯布局节点因此不再支付 Behavior 容器、事件虚表和捕获状态的成本。Core 只定义事件 ABI，不负责命中、冒泡或捕获存储。
 
-`PanelNode` 由背景视觉、`TextNode` 标题和 `ScrollNode` 内容区组成。`TerminalNode` 在 Panel 基础上维护限长消息队列与稳定输出 TextNode，用作编辑器底部 Output Log；拖拽与拉伸的开始、移动、最小尺寸阻止和结束消息由 Layout 统一写入。新增消息完成布局后，Terminal 自动把滚动偏移更新到最新的最大值，始终显示最后一行。`ScrollNode` 独立封装 viewport/content/scrollbar 与 `ScrollBehavior`，并由 `TreeViewNode` 复用。`TextNode` 只保存 UTF-8 文本与排版属性，布局完成后由 DirectWrite 文字通道在 DX12 UI 几何之上绘制；D3D11On12 负责共享交换链缓冲和同步，文字不伪装成矩形网格资源。
+`PanelNode` 由背景视觉、`TextNode` 标题和 `ScrollNode` 内容区组成。`TerminalNode` 在 Panel 基础上维护限长消息队列与稳定输出 TextNode，用作编辑器底部 Output Log；拖拽与拉伸的开始、移动、最小尺寸阻止和结束消息由 Layout 统一写入。新增消息完成布局后，Terminal 自动把滚动偏移更新到最新的最大值，始终显示最后一行。`ScrollNode` 独立封装 viewport/content/scrollbar 与 `ScrollBehavior`，并由 `TreeViewNode` 复用。`TextNode` 只保存 UTF-8 文本与排版属性，默认字体族由 Theme 统一设为 `Microsoft YaHei`（微软雅黑）；布局完成后由 DirectWrite 文字通道在 DX12 UI 几何之上绘制。D3D11On12 负责共享交换链缓冲和同步，文字不伪装成矩形网格资源。文字目标把已由 DX12 填充的不透明交换链声明为 `D2D1_ALPHA_MODE_IGNORE`，因此可以采用 ClearType RGB 子像素抗锯齿，而不会因预乘 Alpha 自动退回灰度抗锯齿；DeviceContext 与目标位图还必须显式同步到 HWND 的实际 DPI，因为 `SetTarget` 不会传播位图 DPI，遗漏该同步会使文字仍以 96 DPI 排版并与 DX12 控件错位。Panel 页签宽度测量也消费同一字体 token，避免字体更换后文字与命中区域不一致。
 
 `ButtonNode`、`ToggleNode`、`SliderNode`、`TextInputNode`、`TreeViewNode/TreeViewItemNode`、`FileExplorerNode`、`MenuNode/MenuItemNode` 和 `ToolBarNode` 是当前常用原生控件。可操作控件继承 `BehaviorNode` 的 Hover、Pressed、Focused 状态；Layout 保证单窗口只有一个键盘焦点，并把 KeyDown/KeyUp 和 WM_CHAR 转换后的字符送给焦点控件。TextInput 内部以 UTF-8 保存业务字符串，以 WM_CHAR 的 UTF-16 字符单元进入平台边界；TreeView 只拥有展开和唯一选择状态，不接管调用方业务数据生命周期。FileExplorer 是 TreeView 的文件系统投影，只缓存行到路径的映射，不读取文件内容，也不承担资源导入业务。
 
@@ -251,7 +251,7 @@ Rect 支持 `BorderColor` 与像素宽度的 `Border`/`BorderWidth`。边框在 
 
 ## 布局和渲染同步
 
-`LayoutEngine` 计算父空间 left/top/width/height 后，`Layout` 累加父偏移得到绝对像素坐标。求解器支持 Row/Column、grow/shrink、min/max、统一 margin/padding、百分比宽度和四边绝对定位；样式与结果均由节点直接拥有，不经过第三方句柄或 C ABI。矩形原点在中心，因此位置转换为 `(left + width/2, top + height/2)`，缩放为 `(width, height)`；UI Shader 再将像素坐标映射到 NDC 并翻转 Y。
+`LayoutEngine` 计算父空间 left/top/width/height 后，`Layout` 累加父偏移得到绝对逻辑像素坐标。求解器支持 Row/Column、grow/shrink、min/max、统一 margin/padding、百分比宽度和四边绝对定位；样式与结果均由节点直接拥有，不经过第三方句柄或 C ABI。应用清单启用 Per-Monitor V2，主窗口和 Floating HWND 各自维护当前 DPI；Win32 输入先除以 DPI 比例进入 96 DPI Layout 坐标，UI Shader 和 DirectWrite 再在呈现边界乘回比例生成交换链物理像素。Windows 因此不会对整张帧缓冲做模糊的兼容位图拉伸，跨显示器 DPI 变化也会重建对应窗口的呈现目标。矩形原点在中心，因此位置转换为 `(left + width/2, top + height/2)`，缩放为 `(width, height)`；UI Shader 再将物理像素坐标映射到 NDC 并翻转 Y。
 
 `SceneNode` 是编辑器中央 3D 视口的布局与输入边界，自身不创建普通 `UIObject`，但组合了可绘制标题栏、标题文字和纯布局 Viewport。标题栏用于拖拽，外边界用于拉伸，只有 Viewport 内容区的指针输入继续交给相机和场景对象。DX12 后端把场景与 UI 几何绘制到同一 4x MSAA 颜色缓冲，SceneNode 的 viewport/scissor 约束 3D 内容范围，随后解析到单采样交换链并由 DirectWrite 叠加文字。默认 Demo 采用顶部 ToolBar 多级菜单、底部 Output Log、左侧 World Outliner、右侧 Details 和中央 SceneNode 的 UE 编辑器式布局。
 

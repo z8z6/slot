@@ -40,15 +40,18 @@ public:
   void Draw(const std::vector<ui::TextNode *> &texts, int bufferIndex,
             float originX, float originY);
   /** 为任意 WindowSurface 的两个交换链缓冲建立 DirectWrite 包装目标。 */
-  void Init(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
+  void Init(ID3D12Resource *const buffers[2], DXGI_FORMAT format,
+            float dpiScale);
   void PrepareResize();
-  void Resize(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
+  void Resize(ID3D12Resource *const buffers[2], DXGI_FORMAT format,
+              float dpiScale);
   /** 按 Direct2D → wrapped resource → D3D11On12 的依赖顺序显式释放。 */
   void Shutdown();
 
 private:
   void CreateDevices();
-  void CreateTargets(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
+  void CreateTargets(ID3D12Resource *const buffers[2], DXGI_FORMAT format,
+                     float dpiScale);
   IDWriteTextFormat *GetFormat(const ui::TextNode &node);
 };
 

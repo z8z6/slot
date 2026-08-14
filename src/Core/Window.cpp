@@ -12,8 +12,13 @@ z8::Window::Window() {
   Inst = Window::Instance;
   WndClass = &DefaultWndClass;
 
+  // Manifest 已在进程启动时启用 PMv2；初始客户区按系统 DPI 放大，使 1440×840
+  // 仍表示逻辑尺寸，而交换链直接获得显示器物理像素，不再交给 DWM 插值。
+  UpdateDpi(GetDpiForSystem());
+  Width = MulDiv(Width, static_cast<int>(Dpi), USER_DEFAULT_SCREEN_DPI);
+  Height = MulDiv(Height, static_cast<int>(Dpi), USER_DEFAULT_SCREEN_DPI);
   RECT R = {0, 0, Width, Height};
-  AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
+  AdjustWindowRectExForDpi(&R, WS_OVERLAPPEDWINDOW, false, 0, Dpi);
   int width = R.right - R.left;
   int height = R.bottom - R.top;
 
@@ -32,6 +37,20 @@ void Window::Open() const {
 
 float Window::AspectRatio() const {
   return static_cast<float>(Width) / Height;
+}
+
+float Window::LogicalHeight() const {
+  return static_cast<float>(Height) / DpiScale;
+}
+
+float Window::LogicalWidth() const {
+  return static_cast<float>(Width) / DpiScale;
+}
+
+void Window::UpdateDpi(unsigned dpi) {
+  // 防御异常消息值，保证物理/逻辑坐标换算永远可逆且不会除零。
+  Dpi = dpi ? dpi : USER_DEFAULT_SCREEN_DPI;
+  DpiScale = static_cast<float>(Dpi) / USER_DEFAULT_SCREEN_DPI;
 }
 
 bool Window::Init() {

@@ -26,7 +26,10 @@ add_custom_command(
 # CONFIGURE_DEPENDS 让新增控件/声明层源文件自动进入目标，避免只增文件后链接缺符号。
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS src/*.cpp include/*.h third/*.h)
 
-add_executable(slot ${SOURCE_FILES} "${GENERATED_SHADER_REGISTRY}")
+# 由清单在任何 HWND 创建前启用 Per-Monitor V2，避免 Windows 对交换链做低清
+# 位图拉伸；CMake 会在 MSVC 链接的 manifest 合并阶段嵌入该源文件。
+add_executable(slot ${SOURCE_FILES} "${GENERATED_SHADER_REGISTRY}"
+        "src/slot.manifest")
 
 set_property(TARGET slot PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
