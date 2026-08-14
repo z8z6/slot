@@ -33,9 +33,8 @@ IBehavior *BehaviorNode::AddBehavior(std::unique_ptr<IBehavior> behavior) {
 
 bool BehaviorNode::RemoveBehavior(IBehavior *behavior) {
   const auto iterator =
-      std::find_if(Behaviors.begin(), Behaviors.end(), [behavior](const auto &v) {
-        return v.get() == behavior;
-      });
+      std::find_if(Behaviors.begin(), Behaviors.end(),
+                   [behavior](const auto &v) { return v.get() == behavior; });
   if (iterator == Behaviors.end())
     return false;
   if (CapturedBehavior == behavior) {
@@ -46,6 +45,20 @@ bool BehaviorNode::RemoveBehavior(IBehavior *behavior) {
   (*iterator)->Owner = nullptr;
   Behaviors.erase(iterator);
   return true;
+}
+
+void BehaviorNode::SetHovered(bool hovered) {
+  if (Hovered == hovered)
+    return;
+  Hovered = hovered;
+  OnVisualStateChanged();
+}
+
+void BehaviorNode::SetPressed(bool pressed) {
+  if (Pressed == pressed)
+    return;
+  Pressed = pressed;
+  OnVisualStateChanged();
 }
 
 bool BehaviorNode::SetProperty(const std::string &name,

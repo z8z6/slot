@@ -9,22 +9,16 @@
 
   <Panel Id="outliner" Title="World Outliner" Dock="Left"
          DockExtent="260">
-    <Rect Id="outliner-item-0" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#1D354EFF" />
-    <Rect Id="outliner-item-1" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#11171EFF" />
-    <Rect Id="outliner-item-2" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#141B23FF" />
-    <Rect Id="outliner-item-3" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#11171EFF" />
-    <Rect Id="outliner-item-4" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#141B23FF" />
-    <Rect Id="outliner-item-5" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#11171EFF" />
-    <Rect Id="outliner-item-6" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#141B23FF" />
-    <Rect Id="outliner-item-7" Height="32" FlexGrow="0" FlexShrink="0"
-          Margin="2" Color="#99171EFF" />
+    <!-- 占位行沿用 Theme 的 Control Surface；真实 Tree 控件实现后再由
+         Selected/Hovered 状态选择语义色，声明文件不持有调色板。 -->
+    <Rect Id="outliner-item-0" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <Rect Id="outliner-item-1" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <Rect Id="outliner-item-2" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <Rect Id="outliner-item-3" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <Rect Id="outliner-item-4" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <Rect Id="outliner-item-5" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <Rect Id="outliner-item-6" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <Rect Id="outliner-item-7" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
   </Panel>
 
   <Panel Id="details" Title="Details" Dock="Right" DockExtent="300" />

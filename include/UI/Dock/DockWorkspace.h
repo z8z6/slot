@@ -29,6 +29,8 @@ struct PanelDragSession {
   DockNodeID SourceNode = 0;
   int SourceTabIndex = -1;
   bool SourceWasFloating = false;
+  /** 当前指针位置是否构成有效预览；来源区域使用 Floating 而不是 Dock 预览。 */
+  bool PreviewVisible = false;
   DockRect SourceFloatingRect;
   float PressClientX = 0.0f;
   float PressClientY = 0.0f;
@@ -66,8 +68,7 @@ public:
                       size_t sourceTabIndex, float clientX, float clientY);
   void CancelDrag();
   bool CommitDrag(float clientX, float clientY);
-  DockSide DetectSide(const DockRect &rect, float clientX,
-                      float clientY) const;
+  DockSide DetectSide(const DockRect &rect, float clientX, float clientY) const;
   const PanelDockState *GetState(const BaseNode &panel) const;
   /** 返回当前所有 Floating Group；调用者不得通过结果转移节点所有权。 */
   std::vector<BaseNode *> GetFloatingPanels() const;

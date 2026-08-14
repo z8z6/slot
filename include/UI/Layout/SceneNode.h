@@ -20,7 +20,8 @@ public:
  * 编辑器中的 3D 场景视口占位节点。
  *
  * SceneNode 自身不创建 UIObject；标题栏由普通 UI 子节点绘制，后端把场景先画入
- * 离屏纹理，再依据 ViewportNode 的布局框合成到交换链。这样标题拖拽不会穿透相机。
+ * 离屏纹理，再依据 ViewportNode
+ * 的布局框合成到交换链。这样标题拖拽不会穿透相机。
  */
 class SceneNode final : public BehaviorNode {
 public:
@@ -38,7 +39,8 @@ public:
   bool HasInteractiveGeometry() const;
 
 private:
-  float TitleHeight = 30.0f;
+  /** 构造时取自 Theme；保留实例值以支持声明层覆盖标题高度。 */
+  float TitleHeight = 0.0f;
 };
 
 } // namespace z8::ui

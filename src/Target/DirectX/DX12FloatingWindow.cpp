@@ -8,11 +8,13 @@
 #include "Target/DirectX/DX12TextRenderer.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelGroupNode.h"
+#include "UI/Style/Theme.h"
 #include "Util/Color.h"
 #include "d3dx12.h"
 
 #include <WindowsX.h>
 #include <algorithm>
+#include <dwmapi.h>
 #include <dxgi1_4.h>
 #include <ranges>
 #include <unordered_set>
@@ -25,19 +27,30 @@ constexpr wchar_t FloatingWindowClass[] = L"SlotFloatingPanelWindow";
 constexpr DWORD FloatingWindowStyle = WS_POPUP | WS_THICKFRAME;
 constexpr DWORD FloatingWindowExtendedStyle = WS_EX_TOOLWINDOW;
 
+COLORREF ToNativeColor(const DirectX::XMFLOAT4 &color) {
+  const auto channel = [](float value) {
+    return static_cast<BYTE>(std::clamp(value, 0.0f, 1.0f) * 255.0f + 0.5f);
+  };
+  return RGB(channel(color.x), channel(color.y), channel(color.z));
+}
+
 MouseButton ResolveMouseButton(UINT message, WPARAM wParam) {
   switch (message) {
   case WM_LBUTTONDOWN:
-  case WM_LBUTTONUP: return MouseButton::Left;
+  case WM_LBUTTONUP:
+    return MouseButton::Left;
   case WM_MBUTTONDOWN:
-  case WM_MBUTTONUP: return MouseButton::Middle;
+  case WM_MBUTTONUP:
+    return MouseButton::Middle;
   case WM_RBUTTONDOWN:
-  case WM_RBUTTONUP: return MouseButton::Right;
+  case WM_RBUTTONUP:
+    return MouseButton::Right;
   case WM_XBUTTONDOWN:
   case WM_XBUTTONUP:
     return GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::X1
                                                   : MouseButton::X2;
-  default: return MouseButton::None;
+  default:
+    return MouseButton::None;
   }
 }
 
@@ -80,13 +93,14 @@ private:
   bool ResizePending = false;
   bool SuppressWindowSync = false;
   bool ClosePending = false;
+  bool InSizeMove = false;
   POINT LastMouse{};
   bool HasLastMouse = false;
 
   static LRESULT CALLBACK WindowProcedure(HWND window, UINT message,
-                                           WPARAM wParam, LPARAM lParam) {
-    auto *host = reinterpret_cast<Host *>(
-        GetWindowLongPtrW(window, GWLP_USERDATA));
+                                          WPARAM wParam, LPARAM lParam) {
+    auto *host =
+        reinterpret_cast<Host *>(GetWindowLongPtrW(window, GWLP_USERDATA));
     if (message == WM_NCCREATE) {
       const auto *create = reinterpret_cast<CREATESTRUCTW *>(lParam);
       host = static_cast<Host *>(create->lpCreateParams);
@@ -105,8 +119,8 @@ private:
     for (int index = 0; index < BufferCount; ++index) {
       Ok(SwapChain->GetBuffer(index, IID_PPV_ARGS(&Buffers[index])));
       BufferRtv[index] = handle;
-      Render->Ctx->Device->CreateRenderTargetView(Buffers[index].Get(),
-                                                   nullptr, handle);
+      Render->Ctx->Device->CreateRenderTargetView(Buffers[index].Get(), nullptr,
+                                                  handle);
       handle.ptr += step;
     }
     MsaaRtv = handle;
@@ -134,7 +148,7 @@ private:
         D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue,
         IID_PPV_ARGS(&MsaaBuffer)));
     Render->Ctx->Device->CreateRenderTargetView(MsaaBuffer.Get(), nullptr,
-                                                 MsaaRtv);
+                                                MsaaRtv);
 
     ID3D12Resource *textBuffers[] = {Buffers[0].Get(), Buffers[1].Get()};
     TextRenderer = std::make_unique<DX12TextRenderer>(Render);
@@ -156,15 +170,14 @@ private:
     description.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     ComPtr<IDXGISwapChain> baseSwapChain;
     Ok(Render->Ctx->Factory->CreateSwapChain(Render->Cmd.Queue.Get(),
-                                              &description,
-                                              &baseSwapChain));
+                                             &description, &baseSwapChain));
     Ok(baseSwapChain.As(&SwapChain));
 
     D3D12_DESCRIPTOR_HEAP_DESC heapDescription{};
     heapDescription.NumDescriptors = BufferCount + 1;
     heapDescription.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    Ok(Render->Ctx->Device->CreateDescriptorHeap(
-        &heapDescription, IID_PPV_ARGS(&RtvHeap)));
+    Ok(Render->Ctx->Device->CreateDescriptorHeap(&heapDescription,
+                                                 IID_PPV_ARGS(&RtvHeap)));
     CreateBuffers();
   }
 
@@ -190,6 +203,19 @@ private:
     return args;
   }
 
+  void RenderInteractiveResizeFrame() {
+    if (!SwapChain || !Batch)
+      return;
+    // Floating HWND 进入自己的模态尺寸循环后，应用主循环同样不会运行；
+    // 在消息内消费 ResizePending，确保文字按新 viewport 重排而非缩放旧帧。
+    Resize();
+    Update();
+    Draw();
+    // Floating HWND 的尺寸消息也会快于异步合成；同步当前 Present，避免
+    // 新客户区右侧和底侧短暂显示窗口背景。
+    DwmFlush();
+  }
+
   LRESULT HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_CLOSE:
@@ -206,7 +232,16 @@ private:
         ResizePending = true;
         if (!SuppressWindowSync)
           SynchronizeRectFromWindow();
+        if (InSizeMove)
+          RenderInteractiveResizeFrame();
       }
+      return 0;
+    case WM_ENTERSIZEMOVE:
+      InSizeMove = true;
+      return 0;
+    case WM_EXITSIZEMOVE:
+      InSizeMove = false;
+      RenderInteractiveResizeFrame();
       return 0;
     case WM_MOVE:
       if (!SuppressWindowSync)
@@ -228,8 +263,8 @@ private:
       LastMouse = {args.X, args.Y};
       HasLastMouse = true;
       const bool dragging =
-          (args.State & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON |
-                         MK_XBUTTON1 | MK_XBUTTON2)) != 0;
+          (args.State & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 |
+                         MK_XBUTTON2)) != 0;
       dragging ? Render->App->Layout.OnMouseDrag(args)
                : Render->App->Layout.OnMouseMove(args);
       return 0;
@@ -248,8 +283,8 @@ private:
       POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
       ScreenToClient(Render->App->Window.Wnd, &point);
       Render->App->Layout.OnMouseWheel(
-          {static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam)), point.x,
-           point.y, GET_WHEEL_DELTA_WPARAM(wParam)});
+          {static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam)), point.x, point.y,
+           GET_WHEEL_DELTA_WPARAM(wParam)});
       return 0;
     }
     case WM_KEYDOWN:
@@ -258,8 +293,10 @@ private:
     case WM_KEYUP:
       Render->App->Layout.OnKeyUp(KeyArgs(wParam, lParam));
       return 0;
-    case WM_ERASEBKGND: return 1;
-    default: return DefWindowProcW(Wnd, message, wParam, lParam);
+    case WM_ERASEBKGND:
+      return 1;
+    default:
+      return DefWindowProcW(Wnd, message, wParam, lParam);
     }
   }
 
@@ -269,10 +306,9 @@ private:
     ResizePending = false;
     Render->Cmd.Synchronize();
     DestroyBuffers();
-    Ok(SwapChain->ResizeBuffers(BufferCount, static_cast<UINT>(Width),
-                                static_cast<UINT>(Height),
-                                DXGI_FORMAT_R8G8B8A8_UNORM,
-                                DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+    Ok(SwapChain->ResizeBuffers(
+        BufferCount, static_cast<UINT>(Width), static_cast<UINT>(Height),
+        DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
     CreateBuffers();
     RebuildBatch();
   }
@@ -283,10 +319,9 @@ private:
     POINT origin{};
     ClientToScreen(Wnd, &origin);
     ScreenToClient(Render->App->Window.Wnd, &origin);
-    const ui::DockRect rect{static_cast<float>(origin.x),
-                            static_cast<float>(origin.y),
-                            static_cast<float>(Width),
-                            static_cast<float>(Height)};
+    const ui::DockRect rect{
+        static_cast<float>(origin.x), static_cast<float>(origin.y),
+        static_cast<float>(Width), static_cast<float>(Height)};
     if (Render->App->Layout.Dock.UpdateFloatingRect(*Group, rect))
       Render->App->Layout.Calculate(
           static_cast<float>(Render->App->Window.Width),
@@ -307,12 +342,21 @@ public:
     RECT frame{0, 0, Width, Height};
     AdjustWindowRectEx(&frame, FloatingWindowStyle, FALSE,
                        FloatingWindowExtendedStyle);
-    Wnd = CreateWindowExW(
-        FloatingWindowExtendedStyle, FloatingWindowClass, L"Slot Panel",
-        FloatingWindowStyle, screenOrigin.x + frame.left,
-        screenOrigin.y + frame.top, frame.right - frame.left,
-        frame.bottom - frame.top, Render->App->Window.Wnd, nullptr,
-        Window::Instance, this);
+    Wnd = CreateWindowExW(FloatingWindowExtendedStyle, FloatingWindowClass,
+                          L"Slot Panel", FloatingWindowStyle,
+                          screenOrigin.x + frame.left,
+                          screenOrigin.y + frame.top, frame.right - frame.left,
+                          frame.bottom - frame.top, Render->App->Window.Wnd,
+                          nullptr, Window::Instance, this);
+    // WS_THICKFRAME 继续提供系统级缩放命中和阴影。Windows 仍会为该非客户区
+    // 绘制顶边，因此将 Border/Caption 同步为 Panel 标题主题色，而不是依赖
+    // 随系统浅色模式变化的默认白色。
+    const COLORREF frameColor =
+        ToNativeColor(ui::Theme::Default().Panel.TitleActiveColor);
+    DwmSetWindowAttribute(Wnd, DWMWA_BORDER_COLOR, &frameColor,
+                          sizeof(frameColor));
+    DwmSetWindowAttribute(Wnd, DWMWA_CAPTION_COLOR, &frameColor,
+                          sizeof(frameColor));
     SetWindowLongPtrW(Wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
     SetWindowLongPtrW(Wnd, GWLP_WNDPROC,
                       reinterpret_cast<LONG_PTR>(WindowProcedure));
@@ -387,14 +431,14 @@ public:
     BufferIndex = static_cast<int>(SwapChain->GetCurrentBackBufferIndex());
     Ok(Render->Cmd.Allocator->Reset());
     Render->Cmd.Reset();
-    const D3D12_VIEWPORT viewport{0.0f, 0.0f, static_cast<float>(Width),
-                                  static_cast<float>(Height), 0.0f, 1.0f};
+    const D3D12_VIEWPORT viewport{
+        0.0f, 0.0f, static_cast<float>(Width), static_cast<float>(Height),
+        0.0f, 1.0f};
     const D3D12_RECT scissor{0, 0, Width, Height};
     Render->Cmd.List->RSSetViewports(1, &viewport);
     Render->Cmd.List->RSSetScissorRects(1, &scissor);
     Render->Cmd.List->OMSetRenderTargets(1, &MsaaRtv, TRUE, nullptr);
-    const float clear[] = {Color::EditorBackground.x,
-                           Color::EditorBackground.y,
+    const float clear[] = {Color::EditorBackground.x, Color::EditorBackground.y,
                            Color::EditorBackground.z,
                            Color::EditorBackground.w};
     Render->Cmd.List->ClearRenderTargetView(MsaaRtv, clear, 0, nullptr);
@@ -420,8 +464,8 @@ public:
     Render->Cmd.List->ResourceBarrier(2, barriers);
     Render->Cmd.CloseAndExecute();
     Render->Cmd.Synchronize();
-    TextRenderer->Draw(Render->App->Layout.GetSubtreeTexts(*Group),
-                       BufferIndex, Group->Left, Group->Top);
+    TextRenderer->Draw(Render->App->Layout.GetSubtreeTexts(*Group), BufferIndex,
+                       Group->Left, Group->Top);
     Ok(SwapChain->Present(0, 0));
   }
 };

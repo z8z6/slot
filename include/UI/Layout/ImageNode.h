@@ -2,10 +2,12 @@
 
 #include "UI/Layout/DrawNode.h"
 
+#include <string_view>
+
 namespace z8::ui {
 
-/** 当前无纹理 SRV 时可由 UI Shader 直接绘制的 Lucide 单色图标。 */
-enum class ImageKind {
+/** 业务层使用的轻量图标语义；只收录当前编辑器实际使用的图标。 */
+enum class UIIcon {
   Close = 1,
   Plus = 2,
   ChevronDown = 3,
@@ -13,6 +15,15 @@ enum class ImageKind {
   Terminal = 5,
   Settings = 6
 };
+
+/** 图标语义到项目资源的稳定映射；实际尺寸和 Tint 仍由 Theme 决定。 */
+struct UIIconInfo {
+  UIIcon Icon;
+  std::string_view Source;
+};
+
+/** 查询图标的规范资源 URI；返回值引用进程期只读注册表。 */
+const UIIconInfo &GetUIIconInfo(UIIcon icon);
 
 /**
  * UI 图标节点。
@@ -23,10 +34,12 @@ enum class ImageKind {
  */
 class ImageNode final : public DrawNode {
 public:
-  ImageKind Kind = ImageKind::Cube;
+  UIIcon Icon = UIIcon::Cube;
   std::string Source = "asset://texture/icons/lucide/box.svg";
 
   ImageNode();
+  /** 直接按语义选择图标，业务控件无需知道资源路径。 */
+  bool SetIcon(UIIcon icon);
   bool SetProperty(const std::string &name, const std::string &value) override;
   const char *TypeName() const override { return "Image"; }
 };

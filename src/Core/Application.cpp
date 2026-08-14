@@ -8,14 +8,16 @@
 #include <ostream>
 #include <utility>
 
+#include "Core/Event.h"
+#include "Light/Light.h"
+#include "Light/ParallelLight.h"
 #include "Object/Camera/Camera.h"
 #include "Object/GameObject/RotateCube.h"
-#include "Core/Event.h"
-#include "Light/ParallelLight.h"
-#include "Light/Light.h"
 #include "Object/Object.h"
 #include "Phys/Collider.h"
 #include "UI/Declarative/XamlHotReload.h"
+
+#include <dwmapi.h>
 
 using namespace z8;
 using namespace std;
@@ -25,20 +27,23 @@ namespace {
 MouseButton GetMouseButton(UINT message, WPARAM wParam) {
   switch (message) {
   case WM_LBUTTONDOWN:
-  case WM_LBUTTONUP: return MouseButton::Left;
+  case WM_LBUTTONUP:
+    return MouseButton::Left;
   case WM_MBUTTONDOWN:
-  case WM_MBUTTONUP: return MouseButton::Middle;
+  case WM_MBUTTONUP:
+    return MouseButton::Middle;
   case WM_RBUTTONDOWN:
-  case WM_RBUTTONUP: return MouseButton::Right;
+  case WM_RBUTTONUP:
+    return MouseButton::Right;
   case WM_XBUTTONDOWN:
   case WM_XBUTTONUP:
     return GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::X1
                                                   : MouseButton::X2;
-  default: return MouseButton::None;
+  default:
+    return MouseButton::None;
   }
 }
 } // namespace
-
 
 z8::Application::Application() {
   SetWindowLongPtrW(Window.Wnd, GWLP_USERDATA,
@@ -75,10 +80,7 @@ void Application::Init() {
   Window.Open();
 }
 
-void Application::PrepareScene() {
-  ActiveScene.CreateGameObject<RotateCube>();
-}
-
+void Application::PrepareScene() { ActiveScene.CreateGameObject<RotateCube>(); }
 
 int z8::Application::Run() {
   MSG msg = {nullptr};
@@ -94,7 +96,7 @@ int z8::Application::Run() {
     }
     if (msg.message == WM_QUIT)
       break;
-    for (auto* App : Apps) {
+    for (auto *App : Apps) {
       App->Timer.Tick();
       App->ShowFrame();
       if (App->XamlReload) {
@@ -107,7 +109,7 @@ int z8::Application::Run() {
                                     App->XamlReload->GetLastError());
       }
       App->Layout.Calculate(static_cast<float>(App->Window.Width),
-          static_cast<float>(App->Window.Height));
+                            static_cast<float>(App->Window.Height));
       App->Render->Update();
       App->Render->Draw();
     }
@@ -125,9 +127,10 @@ bool Application::EnableXamlHotReload(const std::string &fileName) {
 }
 
 LRESULT z8::Application::FakeMsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
-                                  LPARAM lParam) {
+                                        LPARAM lParam) {
   // 取出对象指针
-  auto* app = reinterpret_cast<Application *>(GetWindowLongPtrW(Wnd, GWLP_USERDATA));
+  auto *app =
+      reinterpret_cast<Application *>(GetWindowLongPtrW(Wnd, GWLP_USERDATA));
 
   if (app && Msg != WM_NCDESTROY)
     // 转发给成员函数
@@ -137,9 +140,8 @@ LRESULT z8::Application::FakeMsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   return DefWindowProcW(Wnd, Msg, wParam, lParam);
 }
 
-
 LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
-                                  LPARAM lParam) {
+                                LPARAM lParam) {
   switch (Msg) {
     // WM_ACTIVATE is sent when the window is activated or deactivated.
     // We pause the game when the window is deactivated and unpause it
@@ -164,14 +166,22 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
 
     // DWM 主题下可见窗口边框很薄，指针容易落入客户区并被最外层 Panel
     // 捕获。把紧邻外框的客户区明确交还给 Win32，稳定触发系统尺寸循环。
-    if (top && left) return HTTOPLEFT;
-    if (top && right) return HTTOPRIGHT;
-    if (bottom && left) return HTBOTTOMLEFT;
-    if (bottom && right) return HTBOTTOMRIGHT;
-    if (left) return HTLEFT;
-    if (right) return HTRIGHT;
-    if (top) return HTTOP;
-    if (bottom) return HTBOTTOM;
+    if (top && left)
+      return HTTOPLEFT;
+    if (top && right)
+      return HTTOPRIGHT;
+    if (bottom && left)
+      return HTBOTTOMLEFT;
+    if (bottom && right)
+      return HTBOTTOMRIGHT;
+    if (left)
+      return HTLEFT;
+    if (right)
+      return HTRIGHT;
+    if (top)
+      return HTTOP;
+    if (bottom)
+      return HTBOTTOM;
     return nativeHit;
   }
 
@@ -185,15 +195,20 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
       args.Y = point.y;
       LPCWSTR cursorId = IDC_ARROW;
       switch (Layout.GetMouseCursor(args)) {
-      case MouseCursor::SizeHorizontal: cursorId = IDC_SIZEWE; break;
-      case MouseCursor::SizeVertical: cursorId = IDC_SIZENS; break;
+      case MouseCursor::SizeHorizontal:
+        cursorId = IDC_SIZEWE;
+        break;
+      case MouseCursor::SizeVertical:
+        cursorId = IDC_SIZENS;
+        break;
       case MouseCursor::SizeDiagonalNorthwestSoutheast:
         cursorId = IDC_SIZENWSE;
         break;
       case MouseCursor::SizeDiagonalNortheastSouthwest:
         cursorId = IDC_SIZENESW;
         break;
-      default: break;
+      default:
+        break;
       }
       // 使用系统 DPI 感知光标，避免自绘位图在不同缩放比例下模糊。
       SetCursor(LoadCursorW(nullptr, cursorId));
@@ -205,11 +220,23 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   case WM_SIZE: {
     Window.Width = LOWORD(lParam);
     Window.Height = HIWORD(lParam);
-    if (wParam == SIZE_MINIMIZED) return 0;
+    if (wParam == SIZE_MINIMIZED)
+      return 0;
     Layout.Calculate(static_cast<float>(Window.Width),
-            static_cast<float>(Window.Height));
-    // 拖动边框时 WM_SIZE 会高频到达；退出模态循环后只重建一次 GPU 资源。
-    if (!InSizeMove && Render) Render->Resize();
+                     static_cast<float>(Window.Height));
+    if (Render) {
+      Render->Resize();
+      if (InSizeMove) {
+        // Win32 的尺寸循环会暂停外层 PeekMessage 帧循环。必须在 WM_SIZE 内
+        // 提交新尺寸帧，否则 DWM 只能拉伸旧交换链，文字和图形会同步变形。
+        Timer.Tick();
+        Render->Update();
+        Render->Draw();
+        // Present(0) 只把帧排入合成队列；尺寸循环若立即推进到下一个窗口矩形，
+        // 右侧或底侧可能短暂暴露尚未合成的区域。等待 DWM 消费本帧后再返回。
+        DwmFlush();
+      }
+    }
     return 0;
   }
 
@@ -238,8 +265,9 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
       WindowY = rect.top;
     }
     Layout.Calculate(static_cast<float>(Window.Width),
-            static_cast<float>(Window.Height));
-    if (Render) Render->Resize();
+                     static_cast<float>(Window.Height));
+    if (Render)
+      Render->Resize();
     return 0;
 
   case WM_CLOSE:
@@ -253,16 +281,17 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
       PostQuitMessage(0);
     return 0;
   }
-    // The WM_MENUCHAR message is sent when a menu is active and the user presses
-    // a key that does not correspond to any mnemonic or accelerator key.
+    // The WM_MENUCHAR message is sent when a menu is active and the user
+    // presses a key that does not correspond to any mnemonic or accelerator
+    // key.
   case WM_MENUCHAR:
     // Don't beep when we alt-enter.
     return MAKELRESULT(0, MNC_CLOSE);
 
     // Catch this message so to prevent the window from becoming too small.
   case WM_GETMINMAXINFO:
-    reinterpret_cast<MINMAXINFO*>(lParam)->ptMinTrackSize.x = 200;
-    reinterpret_cast<MINMAXINFO*>(lParam)->ptMinTrackSize.y = 200;
+    reinterpret_cast<MINMAXINFO *>(lParam)->ptMinTrackSize.x = 200;
+    reinterpret_cast<MINMAXINFO *>(lParam)->ptMinTrackSize.y = 200;
     return 0;
 
   case WM_LBUTTONDOWN:
@@ -272,10 +301,9 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     SetCapture(Wnd);
     const int x = GET_X_LPARAM(lParam);
     const int y = GET_Y_LPARAM(lParam);
-    OnMouseDown(MouseMovArgs(GET_KEYSTATE_WPARAM(wParam), lParam,
-                             HasMousePosition ? x - MouseX : 0,
-                             HasMousePosition ? y - MouseY : 0,
-                             GetMouseButton(Msg, wParam)));
+    OnMouseDown(MouseMovArgs(
+        GET_KEYSTATE_WPARAM(wParam), lParam, HasMousePosition ? x - MouseX : 0,
+        HasMousePosition ? y - MouseY : 0, GetMouseButton(Msg, wParam)));
     MouseX = x;
     MouseY = y;
     HasMousePosition = true;
@@ -288,23 +316,22 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     const int x = GET_X_LPARAM(lParam);
     const int y = GET_Y_LPARAM(lParam);
     const auto state = GET_KEYSTATE_WPARAM(wParam);
-    OnMouseUp(MouseMovArgs(state, lParam,
-                           HasMousePosition ? x - MouseX : 0,
+    OnMouseUp(MouseMovArgs(state, lParam, HasMousePosition ? x - MouseX : 0,
                            HasMousePosition ? y - MouseY : 0,
                            GetMouseButton(Msg, wParam)));
     MouseX = x;
     MouseY = y;
     HasMousePosition = true;
     if ((state & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 |
-                  MK_XBUTTON2)) == 0 && GetCapture() == Wnd)
+                  MK_XBUTTON2)) == 0 &&
+        GetCapture() == Wnd)
       ReleaseCapture();
     return 0;
   }
   case WM_MOUSEMOVE: {
     const int x = GET_X_LPARAM(lParam);
     const int y = GET_Y_LPARAM(lParam);
-    OnMouseMove(MouseMovArgs(wParam, lParam,
-                             HasMousePosition ? x - MouseX : 0,
+    OnMouseMove(MouseMovArgs(wParam, lParam, HasMousePosition ? x - MouseX : 0,
                              HasMousePosition ? y - MouseY : 0));
     MouseX = x;
     MouseY = y;
@@ -314,8 +341,8 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   case WM_MOUSEWHEEL: {
     POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
     ScreenToClient(Wnd, &point);
-    OnMouseWheel({static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam)),
-                  point.x, point.y, GET_WHEEL_DELTA_WPARAM(wParam)});
+    OnMouseWheel({static_cast<unsigned>(GET_KEYSTATE_WPARAM(wParam)), point.x,
+                  point.y, GET_WHEEL_DELTA_WPARAM(wParam)});
     return 0;
   }
   case WM_KEYUP:
@@ -331,7 +358,8 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
     OnKeyDown(KeyArgs(wParam, lParam));
     return 0;
   case WM_SYSKEYUP:
-    if (wParam == VK_MENU) return 0;
+    if (wParam == VK_MENU)
+      return 0;
     OnKeyUp(KeyArgs(wParam, lParam));
     return 0;
     // 拦截系统命令（如 Alt+Space、Alt+Enter 等）
@@ -344,18 +372,21 @@ LRESULT Application::MsgHandler(HWND Wnd, UINT Msg, WPARAM wParam,
   return DefWindowProcW(Wnd, Msg, wParam, lParam);
 }
 
-template <typename Handler>
-void Application::ForEachObject(Handler&& handler) {
+template <typename Handler> void Application::ForEachObject(Handler &&handler) {
   // 键盘和窗口事件没有指针目标，仍按对象集合广播。
-  for (auto* object : Layout.GetUO()) handler(*object);
+  for (auto *object : Layout.GetUO())
+    handler(*object);
   ForEachSceneObject(std::forward<Handler>(handler));
 }
 
 template <typename Handler>
-void Application::ForEachSceneObject(Handler&& handler) {
-  for (auto* object : ActiveScene.GetGameObjects()) handler(*object);
-  if (auto* camera = ActiveScene.GetCamera()) handler(*camera);
-  if (auto* light = ActiveScene.GetLight()) handler(*light);
+void Application::ForEachSceneObject(Handler &&handler) {
+  for (auto *object : ActiveScene.GetGameObjects())
+    handler(*object);
+  if (auto *camera = ActiveScene.GetCamera())
+    handler(*camera);
+  if (auto *light = ActiveScene.GetLight())
+    handler(*light);
 }
 
 void z8::Application::ShowFrame() const {
@@ -365,15 +396,13 @@ void z8::Application::ShowFrame() const {
   ++Frames;
 
   // 累计 1s 计算一次
-  if( Timer.TimeTotal - timeElapsed >= 1.0f )
-  {
+  if (Timer.TimeTotal - timeElapsed >= 1.0f) {
     // fps = frameCnt / 1
     int fps = Frames;
     float mspf = 1000.0f / static_cast<float>(fps);
 
-    wstring FpsText = Window.Caption +
-        L"    fps: " + to_wstring(fps) +
-        L"   mspf: " + to_wstring(mspf);
+    wstring FpsText = Window.Caption + L"    fps: " + to_wstring(fps) +
+                      L"   mspf: " + to_wstring(mspf);
 
     SetWindowTextW(Window.Wnd, FpsText.c_str());
 
@@ -383,34 +412,32 @@ void z8::Application::ShowFrame() const {
   }
 }
 
-void Application::OnMouseMove(MouseMovArgs Args)
-{
+void Application::OnMouseMove(MouseMovArgs Args) {
   const bool dragging = (Args.State & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON |
                                        MK_XBUTTON1 | MK_XBUTTON2)) != 0;
   const auto reply =
       dragging ? Layout.OnMouseDrag(Args) : Layout.OnMouseMove(Args);
   if (reply != EventReply::Ignored)
     return;
-  ForEachSceneObject([&](Object& object) {
+  ForEachSceneObject([&](Object &object) {
     object.OnMouseMove(Args);
-    if (dragging) object.OnMouseDrag(Args);
+    if (dragging)
+      object.OnMouseDrag(Args);
   });
 }
 
-void Application::OnMouseDown(MouseMovArgs Args)
-{
+void Application::OnMouseDown(MouseMovArgs Args) {
   // 命中 UI 则返回
   if (Layout.OnMouseDown(Args) != EventReply::Ignored)
     return;
-  ForEachSceneObject([&](Object& object) { object.OnMouseDown(Args); });
+  ForEachSceneObject([&](Object &object) { object.OnMouseDown(Args); });
 }
 
-void Application::OnMouseUp(MouseMovArgs Args)
-{
+void Application::OnMouseUp(MouseMovArgs Args) {
   // 命中 UI 则返回
   if (Layout.OnMouseUp(Args) != EventReply::Ignored)
     return;
-  ForEachSceneObject([&](Object& object) { object.OnMouseUp(Args); });
+  ForEachSceneObject([&](Object &object) { object.OnMouseUp(Args); });
 }
 
 void Application::OnMouseWheel(MouseWheelArgs Args) {
@@ -423,9 +450,9 @@ void Application::OnMouseWheel(MouseWheelArgs Args) {
 void Application::OnKeyDown(KeyArgs Args) {
   if (Layout.OnKeyDown(Args) != EventReply::Ignored)
     return;
-  ForEachObject([&](Object& object) { object.OnKeyDown(Args); });
+  ForEachObject([&](Object &object) { object.OnKeyDown(Args); });
 }
 
 void Application::OnKeyUp(KeyArgs Args) {
-  ForEachObject([&](Object& object) { object.OnKeyUp(Args); });
+  ForEachObject([&](Object &object) { object.OnKeyUp(Args); });
 }

@@ -31,8 +31,8 @@ SceneNode::SceneNode() {
   TitleNode = title.get();
   TitleNode->Key = "__scene_title";
   TitleNode->Color = style.TitleTextColor;
-  TitleNode->Alignment = TextAlignment::Center;
-  TitleNode->Style.Margin = 0.0f;
+  TitleNode->Alignment = TextAlignment::Leading;
+  TitleNode->Style.Margin = SpacingStyle::Medium;
   TitleNode->Style.Height = TitleHeight;
   TitleBarNode->BaseNode::AddChild(std::move(title));
   BaseNode::AddChild(std::move(titleBar));
@@ -60,8 +60,7 @@ SceneNode::SceneNode() {
   dock->Properties.Placement = DockPlacement::Fill;
 }
 
-bool SceneNode::SetProperty(const std::string &name,
-                            const std::string &value) {
+bool SceneNode::SetProperty(const std::string &name, const std::string &value) {
   if (name == "Title") {
     TitleNode->Text = value;
     return true;

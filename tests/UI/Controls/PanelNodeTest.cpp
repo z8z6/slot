@@ -1,8 +1,8 @@
 #include "UI/Layout/PanelNode.h"
-#include "UI/Layout/PanelGroupNode.h"
 #include "Object/UIObject/UIObject.h"
 #include "UI/Declarative/ImmediateUI.h"
 #include "UI/Layout/Layout.h"
+#include "UI/Layout/PanelGroupNode.h"
 #include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
@@ -75,7 +75,7 @@ TEST(PanelNodeTest, UsesVisibleDefaultBorder) {
   PanelNode panel;
   const auto &style = Theme::Default().Panel;
 
-  EXPECT_FLOAT_EQ(panel.UO->GetBorderWidth(), 2.0f);
+  EXPECT_FLOAT_EQ(panel.UO->GetBorderWidth(), style.BorderWidth);
   EXPECT_FLOAT_EQ(panel.UO->GetBorderColor().x, style.BorderColor.x);
   EXPECT_FLOAT_EQ(panel.TitleBarNode->UO->GetColor().x, style.TitleColor.x);
   EXPECT_NE(panel.TitleBarNode->UO->GetColor().x, panel.UO->GetColor().x);
@@ -170,8 +170,7 @@ TEST(PanelNodeTest, DragsFromTitleAndKeepsAbsolutePosition) {
   const float originalHeight = panel->Height;
 
   EXPECT_NE(layout.OnMouseDown(MouseArgs(50, 16)), EventReply::Ignored);
-  EXPECT_NE(layout.OnMouseDrag(MouseArgs(80, 46, 30, 30)),
-            EventReply::Ignored);
+  EXPECT_NE(layout.OnMouseDrag(MouseArgs(80, 46, 30, 30)), EventReply::Ignored);
   EXPECT_NE(layout.OnMouseUp(MouseArgs(80, 46)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
 
@@ -265,8 +264,7 @@ TEST(PanelNodeTest, ExposesSeparatedDefaultBehaviorProperties) {
   EXPECT_TRUE(scroll->Properties.Vertical);
   EXPECT_EQ(scroll->Properties.HorizontalScrollBar,
             ScrollBarVisibility::Hidden);
-  EXPECT_EQ(scroll->Properties.VerticalScrollBar,
-            ScrollBarVisibility::Auto);
+  EXPECT_EQ(scroll->Properties.VerticalScrollBar, ScrollBarVisibility::Auto);
 
   EXPECT_TRUE(panel.SetProperty("DragRegion", "Anywhere"));
   EXPECT_TRUE(panel.SetProperty("Scrollable", "false"));
@@ -390,14 +388,16 @@ TEST(PanelNodeTest, StopsDockDividerAtMinimumHeight) {
   ASSERT_NE(layout.OnMouseDrag(MouseArgs(400, 0, 0, -300)),
             EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_FLOAT_EQ(topObserver->Height, minimum);
+  EXPECT_FLOAT_EQ(topObserver->Group->Height, minimum);
+  EXPECT_FLOAT_EQ(topObserver->Height, topObserver->Group->PagesNode->Height);
   const float stoppedTop = fillObserver->Top;
 
   // 已到最小高度后继续同向移动不应再改变分隔线位置。
   ASSERT_NE(layout.OnMouseDrag(MouseArgs(400, -100, 0, -100)),
             EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_FLOAT_EQ(topObserver->Height, minimum);
+  EXPECT_FLOAT_EQ(topObserver->Group->Height, minimum);
+  EXPECT_FLOAT_EQ(topObserver->Height, topObserver->Group->PagesNode->Height);
   EXPECT_FLOAT_EQ(fillObserver->Top, stoppedTop);
   ASSERT_NE(layout.OnMouseUp(MouseArgs(400, -100)), EventReply::Ignored);
 }
@@ -438,9 +438,9 @@ TEST(PanelNodeTest, CenterDropCreatesFloatingWindow) {
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
   ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseDrag(MouseArgs(200, 300, 100, 284)),
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(600, 300, 500, 284)),
             EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseUp(MouseArgs(200, 300)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(600, 300)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
   const auto *state = layout.Dock.GetState(*panel);
   ASSERT_NE(state, nullptr);
@@ -468,8 +468,7 @@ TEST(PanelNodeTest, DocksPanelAgainstSiblingAndReflowsWorkspace) {
   EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(firstObserver)->Parent->Axis,
             SplitAxis::Vertical);
   EXPECT_FLOAT_EQ(firstObserver->Width, secondObserver->Width);
-  EXPECT_LE(secondObserver->Left + secondObserver->Width,
-            firstObserver->Left);
+  EXPECT_LE(secondObserver->Left + secondObserver->Width, firstObserver->Left);
 }
 
 TEST(PanelNodeTest, DocksPanelsOnBothHorizontalSides) {
@@ -486,14 +485,14 @@ TEST(PanelNodeTest, DocksPanelsOnBothHorizontalSides) {
     EXPECT_FLOAT_EQ(movingObserver->Width, targetObserver->Width);
 
     ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
-    const int dropX = static_cast<int>(targetObserver->Left +
-                                       targetObserver->Width *
-                                           (dockLeft ? 0.2f : 0.8f));
-    const int dropY = static_cast<int>(targetObserver->Top +
-                                       targetObserver->Height * 0.5f);
-    ASSERT_NE(layout.OnMouseDrag(
-                  MouseArgs(dropX, dropY, dropX - 100, dropY - 16)),
-              EventReply::Ignored);
+    const int dropX =
+        static_cast<int>(targetObserver->Left +
+                         targetObserver->Width * (dockLeft ? 0.2f : 0.8f));
+    const int dropY =
+        static_cast<int>(targetObserver->Top + targetObserver->Height * 0.5f);
+    ASSERT_NE(
+        layout.OnMouseDrag(MouseArgs(dropX, dropY, dropX - 100, dropY - 16)),
+        EventReply::Ignored);
     ASSERT_NE(layout.OnMouseUp(MouseArgs(dropX, dropY)), EventReply::Ignored);
     const auto *movingLeaf = layout.Dock.Tree.FindPanelLeaf(movingObserver);
     ASSERT_NE(movingLeaf, nullptr);

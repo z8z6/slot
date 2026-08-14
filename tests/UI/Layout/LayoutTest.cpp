@@ -1,8 +1,8 @@
 #include "UI/Layout/Layout.h"
-#include "UI/Layout/RectNode.h"
-#include "UI/Layout/SceneNode.h"
 #include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Layout/RectNode.h"
+#include "UI/Layout/SceneNode.h"
 #include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
@@ -102,15 +102,18 @@ TEST(LayoutTest, RoutesSceneViewportInputPastUIOverlay) {
 TEST(LayoutTest, ReservesEditorPanelsAroundSceneViewport) {
   Layout layout;
   auto addPanel = [&layout](const char *key, DockPlacement placement,
-                            float extent) {
+                            float extent) -> PanelNode * {
     auto panel = std::make_unique<PanelNode>();
+    auto *observer = panel.get();
     panel->Key = key;
     auto *dock = panel->GetBehavior<DockBehavior>();
     dock->Properties.Placement = placement;
     dock->Properties.Extent = extent;
     layout.Root->AddChild(std::move(panel));
+    return observer;
   };
-  addPanel("toolbar", DockPlacement::Top, 48.0f);
+  auto *toolbar = addPanel("toolbar", DockPlacement::Top, 48.0f);
+  toolbar->Style.MinHeight = 34.0f;
   addPanel("drawer", DockPlacement::Bottom, 180.0f);
   addPanel("outliner", DockPlacement::Left, 260.0f);
   addPanel("details", DockPlacement::Right, 300.0f);
@@ -125,6 +128,12 @@ TEST(LayoutTest, ReservesEditorPanelsAroundSceneViewport) {
   EXPECT_FLOAT_EQ(sceneObserver->Top, 48.0f);
   EXPECT_FLOAT_EQ(sceneObserver->Width, 640.0f);
   EXPECT_FLOAT_EQ(sceneObserver->Height, 572.0f);
+  ASSERT_NE(toolbar->Group, nullptr);
+  EXPECT_FLOAT_EQ(toolbar->Group->Height, 48.0f);
+  EXPECT_FLOAT_EQ(toolbar->Height, toolbar->Group->PagesNode->Height);
+  EXPECT_FLOAT_EQ(toolbar->ScrollAreaNode->Height,
+                  toolbar->Group->PagesNode->Height);
+  EXPECT_GT(toolbar->ScrollAreaNode->Height, 0.0f);
   const float titleHeight = Theme::Default().Panel.TitleHeight;
   EXPECT_FLOAT_EQ(sceneObserver->Viewport().Top, 48.0f + titleHeight);
   EXPECT_FLOAT_EQ(sceneObserver->Viewport().Height, 572.0f - titleHeight);
@@ -147,10 +156,10 @@ TEST(LayoutTest, DocksPanelWhenDroppedOverSceneViewport) {
   pointer.X = 100;
   pointer.Y = 16;
   ASSERT_NE(layout.OnMouseDown(pointer), EventReply::Ignored);
-  pointer.X = static_cast<int>(sceneObserver->Left +
-                               sceneObserver->Width * 0.8f);
-  pointer.Y = static_cast<int>(sceneObserver->Top +
-                               sceneObserver->Height * 0.5f);
+  pointer.X =
+      static_cast<int>(sceneObserver->Left + sceneObserver->Width * 0.8f);
+  pointer.Y =
+      static_cast<int>(sceneObserver->Top + sceneObserver->Height * 0.5f);
   pointer.DeltaX = pointer.X - 100;
   pointer.DeltaY = pointer.Y - 16;
   ASSERT_NE(layout.OnMouseDrag(pointer), EventReply::Ignored);
@@ -160,7 +169,6 @@ TEST(LayoutTest, DocksPanelWhenDroppedOverSceneViewport) {
   ASSERT_NE(panelLeaf, nullptr);
   EXPECT_EQ(panelLeaf->Parent->Axis, SplitAxis::Vertical);
   layout.Calculate(800.0f, 600.0f);
-  EXPECT_GE(panelObserver->Left,
-            sceneObserver->Left + sceneObserver->Width);
+  EXPECT_GE(panelObserver->Left, sceneObserver->Left + sceneObserver->Width);
 }
 } // namespace z8::ui

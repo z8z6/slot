@@ -1,6 +1,7 @@
-#include "UI/Declarative/ControlFactory.h"
 #include "UI/Layout/ImageNode.h"
 #include "Object/UIObject/UIObject.h"
+#include "UI/Declarative/ControlFactory.h"
+#include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
 
@@ -11,7 +12,7 @@ TEST(ImageNodeTest, SelectsBuiltinIconAndTint) {
 
   EXPECT_TRUE(image.SetProperty("Source", "builtin://icon/plus"));
   EXPECT_TRUE(image.SetProperty("Tint", "#2A8BFFFF"));
-  EXPECT_EQ(image.Kind, ImageKind::Plus);
+  EXPECT_EQ(image.Icon, UIIcon::Plus);
   EXPECT_EQ(image.Source, "builtin://icon/plus");
   EXPECT_FLOAT_EQ(image.UO->GetColor().x, 42.0f / 255.0f);
   EXPECT_FALSE(image.SetProperty("Source", "file://missing.png"));
@@ -20,11 +21,19 @@ TEST(ImageNodeTest, SelectsBuiltinIconAndTint) {
 TEST(ImageNodeTest, SelectsDownloadedLucideAsset) {
   ImageNode image;
 
-  EXPECT_TRUE(image.SetProperty(
-      "Source", "asset://texture/icons/lucide/terminal.svg"));
-  EXPECT_EQ(image.Kind, ImageKind::Terminal);
-  EXPECT_EQ(image.Source,
-            "asset://texture/icons/lucide/terminal.svg");
+  EXPECT_TRUE(
+      image.SetProperty("Source", "asset://texture/icons/lucide/terminal.svg"));
+  EXPECT_EQ(image.Icon, UIIcon::Terminal);
+  EXPECT_EQ(image.Source, "asset://texture/icons/lucide/terminal.svg");
+}
+
+TEST(ImageNodeTest, SelectsSemanticIconWithoutExposingResourcePathToCaller) {
+  ImageNode image;
+
+  ASSERT_TRUE(image.SetIcon(UIIcon::Close));
+  EXPECT_EQ(image.Icon, UIIcon::Close);
+  EXPECT_EQ(image.Source, GetUIIconInfo(UIIcon::Close).Source);
+  EXPECT_FLOAT_EQ(image.Style.Width.value(), Theme::Default().Icon.NormalSize);
 }
 
 TEST(ImageNodeTest, IsAvailableToDeclarativeConstruction) {

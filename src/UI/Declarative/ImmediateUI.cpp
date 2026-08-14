@@ -1,13 +1,13 @@
 #include "UI/Declarative/ImmediateUI.h"
 
-#include "UI/Declarative/ControlFactory.h"
 #include "Object/UIObject/UIObject.h"
+#include "UI/Declarative/ControlFactory.h"
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/DrawNode.h"
 #include "UI/Layout/ImageNode.h"
 #include "UI/Layout/Layout.h"
-#include "UI/Layout/PanelNode.h"
 #include "UI/Layout/PanelGroupNode.h"
+#include "UI/Layout/PanelNode.h"
 #include "UI/Layout/SceneNode.h"
 #include "UI/Layout/TerminalNode.h"
 #include "UI/Style/Theme.h"
@@ -59,27 +59,29 @@ BaseNode *ImmediateUI::Acquire(const std::string &type,
   return node;
 }
 
-void ImmediateUI::ResetStyle(BaseNode &node,
-                             bool keepsInteractiveGeometry) {
+void ImmediateUI::ResetStyle(BaseNode &node, bool keepsInteractiveGeometry) {
   const auto *panel = dynamic_cast<PanelNode *>(&node);
   const bool isScene = dynamic_cast<SceneNode *>(&node) != nullptr;
   const bool isImage = dynamic_cast<ImageNode *>(&node) != nullptr;
-  const RectStyle &style = panel ? static_cast<const RectStyle &>(
-                                      Theme::Default().Panel)
-                                 : Theme::Default().Rect;
+  const RectStyle &style =
+      panel ? static_cast<const RectStyle &>(Theme::Default().Panel)
+            : Theme::Default().Rect;
 
   // Immediate UI 会复用稳定 key 对应的节点，因此省略字段表示恢复控件默认值，
   // 而不是继承上一帧的声明。交互后的窗口几何是运行时状态，需单独保留。
   if (!keepsInteractiveGeometry) {
-    node.Style.Width = isImage ? std::optional<float>(18.0f) : std::nullopt;
-    node.Style.Height = isImage ? std::optional<float>(18.0f) : std::nullopt;
+    const float iconSize = Theme::Default().Icon.NormalSize;
+    node.Style.Width = isImage ? std::optional<float>(iconSize) : std::nullopt;
+    node.Style.Height = isImage ? std::optional<float>(iconSize) : std::nullopt;
     node.Style.Margin = isScene || isImage ? 0.0f : style.Margin;
   }
   const auto &sceneStyle = Theme::Default().Panel;
-  node.Style.MinWidth = isImage ? 0.0f
-                                : isScene ? sceneStyle.MinWidth : style.MinWidth;
-  node.Style.MinHeight = isImage ? 0.0f
-                                 : isScene ? sceneStyle.MinHeight : style.MinHeight;
+  node.Style.MinWidth = isImage   ? 0.0f
+                        : isScene ? sceneStyle.MinWidth
+                                  : style.MinWidth;
+  node.Style.MinHeight = isImage   ? 0.0f
+                         : isScene ? sceneStyle.MinHeight
+                                   : style.MinHeight;
   node.Style.FlexGrow = isImage ? 0.0f : 1.0f;
   node.Style.FlexShrink = isImage ? 0.0f : 1.0f;
   node.Style.Padding = isScene || isImage ? 0.0f : style.Padding;
@@ -87,7 +89,9 @@ void ImmediateUI::ResetStyle(BaseNode &node,
   if (auto *visual = dynamic_cast<DrawNode *>(&node)) {
     // Image 的默认颜色是图标前景而非控件底色；否则省略 Tint 时图标会
     // 与深色 Rect 背景混为一体。图标也不继承容器边框和圆角。
-    visual->SetColor(isImage ? Theme::Default().Text.MutedColor : style.Color);
+    visual->SetColor(
+        isImage ? Theme::Default().Icon.Color.Resolve(WidgetVisualState::Normal)
+                : style.Color);
     visual->SetBorder(isImage ? DirectX::XMFLOAT4{0, 0, 0, 0}
                               : style.BorderColor,
                       isImage ? 0.0f : style.BorderWidth);
@@ -127,12 +131,10 @@ void ImmediateUI::ApplyStyle(BaseNode &node, const UIStyle &style) {
     if (auto *visual = dynamic_cast<DrawNode *>(&node))
       visual->SetColor(*style.Color);
   if (auto *visual = dynamic_cast<DrawNode *>(&node)) {
-    const auto color = style.BorderColor
-                           ? *style.BorderColor
-                           : visual->UO->GetBorderColor();
-    const float width = style.BorderWidth
-                            ? *style.BorderWidth
-                            : visual->UO->GetBorderWidth();
+    const auto color =
+        style.BorderColor ? *style.BorderColor : visual->UO->GetBorderColor();
+    const float width =
+        style.BorderWidth ? *style.BorderWidth : visual->UO->GetBorderWidth();
     visual->SetBorder(color, width);
     if (style.CornerRadius)
       visual->SetCornerRadius(*style.CornerRadius);
@@ -166,8 +168,8 @@ BaseNode *ImmediateUI::Terminal(const std::string &key,
   if (!group)
     return nullptr;
   auto *terminal = group->Panels.empty()
-                       ? dynamic_cast<TerminalNode *>(group->AddPanel(
-                             std::make_unique<TerminalNode>()))
+                       ? dynamic_cast<TerminalNode *>(
+                             group->AddPanel(std::make_unique<TerminalNode>()))
                        : dynamic_cast<TerminalNode *>(group->Panels.front());
   if (!terminal)
     return nullptr;
@@ -195,8 +197,7 @@ void ImmediateUI::EndPanel() {
   CloseScope();
 }
 
-BaseNode *ImmediateUI::Image(const std::string &key,
-                             const std::string &source,
+BaseNode *ImmediateUI::Image(const std::string &key, const std::string &source,
                              const UIStyle &style) {
   auto *node = Acquire("Image", key);
   auto *image = dynamic_cast<ImageNode *>(node);

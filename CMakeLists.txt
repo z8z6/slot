@@ -42,6 +42,7 @@ target_link_libraries(
         d3d11.lib
         d2d1.lib
         dwrite.lib
+        dwmapi.lib
 )
 
 set_target_properties(slot PROPERTIES

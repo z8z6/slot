@@ -181,17 +181,19 @@ Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交�
 
 ## 默认主题
 
-`Color` 集中定义参考编辑器界面的冷调蓝黑层级、蓝色强调、文本状态和反馈色；Panel、标题栏、输入背景和边界只用小幅明度差建立层级，减少大面积纯黑与高反差。`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、ScrollBar、Panel 与 Demo 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Default()` 返回当前默认主题。Demo 只读取主题中的尺寸、间距、交替行和非焦点选中色，不再散落颜色常量。
+`Color` 集中定义中性暗灰表面、克制的蓝色强调、文字层级和反馈色；Panel、标题栏、输入背景和边界只用小幅明度差建立层级，减少大面积纯黑与高反差。`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、Icon、Button、Tab、ScrollBar、Panel 与 Demo 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Default()` 返回当前默认主题。Demo 的占位行沿用 Theme 默认 Surface，不在声明文件复制调色板。
 
 所有 `DrawNode` 支持像素单位的 `CornerRadius`/`Radius`。UI Shader 使用屏幕空间有符号距离场裁剪圆角并计算边框，因此半径和边框不会随控件缩放改变视觉重量；半径超过短边一半时会自动夹紧。
 
-`ImageNode` 提供独立的图标绘制节点，XAML 使用 `<Image Source="builtin://icon/plus" Tint="#2A8BFFFF"/>`，Immediate UI 使用 `Image(key, source, style)`。当前支持 `close`、`plus`、`chevron-down`、`cube` 四个 `builtin://icon/*` 单色图标，由 UI Shader 直接生成并复用现有 UI PSO；项目尚未接入纹理 SRV/sampler，因此文件位图不是本阶段伪装支持的输入，未来纹理管线可沿用 `Source` 属性扩展。
+`ImageNode` 提供独立的图标绘制节点，XAML 使用 `<Image Source="builtin://icon/plus" Tint="#2A8BFFFF"/>`，Immediate UI 使用 `Image(key, source, style)`。C++ 复合控件通过 `UIIcon` 与只读注册表选择 `Close`、`Plus`、`ChevronDown`、`Cube`、`Terminal`、`Settings`，无需保存资源路径；声明入口仍可使用兼容 URI。当前单色轮廓由 UI Shader 直接生成并复用现有 UI PSO，未来纹理管线可沿用 `Source` 属性扩展，DX12 批处理层不需要理解 Tab 或 Button 语义。
+
+`StateColorStyle` 统一映射 `Normal/Hovered/Pressed/Selected/Disabled/Focused`，`Layout` 只维护当前唯一 Hover 与 Pressed 控件。Tab、关闭图标按钮和滚动条根据状态重新解析 Theme 色，不改变布局盒或命中区域；PanelGroup 的活动页仍是独立 Selected 语义，不能被 Hover 状态覆盖为业务选择。
 
 新增控件应先在 `Theme` 中定义对应的样式结构，再在构造函数统一应用 `Color`、`Margin`、`Padding` 和最小尺寸，避免重新引入散落的魔法值。实例属性始终拥有更高优先级。Immediate UI 的 `Style` 参数可以省略；稳定节点会在每帧先恢复主题默认值，再应用本帧显式字段，避免继承上一帧已经移除的覆盖。
 
 Rect 支持 `BorderColor` 与像素宽度的 `Border`/`BorderWidth`。边框在 UI Shader 中根据屏幕空间矩形计算，因此控件缩放后不会改变视觉粗细；默认 Rect 不显示边框，Panel 使用主题中的亮色 1 像素边框区分相邻停靠区域。
 
-垂直滚动条使用 16 像素轨道和至少 28 像素长的滑块，两侧视觉内缩后仍保留 12 像素可见宽度；轨道贴齐 ScrollNode 右边界，Resize 命中宽度不会额外挤出右侧空槽。ImageNode 的 Lucide 轮廓占满自身布局框，仅保留抗锯齿所需的边缘覆盖区。PanelGroup 内拖动 Panel 页签到另一个页签会交换二者顺序，并保持原活动 Panel 的身份；拖到目标 Group 的标题栏空白处仍表示加入该 Group。按数字键 `3` 可切换节点边界调试模式，布局会用独立的红色 2 像素覆盖线显示每个可见 Panel/PanelGroup 子树节点的实际布局框，包括页签、图片、标题文字、标题栏、Pages、滚动 viewport/content、滚动条与滑块；覆盖层沿用节点裁剪范围，不会穿出滚动区域，也不会覆盖控件自身主题属性。
+垂直滚动条使用 12 像素命中轨道和至少 24 像素长的滑块，两侧视觉内缩后保持低噪声；Hover/Dragging 只提高滑块对比度。轨道贴齐 ScrollNode 右边界，Resize 命中宽度不会额外挤出右侧空槽。ImageNode 的 Lucide 轮廓占满自身布局框，仅保留抗锯齿所需的边缘覆盖区。PanelGroup 内拖动 Panel 页签到另一个页签会交换二者顺序，并保持原活动 Panel 的身份；拖到目标 Group 的标题栏空白处仍表示加入该 Group。按数字键 `3` 可切换节点边界调试模式，布局会用独立的红色 2 像素覆盖线显示每个可见 Panel/PanelGroup 子树节点的实际布局框，包括页签、图片、标题文字、标题栏、Pages、滚动 viewport/content、滚动条与滑块；覆盖层沿用节点裁剪范围，不会穿出滚动区域，也不会覆盖控件自身主题属性。
 
 ## 布局和渲染同步
 

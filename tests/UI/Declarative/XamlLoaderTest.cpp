@@ -1,9 +1,9 @@
 #include "UI/Declarative/XamlLoader.h"
 #include "Object/UIObject/UIObject.h"
-#include "UI/Layout/Layout.h"
 #include "UI/Layout/ImageNode.h"
-#include "UI/Layout/PanelNode.h"
+#include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelGroupNode.h"
+#include "UI/Layout/PanelNode.h"
 #include "UI/Layout/SceneNode.h"
 #include "UI/Layout/TerminalNode.h"
 
@@ -35,10 +35,8 @@ TEST(XamlLoaderTest, BuildsPanelControlTree) {
   ASSERT_NE(scroll, nullptr);
   EXPECT_EQ(drag->Properties.Region, DragRegion::Anywhere);
   EXPECT_TRUE(scroll->Properties.Horizontal);
-  EXPECT_EQ(scroll->Properties.HorizontalScrollBar,
-            ScrollBarVisibility::Auto);
-  EXPECT_EQ(scroll->Properties.VerticalScrollBar,
-            ScrollBarVisibility::Visible);
+  EXPECT_EQ(scroll->Properties.HorizontalScrollBar, ScrollBarVisibility::Auto);
+  EXPECT_EQ(scroll->Properties.VerticalScrollBar, ScrollBarVisibility::Visible);
   EXPECT_NE(layout.Find("content"), nullptr);
 }
 
@@ -61,8 +59,8 @@ TEST(XamlLoaderTest, ReportsInvalidMarkupInEnglish) {
 
 TEST(XamlLoaderTest, CreatesSceneViewportNode) {
   Layout layout;
-  const auto result = XamlLoader().LoadInto(
-      layout, "<UI><Scene Id=\"viewport\" /></UI>");
+  const auto result =
+      XamlLoader().LoadInto(layout, "<UI><Scene Id=\"viewport\" /></UI>");
 
   ASSERT_TRUE(result) << result.Error;
   ASSERT_NE(layout.GetSceneNode(), nullptr);
@@ -85,9 +83,8 @@ TEST(XamlLoaderTest, CreatesTerminalNode) {
 TEST(XamlLoaderTest, CreatesPanelGroupWithSwitchablePanels) {
   Layout layout;
   const auto result = XamlLoader().LoadInto(
-      layout,
-      "<UI><PanelGroup Id=\"editors\"><Panel Title=\"Scene\"/>"
-      "<Panel Title=\"Game\"/></PanelGroup></UI>");
+      layout, "<UI><PanelGroup Id=\"editors\"><Panel Title=\"Scene\"/>"
+              "<Panel Title=\"Game\"/></PanelGroup></UI>");
   ASSERT_TRUE(result) << result.Error;
 
   auto *group = dynamic_cast<PanelGroupNode *>(layout.Find("editors"));
@@ -102,14 +99,13 @@ TEST(XamlLoaderTest, CreatesPanelGroupWithSwitchablePanels) {
 TEST(XamlLoaderTest, CreatesBuiltinImageWithRoundedLayout) {
   Layout layout;
   const auto result = XamlLoader().LoadInto(
-      layout,
-      "<UI><Image Id=\"add\" Source=\"builtin://icon/plus\" "
-      "Tint=\"#2A8BFFFF\" CornerRadius=\"4\"/></UI>");
+      layout, "<UI><Image Id=\"add\" Source=\"builtin://icon/plus\" "
+              "Tint=\"#2A8BFFFF\" CornerRadius=\"4\"/></UI>");
   ASSERT_TRUE(result) << result.Error;
 
   auto *image = dynamic_cast<ImageNode *>(layout.Find("add"));
   ASSERT_NE(image, nullptr);
-  EXPECT_EQ(image->Kind, ImageKind::Plus);
+  EXPECT_EQ(image->Icon, UIIcon::Plus);
   EXPECT_FLOAT_EQ(image->UO->GetCornerRadius(), 4.0f);
 }
 } // namespace z8::ui

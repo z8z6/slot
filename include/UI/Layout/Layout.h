@@ -47,6 +47,9 @@ public:
   BaseNode *CapturedTarget = nullptr;
   BehaviorNode *CapturedHandler = nullptr;
   DockNodeID CapturedSplitter = 0;
+  /** 当前唯一 Hover/Pressed 控件；非拥有指针只在本轮稳定控件树内有效。 */
+  BehaviorNode *HoveredHandler = nullptr;
+  BehaviorNode *PressedHandler = nullptr;
 
   explicit Layout();
   ~Layout() override;
@@ -94,6 +97,8 @@ private:
   void IndexTree(BaseNode *node);
   /** 把未分组 Panel 包装为单页 PanelGroup，Dock 树只管理 Group。 */
   void NormalizePanelGroups(BaseNode &parent);
+  /** 拓扑更新后从仍存活的树清除短期视觉状态，避免复用节点残留 Hover。 */
+  void ResetInteractionStates(BaseNode *node);
   /** 回收请求关闭或已无页面的 Group，并同步清除 Dock/Floating 归属。 */
   bool RemoveClosedPanelGroups(BaseNode &parent);
   /** 根据最终屏幕坐标刷新 Panel 子树诊断覆盖层，不修改节点自身主题状态。 */
@@ -102,6 +107,8 @@ private:
                   const DirectX::XMFLOAT4 &clip, bool dispatchAfterLayout,
                   bool parentVisible = true);
   void UpdateDockPreview();
+  /** 根据与渲染一致的最上层命中结果切换唯一 Hover 控件。 */
+  void UpdateHoveredHandler(float x, float y);
 
   std::vector<std::unique_ptr<RectNode>> PanelDebugVisuals;
 };

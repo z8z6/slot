@@ -21,11 +21,16 @@ DockBehavior *GetDock(BaseNode *node) {
 
 DockSide PlacementSide(DockPlacement placement) {
   switch (placement) {
-  case DockPlacement::Left: return DockSide::Left;
-  case DockPlacement::Right: return DockSide::Right;
-  case DockPlacement::Top: return DockSide::Top;
-  case DockPlacement::Bottom: return DockSide::Bottom;
-  default: return DockSide::Center;
+  case DockPlacement::Left:
+    return DockSide::Left;
+  case DockPlacement::Right:
+    return DockSide::Right;
+  case DockPlacement::Top:
+    return DockSide::Top;
+  case DockPlacement::Bottom:
+    return DockSide::Bottom;
+  default:
+    return DockSide::Center;
   }
 }
 
@@ -56,8 +61,8 @@ void DockWorkspace::BuildInitialTree(const std::vector<BaseNode *> &panels,
     DockTransaction transaction;
     transaction.Panel = panel;
     transaction.TargetNode = Tree.FindPanelLeaf(fill)->ID;
-    transaction.TargetSide = dock ? PlacementSide(dock->Properties.Placement)
-                                  : DockSide::Left;
+    transaction.TargetSide =
+        dock ? PlacementSide(dock->Properties.Placement) : DockSide::Left;
     if (transaction.TargetSide == DockSide::Center)
       transaction.TargetSide = DockSide::Left;
     Tree.Layout({0.0f, 0.0f, width, height});
@@ -66,21 +71,20 @@ void DockWorkspace::BuildInitialTree(const std::vector<BaseNode *> &panels,
                                      transaction.TargetSide == DockSide::Right
                                  ? targetRect.Width
                                  : targetRect.Height;
-    const bool explicitExtent = dock &&
-                                dock->Properties.Placement != DockPlacement::Auto &&
-                                dock->Properties.Placement != DockPlacement::Fill;
-    const float requested = explicitExtent ? dock->Properties.Extent
-                                           : axisExtent * 0.5f;
-    const float newRatio = axisExtent > 0.0f
-                               ? std::clamp(requested / axisExtent, 0.05f, 0.95f)
-                               : 0.5f;
+    const bool explicitExtent =
+        dock && dock->Properties.Placement != DockPlacement::Auto &&
+        dock->Properties.Placement != DockPlacement::Fill;
+    const float requested =
+        explicitExtent ? dock->Properties.Extent : axisExtent * 0.5f;
+    const float newRatio =
+        axisExtent > 0.0f ? std::clamp(requested / axisExtent, 0.05f, 0.95f)
+                          : 0.5f;
     transaction.SplitRatio = transaction.TargetSide == DockSide::Right ||
                                      transaction.TargetSide == DockSide::Bottom
                                  ? 1.0f - newRatio
                                  : newRatio;
     Tree.Commit(transaction);
-    States[panel] = {PanelPlacement::Docked,
-                     Tree.FindPanelLeaf(panel)->ID, {}};
+    States[panel] = {PanelPlacement::Docked, Tree.FindPanelLeaf(panel)->ID, {}};
   }
 }
 
@@ -120,8 +124,7 @@ void DockWorkspace::Reconcile(const std::vector<BaseNode *> &nodes) {
       // PanelGroupNode 显式表达。新节点默认在工作区右侧建立 Split。
       Tree.Commit({panel, 0, target->ID, DockSide::Right, false, {}, 0.5f});
     }
-    States[panel] = {PanelPlacement::Docked,
-                     Tree.FindPanelLeaf(panel)->ID, {}};
+    States[panel] = {PanelPlacement::Docked, Tree.FindPanelLeaf(panel)->ID, {}};
   }
 }
 
@@ -155,8 +158,7 @@ void DockWorkspace::ApplyLayout(float width, float height) {
       ++iterator;
     }
   }
-  Tree.Layout({0.0f, 0.0f, (std::max)(0.0f, width),
-               (std::max)(0.0f, height)});
+  Tree.Layout({0.0f, 0.0f, (std::max)(0.0f, width), (std::max)(0.0f, height)});
   for (auto &[panel, state] : States) {
     if (state.Placement == PanelPlacement::Floating) {
       panel->LayoutManaged = false;
@@ -187,9 +189,10 @@ void DockWorkspace::BeginDrag(BaseNode &panel, float clientX, float clientY) {
   Drag.SourceFloatingRect = stateIterator->second.FloatingRect;
   if (auto *leaf = Tree.FindPanelLeaf(&panel)) {
     Drag.SourceNode = leaf->ID;
-    const auto iterator = std::find(leaf->Panels.begin(), leaf->Panels.end(), &panel);
-    Drag.SourceTabIndex = static_cast<int>(
-        std::distance(leaf->Panels.begin(), iterator));
+    const auto iterator =
+        std::find(leaf->Panels.begin(), leaf->Panels.end(), &panel);
+    Drag.SourceTabIndex =
+        static_cast<int>(std::distance(leaf->Panels.begin(), iterator));
   }
   Drag.PressClientX = clientX;
   Drag.PressClientY = clientY;
@@ -233,12 +236,18 @@ void DockWorkspace::BeginPanelDrag(PanelNode &panel,
 
 DockSide DockWorkspace::DetectSide(const DockRect &rect, float clientX,
                                    float clientY) const {
-  const float nx = rect.Width > 0.0f ? (clientX - rect.Left) / rect.Width : 0.5f;
-  const float ny = rect.Height > 0.0f ? (clientY - rect.Top) / rect.Height : 0.5f;
-  if (nx < 0.25f) return DockSide::Left;
-  if (nx > 0.75f) return DockSide::Right;
-  if (ny < 0.25f) return DockSide::Top;
-  if (ny > 0.75f) return DockSide::Bottom;
+  const float nx =
+      rect.Width > 0.0f ? (clientX - rect.Left) / rect.Width : 0.5f;
+  const float ny =
+      rect.Height > 0.0f ? (clientY - rect.Top) / rect.Height : 0.5f;
+  if (nx < 0.25f)
+    return DockSide::Left;
+  if (nx > 0.75f)
+    return DockSide::Right;
+  if (ny < 0.25f)
+    return DockSide::Top;
+  if (ny > 0.75f)
+    return DockSide::Bottom;
   return DockSide::Center;
 }
 
@@ -260,11 +269,13 @@ void DockWorkspace::UpdateDrag(float clientX, float clientY) {
   Drag.DockTarget = target ? target->ID : 0;
   Drag.TargetTabIndex = -1;
   Drag.TargetGroup = nullptr;
+  Drag.PreviewVisible = false;
+  Drag.DockPreviewRect = {};
   if (target) {
-    auto *targetGroup = target->Panels.size() == 1
-                            ? dynamic_cast<PanelGroupNode *>(
-                                  target->Panels.front())
-                            : nullptr;
+    auto *targetGroup =
+        target->Panels.size() == 1
+            ? dynamic_cast<PanelGroupNode *>(target->Panels.front())
+            : nullptr;
     int targetTabIndex = -1;
     const bool hitsGroupHeader =
         Drag.PayloadType == DragPayloadType::Panel && targetGroup &&
@@ -286,37 +297,55 @@ void DockWorkspace::UpdateDrag(float clientX, float clientY) {
         targetGroup->DragHandleNode->Contains(clientX, clientY);
     const bool reordersSourceTab =
         hitsGroupHeader && targetGroup == Drag.SourceGroup &&
-        targetTabIndex >= 0;
+        targetTabIndex >= 0 && targetTabIndex != Drag.SourceTabIndex;
+    // 来源 Leaf 不能再次成为 Dock 落点，否则边缘高亮会暗示一次自引用拆分；
+    // 此区域统一退化为 Floating 预览。拖到另一个 Tab 时仍表达明确的页签交换。
+    if (target->ID == Drag.SourceNode && !reordersSourceTab) {
+      Drag.Side = DockSide::Center;
+      Drag.PreviewVisible = true;
+      return;
+    }
     if (hitsEmptyHeader || reordersSourceTab) {
       Drag.TargetGroup = targetGroup;
       Drag.TargetTabIndex = targetTabIndex;
     }
-    Drag.Side = hitsGroupHeader
-                    ? DockSide::Center
-                    : DetectSide(target->Rect, clientX, clientY);
+    Drag.Side = hitsGroupHeader ? DockSide::Center
+                                : DetectSide(target->Rect, clientX, clientY);
     Drag.DockPreviewRect = Tree.GetPreviewRect(*target, Drag.Side);
+    Drag.PreviewVisible = true;
   } else {
-    Drag.DockPreviewRect = {};
     // Floating Group 不属于 DockTree，但自己的 Tab 仍必须支持同组重排。
     // 跨浮动窗口的 z-order 命中留给窗口层；这里仅补足当前 source 的确定语义。
     auto *source = Drag.PayloadType == DragPayloadType::Panel
                        ? Drag.SourceGroup
-                       : nullptr;
+                       : Drag.PayloadGroup;
     if (source && source->HeaderNode &&
         source->HeaderNode->Contains(clientX, clientY)) {
-      Drag.TargetGroup = source;
       Drag.Side = DockSide::Center;
       for (size_t index = 0; index < source->Tabs.size(); ++index) {
         if (!source->Tabs[index]->Contains(clientX, clientY))
           continue;
         Drag.TargetTabIndex = static_cast<int>(index);
-        Drag.DockPreviewRect = {source->Tabs[index]->Left,
-                                source->Tabs[index]->Top,
-                                source->Tabs[index]->Width,
-                                source->Tabs[index]->Height};
+        if (Drag.PayloadType != DragPayloadType::Panel ||
+            Drag.TargetTabIndex == Drag.SourceTabIndex) {
+          Drag.TargetTabIndex = -1;
+          Drag.PreviewVisible = true;
+          return;
+        }
+        Drag.TargetGroup = source;
+        Drag.DockPreviewRect = {
+            source->Tabs[index]->Left, source->Tabs[index]->Top,
+            source->Tabs[index]->Width, source->Tabs[index]->Height};
+        Drag.PreviewVisible = true;
         break;
       }
+      // 空白标题栏仍是移动当前浮动外框，不构成页签或 Dock 落点。
+      if (!Drag.PreviewVisible)
+        Drag.PreviewVisible = true;
+      return;
     }
+    // Floating 来源不在 DockTree 中；其内容区域同样显示移动后的浮动外框。
+    Drag.PreviewVisible = true;
   }
 }
 
@@ -329,6 +358,10 @@ bool DockWorkspace::CommitDrag(float clientX, float clientY) {
     CancelDrag();
     return false;
   }
+  if (!Drag.PreviewVisible) {
+    CancelDrag();
+    return true;
+  }
   DockTransaction transaction;
   transaction.Panel = Drag.Panel;
   transaction.SourceNode = Drag.SourceNode;
@@ -336,15 +369,16 @@ bool DockWorkspace::CommitDrag(float clientX, float clientY) {
   transaction.TargetSide = Drag.Side;
   // Unity 式 Center 落点表示创建浮动窗口，不与目标 Leaf 重叠。
   // 需要页签时使用 PanelGroupNode，使 Dock 结构与控件组合语义分离。
-  transaction.TargetFloating = Drag.DockTarget == 0 || Drag.Side == DockSide::Center;
+  transaction.TargetFloating =
+      Drag.DockTarget == 0 || Drag.Side == DockSide::Center;
   transaction.FloatingRect = Drag.FloatingPreviewRect;
   std::ostringstream trace;
-  trace << "DockTree BEFORE\n" << Tree.Dump()
-        << "Dock Transaction panel="
+  trace << "DockTree BEFORE\n"
+        << Tree.Dump() << "Dock Transaction panel="
         << (transaction.Panel->Key.empty() ? transaction.Panel->TypeName()
                                            : transaction.Panel->Key)
-        << " source=#" << transaction.SourceNode
-        << " target=#" << transaction.TargetNode
+        << " source=#" << transaction.SourceNode << " target=#"
+        << transaction.TargetNode
         << " side=" << static_cast<int>(transaction.TargetSide)
         << " floating=" << transaction.TargetFloating << '\n';
   const bool committed = transaction.TargetFloating || Tree.Commit(transaction);
@@ -359,8 +393,8 @@ bool DockWorkspace::CommitDrag(float clientX, float clientY) {
     if (transaction.TargetFloating)
       Tree.RemovePanel(transaction.Panel);
   }
-  trace << "DockTree AFTER\n" << Tree.Dump()
-        << "Commit result=" << committed << '\n';
+  trace << "DockTree AFTER\n"
+        << Tree.Dump() << "Commit result=" << committed << '\n';
   LastTransactionTrace = trace.str();
   CancelDrag();
   return committed;
@@ -368,8 +402,7 @@ bool DockWorkspace::CommitDrag(float clientX, float clientY) {
 
 void DockWorkspace::CancelDrag() { Drag = {}; }
 
-bool DockWorkspace::PlaceNew(BaseNode &group, DockNodeID target,
-                             DockSide side,
+bool DockWorkspace::PlaceNew(BaseNode &group, DockNodeID target, DockSide side,
                              const DockRect &floatingRect) {
   if (States.contains(&group))
     return false;
@@ -433,8 +466,7 @@ bool DockWorkspace::IsFloating(const BaseNode &panel) const {
   return state && state->Placement == PanelPlacement::Floating;
 }
 
-bool DockWorkspace::UpdateFloatingRect(BaseNode &panel,
-                                       const DockRect &rect) {
+bool DockWorkspace::UpdateFloatingRect(BaseNode &panel, const DockRect &rect) {
   auto iterator = States.find(&panel);
   if (iterator == States.end() ||
       iterator->second.Placement != PanelPlacement::Floating)
@@ -453,8 +485,7 @@ std::string DockWorkspace::DumpDebug() const {
   if (!LastTransactionTrace.empty())
     stream << LastTransactionTrace;
   stream << Tree.Dump();
-  stream << "Drag state=" << static_cast<int>(Drag.State)
-         << " panel="
+  stream << "Drag state=" << static_cast<int>(Drag.State) << " panel="
          << (Drag.Panel ? (Drag.Panel->Key.empty() ? Drag.Panel->TypeName()
                                                    : Drag.Panel->Key)
                         : "<none>")

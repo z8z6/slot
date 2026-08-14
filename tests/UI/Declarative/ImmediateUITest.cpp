@@ -11,13 +11,14 @@
 
 namespace z8::ui {
 namespace {
-void DeclareFrame(ImmediateUI& ui, bool includeItem) {
+void DeclareFrame(ImmediateUI &ui, bool includeItem) {
   ui.BeginFrame();
   UIStyle panelStyle;
   panelStyle.Width = 320.0f;
   panelStyle.Height = 180.0f;
   if (ui.BeginPanel("panel", "Inspector", panelStyle)) {
-    if (includeItem) ui.Rect("item", UIStyle{.FlexGrow = 1.0f});
+    if (includeItem)
+      ui.Rect("item", UIStyle{.FlexGrow = 1.0f});
     ui.EndPanel();
   }
   ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
@@ -30,8 +31,8 @@ TEST(ImmediateUITest, ReusesStableControlsAndTracksTopology) {
   ImmediateUI ui(layout);
 
   DeclareFrame(ui, true);
-  auto* firstPanel = layout.Find("panel");
-  auto* firstItem = layout.Find("item");
+  auto *firstPanel = layout.Find("panel");
+  auto *firstItem = layout.Find("item");
   ASSERT_NE(firstPanel, nullptr);
   ASSERT_NE(firstItem, nullptr);
   EXPECT_TRUE(layout.ConsumeDirty());
@@ -147,7 +148,7 @@ TEST(ImmediateUITest, DeclaresReusableBuiltinImage) {
   ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
   auto *image = dynamic_cast<ImageNode *>(first);
   ASSERT_NE(image, nullptr);
-  EXPECT_EQ(image->Kind, ImageKind::Plus);
+  EXPECT_EQ(image->Icon, UIIcon::Plus);
   EXPECT_FLOAT_EQ(image->Style.Width.value(), 24.0f);
   EXPECT_FLOAT_EQ(image->UO->GetCornerRadius(), 5.0f);
 
@@ -155,9 +156,8 @@ TEST(ImmediateUITest, DeclaresReusableBuiltinImage) {
   auto *second = ui.Image("add", "builtin://icon/close");
   ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
   EXPECT_EQ(second, first);
-  EXPECT_EQ(image->Kind, ImageKind::Close);
-  EXPECT_FLOAT_EQ(image->Style.Width.value(), 18.0f);
-  EXPECT_FLOAT_EQ(image->UO->GetColor().x,
-                  Theme::Default().Text.MutedColor.x);
+  EXPECT_EQ(image->Icon, UIIcon::Close);
+  EXPECT_FLOAT_EQ(image->Style.Width.value(), Theme::Default().Icon.NormalSize);
+  EXPECT_FLOAT_EQ(image->UO->GetColor().x, Theme::Default().Text.MutedColor.x);
 }
 } // namespace z8::ui

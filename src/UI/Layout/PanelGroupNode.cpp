@@ -8,9 +8,10 @@
 
 #include <algorithm>
 #include <dwrite.h>
-#include <wrl/client.h>
+#include <limits>
 #include <utility>
 #include <windows.h>
+#include <wrl/client.h>
 
 using namespace z8::ui;
 
@@ -19,18 +20,17 @@ namespace {
 IDWriteFactory *GetTextFactory() {
   static Microsoft::WRL::ComPtr<IDWriteFactory> factory = [] {
     Microsoft::WRL::ComPtr<IDWriteFactory> result;
-    DWriteCreateFactory(
-        DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
-        reinterpret_cast<IUnknown **>(result.GetAddressOf()));
+    DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+                        reinterpret_cast<IUnknown **>(result.GetAddressOf()));
     return result;
   }();
   return factory.Get();
 }
 
 float MeasureTabTextWidth(const std::string &text, float fontSize) {
-  const int characterCount = MultiByteToWideChar(
-      CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()),
-      nullptr, 0);
+  const int characterCount =
+      MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(),
+                          static_cast<int>(text.size()), nullptr, 0);
   std::wstring wideText(static_cast<size_t>((std::max)(characterCount, 0)),
                         L'\0');
   if (characterCount > 0)
@@ -44,7 +44,8 @@ float MeasureTabTextWidth(const std::string &text, float fontSize) {
   // 页签宽度与最终文本通道共用 Segoe UI/DirectWrite 度量，避免宽窄字形标题
   // 依赖经验系数。创建失败时保留确定性回退，使无图形设备的布局测试仍可运行。
   auto *factory = GetTextFactory();
-  if (factory && SUCCEEDED(factory->CreateTextFormat(
+  if (factory &&
+      SUCCEEDED(factory->CreateTextFormat(
           L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
           DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fontSize,
           L"zh-cn", format.GetAddressOf())) &&
@@ -55,35 +56,57 @@ float MeasureTabTextWidth(const std::string &text, float fontSize) {
     if (SUCCEEDED(layout->GetMetrics(&metrics)))
       glyphWidth = metrics.widthIncludingTrailingWhitespace;
   }
-  // 16px 图标、8px 间距和左右留白都属于页签固有宽度。
-  constexpr float iconAndPadding = 48.0f;
-  return std::clamp(glyphWidth + iconAndPadding, 72.0f, 240.0f);
+  // 图标、间距和左右留白属于页签固有宽度；这些比例与最终状态色同由
+  // TabStyle 管理，标题变化不会重新引入控件局部 Magic Number。
+  const auto &tab = Theme::Default().Tab;
+  return std::clamp(glyphWidth + tab.FixedContentWidth, tab.MinWidth,
+                    tab.MaxWidth);
+}
+
+WidgetVisualState ResolveInteractiveState(const BehaviorNode &node,
+                                          bool selected = false) {
+  if (node.Pressed)
+    return WidgetVisualState::Pressed;
+  if (node.Hovered)
+    return WidgetVisualState::Hovered;
+  return selected ? WidgetVisualState::Selected : WidgetVisualState::Normal;
 }
 
 } // namespace
 
-PanelGroupCloseNode::PanelGroupCloseNode(PanelGroupNode &group) : Group(&group) {
+PanelGroupCloseNode::PanelGroupCloseNode(PanelGroupNode &group)
+    : Group(&group) {
   const auto &theme = Theme::Default();
   Style.Margin = 0.0f;
   Style.Padding = 0.0f;
-  Style.Width = theme.Panel.TitleHeight;
-  Style.Height = theme.Panel.TitleHeight;
+  Style.Width = theme.Button.IconButtonSize;
+  Style.Height = theme.Tab.Height;
   Style.MinWidth = 0.0f;
   Style.MinHeight = 0.0f;
   Style.FlexGrow = 0.0f;
   Style.FlexShrink = 0.0f;
-  SetColor(Color::ControlPressed);
-  SetBorder(theme.Panel.BorderColor, 1.0f);
-  SetCornerRadius(theme.Rect.CornerRadius);
+  SetBorder(theme.Button.BorderColor, theme.Button.BorderWidth);
+  SetCornerRadius(theme.Button.CornerRadius);
 
   auto icon = std::make_unique<ImageNode>();
   IconNode = icon.get();
   IconNode->Key = "__close_icon";
-  IconNode->SetProperty("Source", "asset://texture/icons/lucide/x.svg");
-  IconNode->SetColor(theme.Panel.TitleTextColor);
+  IconNode->SetIcon(UIIcon::Close);
   IconNode->HitTestVisible = false;
-  IconNode->Style.Margin = 8.0f;
+  IconNode->Style.Width = theme.Icon.SmallSize;
+  IconNode->Style.Height = theme.Icon.SmallSize;
+  IconNode->Style.Margin =
+      (theme.Button.IconButtonSize - theme.Icon.SmallSize) / 2.0f;
   BaseNode::AddChild(std::move(icon));
+  OnVisualStateChanged();
+}
+
+void PanelGroupCloseNode::OnVisualStateChanged() {
+  const auto &button = Theme::Default().Button;
+  const auto state = ResolveInteractiveState(*this);
+  SetColor(button.BackgroundColor.Resolve(state));
+  if (IconNode)
+    IconNode->SetColor(button.ForegroundColor.Resolve(state));
 }
 
 z8::EventReply PanelGroupCloseNode::OnMouseDown(MouseMovArgs args) {
@@ -103,30 +126,30 @@ PanelGroupTabNode::PanelGroupTabNode(PanelGroupNode &group, size_t panelIndex,
   Style.Margin = 0.0f;
   Style.Padding = 0.0f;
   Style.Direction = FlexDirection::Row;
-  Style.MinWidth = 72.0f;
-  Style.MaxWidth = 240.0f;
+  Style.Height = theme.Tab.Height;
+  Style.MinWidth = theme.Tab.MinWidth;
+  Style.MaxWidth = theme.Tab.MaxWidth;
   Style.FlexGrow = 0.0f;
   Style.FlexShrink = 0.0f;
-  SetColor(Color::ControlPressed);
-  SetBorder(theme.Panel.BorderColor, 1.0f);
-  SetCornerRadius(theme.Rect.CornerRadius);
+  SetBorder(theme.Tab.SeparatorColor, 0.0f);
+  SetCornerRadius(theme.Tab.CornerRadius);
 
   auto icon = std::make_unique<ImageNode>();
   IconNode = icon.get();
   IconNode->Key = "__tab_icon";
   SetIcon(iconSource);
-  IconNode->SetColor(theme.Panel.TitleTextColor);
   IconNode->HitTestVisible = false;
-  IconNode->Style.Width = 16.0f;
-  IconNode->Style.Height = 16.0f;
-  IconNode->Style.Margin = 6.0f;
+  IconNode->Style.Width = theme.Tab.IconSize;
+  IconNode->Style.Height = theme.Tab.IconSize;
+  IconNode->Style.Margin = theme.Tab.IconMargin;
   BaseNode::AddChild(std::move(icon));
 
   auto label = std::make_unique<TextNode>(title);
   LabelNode = label.get();
   LabelNode->Key = "__tab_label";
   LabelNode->Alignment = TextAlignment::Center;
-  LabelNode->Color = theme.Panel.TitleTextColor;
+  LabelNode->Color =
+      theme.Tab.ForegroundColor.Resolve(WidgetVisualState::Normal);
   LabelNode->Style.Margin = 0.0f;
   LabelNode->Style.FlexGrow = 1.0f;
   BaseNode::AddChild(std::move(label));
@@ -135,13 +158,13 @@ PanelGroupTabNode::PanelGroupTabNode(PanelGroupNode &group, size_t panelIndex,
   SelectionNode = selection.get();
   SelectionNode->Key = "__selection";
   SelectionNode->HitTestVisible = false;
-  SelectionNode->SetColor(Color::Accent);
-  SelectionNode->SetBorder(Color::Accent, 0.0f);
+  SelectionNode->SetColor(theme.Tab.AccentColor);
+  SelectionNode->SetBorder(theme.Tab.AccentColor, 0.0f);
   SelectionNode->Style.Position = PositionType::Absolute;
   SelectionNode->Style.Left = 0.0f;
   SelectionNode->Style.Right = 0.0f;
   SelectionNode->Style.Bottom = 0.0f;
-  SelectionNode->Style.Height = 2.0f;
+  SelectionNode->Style.Height = theme.Tab.AccentHeight;
   SelectionNode->Style.MinWidth = 0.0f;
   SelectionNode->Style.MinHeight = 0.0f;
   BaseNode::AddChild(std::move(selection));
@@ -153,7 +176,21 @@ PanelGroupTabNode::PanelGroupTabNode(PanelGroupNode &group, size_t panelIndex,
   auto *drag = AddBehavior<DragBehavior>();
   drag->SetHandle(this);
   drag->SetPreviewOnly(true);
+  OnVisualStateChanged();
 }
+
+void PanelGroupTabNode::OnVisualStateChanged() {
+  const auto &tab = Theme::Default().Tab;
+  const bool selected = Group && PanelIndex == Group->ActivePanel;
+  const auto state = ResolveInteractiveState(*this, selected);
+  SetColor(tab.BackgroundColor.Resolve(state));
+  if (LabelNode)
+    LabelNode->Color = tab.ForegroundColor.Resolve(state);
+  if (IconNode)
+    IconNode->SetColor(tab.IconColor.Resolve(state));
+}
+
+void PanelGroupTabNode::RefreshVisualState() { OnVisualStateChanged(); }
 
 z8::EventReply PanelGroupTabNode::OnMouseDown(MouseMovArgs args) {
   if (args.Button != MouseButton::Left || !Contains(args) || !Group)
@@ -166,6 +203,10 @@ z8::EventReply PanelGroupTabNode::OnMouseDown(MouseMovArgs args) {
 
 bool PanelGroupTabNode::SetIcon(const std::string &iconSource) {
   return IconNode && IconNode->SetProperty("Source", iconSource);
+}
+
+bool PanelGroupTabNode::SetIcon(UIIcon icon) {
+  return IconNode && IconNode->SetIcon(icon);
 }
 
 void PanelGroupTabNode::SetTitle(const std::string &title) {
@@ -189,7 +230,7 @@ PanelGroupNode::PanelGroupNode() {
   auto header = std::make_unique<RectNode>();
   HeaderNode = header.get();
   HeaderNode->Key = "__header";
-  HeaderNode->SetColor(style.TitleColor);
+  HeaderNode->SetColor(style.TitleActiveColor);
   HeaderNode->SetBorder(style.BorderColor, 0.0f);
   HeaderNode->Style.Direction = FlexDirection::Row;
   HeaderNode->Style.Margin = 0.0f;
@@ -201,7 +242,7 @@ PanelGroupNode::PanelGroupNode() {
   auto tabBar = std::make_unique<RectNode>();
   TabBarNode = tabBar.get();
   TabBarNode->Key = "__tabs";
-  TabBarNode->SetColor(style.TitleColor);
+  TabBarNode->SetColor(style.TitleActiveColor);
   TabBarNode->SetBorder(style.BorderColor, 0.0f);
   TabBarNode->Style.Direction = FlexDirection::Row;
   TabBarNode->Style.Margin = 0.0f;
@@ -215,7 +256,7 @@ PanelGroupNode::PanelGroupNode() {
   auto dragHandle = std::make_unique<RectNode>();
   DragHandleNode = dragHandle.get();
   DragHandleNode->Key = "__drag_handle";
-  DragHandleNode->SetColor(style.TitleColor);
+  DragHandleNode->SetColor(style.TitleActiveColor);
   DragHandleNode->SetBorder(style.BorderColor, 0.0f);
   DragHandleNode->Style.Margin = 0.0f;
   DragHandleNode->Style.Padding = 0.0f;
@@ -230,6 +271,20 @@ PanelGroupNode::PanelGroupNode() {
   CloseButtonNode->Key = "__close";
   HeaderNode->BaseNode::AddChild(std::move(close));
   BaseNode::AddChild(std::move(header));
+
+  auto separator = std::make_unique<RectNode>();
+  ContentSeparatorNode = separator.get();
+  ContentSeparatorNode->Key = "__content_separator";
+  ContentSeparatorNode->HitTestVisible = false;
+  ContentSeparatorNode->SetColor(style.ContentSeparatorColor);
+  ContentSeparatorNode->SetBorder(style.ContentSeparatorColor, 0.0f);
+  ContentSeparatorNode->Style.Margin = 0.0f;
+  ContentSeparatorNode->Style.Padding = 0.0f;
+  ContentSeparatorNode->Style.Height = style.ContentSeparatorWidth;
+  ContentSeparatorNode->Style.MinHeight = 0.0f;
+  ContentSeparatorNode->Style.FlexGrow = 0.0f;
+  ContentSeparatorNode->Style.FlexShrink = 0.0f;
+  BaseNode::AddChild(std::move(separator));
 
   auto pages = std::make_unique<BaseNode>();
   PagesNode = pages.get();
@@ -295,6 +350,12 @@ PanelNode *PanelGroupNode::AddPanel(std::unique_ptr<PanelNode> panel) {
   result->Style.Bottom = 0.0f;
   result->Style.Width.reset();
   result->Style.Height.reset();
+  // 停靠尺寸约束属于外层 Group；页节点只负责填满扣除公共标题栏后的 Pages。
+  // 若保留 Panel 的 MinHeight，较矮的顶部工具栏会在首帧把内容挤出可见区。
+  result->Style.MinWidth = 0.0f;
+  result->Style.MinHeight = 0.0f;
+  result->Style.MaxWidth = (std::numeric_limits<float>::max)();
+  result->Style.MaxHeight = (std::numeric_limits<float>::max)();
   result->Visible = index == ActivePanel;
 
   auto tab = std::make_unique<PanelGroupTabNode>(
@@ -358,6 +419,12 @@ std::unique_ptr<PanelNode> PanelGroupNode::RemovePanel(size_t panelIndex) {
   panelOwner->LayoutManaged = false;
   panelOwner->TitleBarNode->Visible = true;
   panelOwner->TitleBarNode->Style.Height = Theme::Default().Panel.TitleHeight;
+  // 脱离 Group 后重新承担外层窗口职责，恢复 Group 当前的尺寸约束；这些
+  // 约束可能已经由 XAML 热更新或用户属性修改，不能回退到主题默认值。
+  panelOwner->Style.MinWidth = Style.MinWidth;
+  panelOwner->Style.MinHeight = Style.MinHeight;
+  panelOwner->Style.MaxWidth = Style.MaxWidth;
+  panelOwner->Style.MaxHeight = Style.MaxHeight;
 
   // 删除活动页时优先选择其右侧页；删除末页则自然回退到左侧相邻页。
   // 删除活动页之前的页面时同步左移索引，保持原活动 Panel 不变。
@@ -383,13 +450,10 @@ bool PanelGroupNode::SetProperty(const std::string &name,
 }
 
 void PanelGroupNode::UpdateSelectionVisuals() {
-  const auto &theme = Theme::Default();
   for (size_t index = 0; index < Panels.size(); ++index) {
     const bool active = index == ActivePanel;
     Panels[index]->Visible = active;
-    Tabs[index]->SetColor(active ? Color::ControlHover : Color::ControlPressed);
-    Tabs[index]->LabelNode->Color = active ? theme.Panel.TitleTextColor
-                                          : theme.Text.MutedColor;
     Tabs[index]->SelectionNode->Visible = active;
+    Tabs[index]->RefreshVisualState();
   }
 }

@@ -79,9 +79,11 @@ target_link_libraries(slot_test_runtime PUBLIC
 function(slot_add_test_target target)
     add_executable(${target} ${ARGN})
     target_link_libraries(${target} PRIVATE slot_test_runtime GTest::gtest_main)
-    # 资源 URI 相对于项目根解析；每个独立测试目标使用同一运行目录，避免
-    # CTest 从构建目录启动时把 asset/* 误判为缺失。
-    gtest_discover_tests(${target} WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+    # CMake 4.3 的 GoogleTest 发现阶段会在工作目录保留 JSON 元数据，因此放在
+    # 构建树而不是污染源码根。需要 asset/* 的测试使用 SLOT_SOURCE_DIR 显式
+    # 建立资源根，避免把发现实现细节变成运行时路径约定。
+    gtest_discover_tests(${target}
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 endfunction()
 
 add_subdirectory(Object)

@@ -14,11 +14,14 @@ namespace z8::ui {
 /**
  * 选择加入交互能力的节点层
  */
-class BehaviorNode : public BaseNode,
-                     public EventTarget {
+class BehaviorNode : public BaseNode, public EventTarget {
 public:
   // 非视觉交互容器必须显式开启；根 DockSpace 不应吞掉整个窗口的场景输入。
   bool HitTestVisible = false;
+  /** 指针当前位于控件命中区域；只用于视觉反馈，不改变事件路由。 */
+  bool Hovered = false;
+  /** 左键手势尚未结束；捕获移出控件后仍保持 Pressed 视觉。 */
+  bool Pressed = false;
   std::vector<std::unique_ptr<IBehavior>> Behaviors;
   IBehavior *CapturedBehavior = nullptr;
 
@@ -39,6 +42,10 @@ public:
 
   IBehavior *AddBehavior(std::unique_ptr<IBehavior> behavior);
   bool RemoveBehavior(IBehavior *behavior);
+  /** 由 Layout 的唯一命中结果更新 Hover，避免每个控件重复查询鼠标位置。 */
+  void SetHovered(bool hovered);
+  /** 由 Layout 绑定到一次按下/抬起生命周期，不与 Selected 或 Focused 混用。 */
+  void SetPressed(bool pressed);
 
   template <typename T, typename... Args> T *AddBehavior(Args &&...args) {
     static_assert(std::is_base_of_v<IBehavior, T>);
@@ -65,6 +72,8 @@ public:
   }
 
 protected:
+  /** 派生控件在状态变化时只重算主题色，不得改变布局或真实命中区域。 */
+  virtual void OnVisualStateChanged() {}
   void ReleaseBehaviors();
 };
 

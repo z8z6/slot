@@ -93,13 +93,14 @@ float4 PS(VertexOut pin) : SV_Target
             float underline = max(abs(p.y - 0.30f), abs(p.x - 0.30f) - 0.22f);
             iconDistance = min(frame, min(prompt, underline));
         } else {
-            // Settings：齿轮在小尺寸下以外环、内孔和四个方向齿保持可辨识性。
-            float radiusToCenter = length(p);
-            float rings = min(abs(radiusToCenter - 0.52f),
-                              abs(radiusToCenter - 0.20f));
-            float teeth = min(max(abs(p.x) - 0.70f, abs(p.y) - 0.15f),
-                              max(abs(p.y) - 0.70f, abs(p.x) - 0.15f));
-            iconDistance = min(rings, teeth);
+            // Settings-2：两条滑杆和错开的圆形旋钮与 Lucide 源资源保持同一
+            // 语义轮廓；使用 SDF 组合后仍能随 Theme Tint 单色绘制。
+            float topLine = max(abs(p.y + 0.42f), abs(p.x - 0.18f) - 0.52f);
+            float bottomLine = max(abs(p.y - 0.42f), abs(p.x + 0.18f) - 0.52f);
+            float topKnob = abs(length(p - float2(-0.42f, -0.42f)) - 0.18f);
+            float bottomKnob = abs(length(p - float2(0.42f, 0.42f)) - 0.18f);
+            iconDistance = min(min(topLine, bottomLine),
+                               min(topKnob, bottomKnob));
         }
         if (iconDistance > stroke)
             discard;

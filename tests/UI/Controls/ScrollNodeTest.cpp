@@ -1,4 +1,5 @@
 #include "UI/Layout/ScrollNode.h"
+#include "Object/UIObject/UIObject.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Style/Theme.h"
 
@@ -15,11 +16,27 @@ TEST(ScrollNodeTest, OwnsReusableScrollComposition) {
   EXPECT_EQ(scroll.ContentNode->Parent, scroll.ViewportNode);
   EXPECT_NE(scroll.GetScrollBehavior(), nullptr);
   ASSERT_TRUE(scroll.VerticalScrollBarNode->Style.Width.has_value());
-  EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Width.value(), 16.0f);
+  EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Width.value(), 12.0f);
   EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Width.value(),
-                  Theme::Default().ScrollBar.ScrollBarThickness);
+                  Theme::Default().ScrollBar.Thickness);
   ASSERT_TRUE(scroll.VerticalScrollBarNode->Style.Right.has_value());
   EXPECT_FLOAT_EQ(scroll.VerticalScrollBarNode->Style.Right.value(), 0.0f);
+}
+
+TEST(ScrollNodeTest, MapsHoverAndPressedToThemeThumbColors) {
+  ScrollBarNode scrollBar;
+  const auto &style = Theme::Default().ScrollBar;
+
+  scrollBar.SetHovered(true);
+  EXPECT_FLOAT_EQ(scrollBar.ThumbNode->UO->GetColor().x,
+                  style.ThumbColor.Hovered.x);
+  scrollBar.SetPressed(true);
+  EXPECT_FLOAT_EQ(scrollBar.ThumbNode->UO->GetColor().x,
+                  style.ThumbColor.Pressed.x);
+  scrollBar.SetPressed(false);
+  scrollBar.SetHovered(false);
+  EXPECT_FLOAT_EQ(scrollBar.ThumbNode->UO->GetColor().x,
+                  style.ThumbColor.Normal.x);
 }
 
 TEST(ScrollNodeTest, ReceivesInputAcrossAnEmptyViewport) {

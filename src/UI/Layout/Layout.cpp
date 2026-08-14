@@ -16,8 +16,9 @@
 #include "UI/Layout/PanelNode.h"
 #include "UI/Layout/RectNode.h"
 #include "UI/Layout/SceneNode.h"
-#include "UI/Layout/TextNode.h"
 #include "UI/Layout/TerminalNode.h"
+#include "UI/Layout/TextNode.h"
+#include "UI/Style/Theme.h"
 
 #include <algorithm>
 #include <ostream>
@@ -39,35 +40,39 @@ std::string InteractionName(const BehaviorNode &node) {
 bool IsMinimumBlocked(const ResizeBehavior &resize, const BehaviorNode &node,
                       const MouseMovArgs &args) {
   const auto region = resize.GetActiveRegion();
-  const bool widthAtMinimum =
-      node.Width <= resize.Properties.MinWidth + 0.01f;
+  const bool widthAtMinimum = node.Width <= resize.Properties.MinWidth + 0.01f;
   const bool heightAtMinimum =
       node.Height <= resize.Properties.MinHeight + 0.01f;
   const bool blocksWidth =
       ((region == ResizeRegion::Left || region == ResizeRegion::TopLeft ||
-        region == ResizeRegion::BottomLeft) && args.DeltaX > 0) ||
+        region == ResizeRegion::BottomLeft) &&
+       args.DeltaX > 0) ||
       ((region == ResizeRegion::Right || region == ResizeRegion::TopRight ||
-        region == ResizeRegion::BottomRight) && args.DeltaX < 0);
+        region == ResizeRegion::BottomRight) &&
+       args.DeltaX < 0);
   const bool blocksHeight =
       ((region == ResizeRegion::Top || region == ResizeRegion::TopLeft ||
-        region == ResizeRegion::TopRight) && args.DeltaY > 0) ||
+        region == ResizeRegion::TopRight) &&
+       args.DeltaY > 0) ||
       ((region == ResizeRegion::Bottom || region == ResizeRegion::BottomLeft ||
-        region == ResizeRegion::BottomRight) && args.DeltaY < 0);
-  return (widthAtMinimum && blocksWidth) ||
-         (heightAtMinimum && blocksHeight);
+        region == ResizeRegion::BottomRight) &&
+       args.DeltaY < 0);
+  return (widthAtMinimum && blocksWidth) || (heightAtMinimum && blocksHeight);
 }
 
 } // namespace
 
-Layout::Layout(): Root(std::make_unique<BehaviorNode>()) {
+Layout::Layout() : Root(std::make_unique<BehaviorNode>()) {
   Root->Key = "Root";
+  const auto &dockStyle = Theme::Default().Dock;
   DockPreviewVisual = std::make_unique<RectNode>();
   DockPreviewVisual->Key = "__dock_preview";
   DockPreviewVisual->HitTestVisible = false;
   DockPreviewVisual->Visible = false;
   DockPreviewVisual->EffectiveVisible = false;
-  DockPreviewVisual->SetColor({0.1f, 0.45f, 0.9f, 0.28f});
-  DockPreviewVisual->SetBorder({0.25f, 0.65f, 1.0f, 0.9f}, 2.0f);
+  DockPreviewVisual->SetColor(dockStyle.PreviewColor);
+  DockPreviewVisual->SetBorder(dockStyle.PreviewBorderColor,
+                               dockStyle.PreviewBorderWidth);
   RebuildIndex();
 }
 
@@ -111,6 +116,9 @@ void Layout::CancelTreeCaptures(BaseNode *node) {
 void Layout::RebuildIndex() {
   // 声明式重建可能销毁旧节点，不能让指针捕获跨越拓扑变化。
   CancelTreeCaptures(Root.get());
+  ResetInteractionStates(Root.get());
+  HoveredHandler = nullptr;
+  PressedHandler = nullptr;
   RemoveClosedPanelGroups(*Root);
   NormalizePanelGroups(*Root);
   CapturedTarget = nullptr;
@@ -138,6 +146,30 @@ BehaviorNode *Layout::FindBehaviorNode(BaseNode *node) const {
   return nullptr;
 }
 
+void Layout::ResetInteractionStates(BaseNode *node) {
+  if (!node)
+    return;
+  if (auto *behavior = dynamic_cast<BehaviorNode *>(node)) {
+    behavior->SetHovered(false);
+    behavior->SetPressed(false);
+  }
+  for (const auto &child : node->Children)
+    ResetInteractionStates(child.get());
+}
+
+void Layout::UpdateHoveredHandler(float x, float y) {
+  auto *target = HitAt(x, y);
+  auto *next =
+      target && !target->RoutesToScene() ? FindBehaviorNode(target) : nullptr;
+  if (next == HoveredHandler)
+    return;
+  if (HoveredHandler)
+    HoveredHandler->SetHovered(false);
+  HoveredHandler = next;
+  if (HoveredHandler)
+    HoveredHandler->SetHovered(true);
+}
+
 // 返回命中的最上层交互节点；纯布局和文字节点不会意外吞掉场景输入。
 BaseNode *Layout::HitAt(float x, float y) const {
   // Nodes 按树的前序遍历，逆序对应画家顺序的最上层优先。
@@ -156,8 +188,8 @@ z8::MouseCursor Layout::GetMouseCursor(MouseMovArgs args) const {
                ? MouseCursor::SizeVertical
                : MouseCursor::SizeHorizontal;
   }
-  if (const auto *split = Dock.Tree.FindSplitterAt(
-          static_cast<float>(args.X), static_cast<float>(args.Y)))
+  if (const auto *split = Dock.Tree.FindSplitterAt(static_cast<float>(args.X),
+                                                   static_cast<float>(args.Y)))
     return split->Axis == SplitAxis::Horizontal ? MouseCursor::SizeVertical
                                                 : MouseCursor::SizeHorizontal;
   if (CapturedHandler) {
@@ -165,10 +197,9 @@ z8::MouseCursor Layout::GetMouseCursor(MouseMovArgs args) const {
     if (cursor != MouseCursor::Arrow)
       return cursor;
   }
-  for (auto *node = HitAt(static_cast<float>(args.X),
-                            static_cast<float>(args.Y));
-       node;
-       node = node->Parent) {
+  for (auto *node =
+           HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
+       node; node = node->Parent) {
     auto *behavior = dynamic_cast<BehaviorNode *>(node);
     if (!behavior)
       continue;
@@ -181,7 +212,8 @@ z8::MouseCursor Layout::GetMouseCursor(MouseMovArgs args) const {
 
 EventReply Layout::OnKeyDown(KeyArgs args) {
   if (args.Key == '3') {
-    // WasDown 来自 Win32 lParam 第 30 位；忽略自动重复，确保一次按键只切换一次。
+    // WasDown 来自 Win32 lParam 第 30
+    // 位；忽略自动重复，确保一次按键只切换一次。
     if (!args.WasDown) {
       DebugPanelBorders = !DebugPanelBorders;
       Dirty = true;
@@ -203,6 +235,7 @@ EventReply Layout::OnKeyDown(KeyArgs args) {
 }
 
 EventReply Layout::OnMouseDown(MouseMovArgs args) {
+  UpdateHoveredHandler(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (args.Button == MouseButton::Left) {
     if (auto *split = Dock.Tree.FindSplitterAt(static_cast<float>(args.X),
                                                static_cast<float>(args.Y))) {
@@ -210,9 +243,9 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
       return EventReply::Capture;
     }
   }
-  auto *target =
-      HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
-  if (!target) return EventReply::Ignored;
+  auto *target = HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
+  if (!target)
+    return EventReply::Ignored;
   if (target->RoutesToScene()) {
     // Scene 内容区通常透传给相机，但外层 SceneNode 的缩放边框与内容相交。
     // 光标命中缩放方向时优先启动 UI 几何手势，否则才把按键留给 3D 场景。
@@ -231,6 +264,7 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
   }
 
   CapturedTarget = target;
+  BehaviorNode *handledNode = nullptr;
   // 输入只属于节点和 Behavior；UIObject 是渲染数据，不再接收重复事件。
   for (auto *node = target; node; node = node->Parent) {
     auto *behavior = dynamic_cast<BehaviorNode *>(node);
@@ -239,8 +273,28 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
     const auto reply = behavior->DispatchMouseDown(args);
     if (reply == EventReply::Capture)
       CapturedHandler = behavior;
-    if (reply != EventReply::Ignored)
+    if (reply != EventReply::Ignored) {
+      handledNode = behavior;
       break;
+    }
+  }
+  if (args.Button == MouseButton::Left && handledNode) {
+    if (PressedHandler && PressedHandler != handledNode)
+      PressedHandler->SetPressed(false);
+    PressedHandler = handledNode;
+    PressedHandler->SetPressed(true);
+  }
+  const bool closesGroup =
+      dynamic_cast<PanelGroupCloseNode *>(handledNode) != nullptr;
+  if (closesGroup) {
+    // 关闭按钮会在下一行随 Group 一并销毁；必须先撤销指向它的短期视觉
+    // 观察指针，不能等所有权回收后再调用 SetHovered/SetPressed。
+    if (PressedHandler)
+      PressedHandler->SetPressed(false);
+    if (HoveredHandler)
+      HoveredHandler->SetHovered(false);
+    PressedHandler = nullptr;
+    HoveredHandler = nullptr;
   }
   if (RemoveClosedPanelGroups(*Root)) {
     // 关闭请求在命中分发完全返回后提交，避免按钮处理函数释放自身；重建
@@ -250,10 +304,10 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
   }
   if (CapturedHandler &&
       dynamic_cast<ResizeBehavior *>(CapturedHandler->CapturedBehavior)) {
-    auto *resize = static_cast<ResizeBehavior *>(CapturedHandler->CapturedBehavior);
-    const auto *target = resize->GetResizeTarget()
-                             ? resize->GetResizeTarget()
-                             : CapturedHandler;
+    auto *resize =
+        static_cast<ResizeBehavior *>(CapturedHandler->CapturedBehavior);
+    const auto *target =
+        resize->GetResizeTarget() ? resize->GetResizeTarget() : CapturedHandler;
     WriteTerminal("[Resize] Started: " + InteractionName(*target));
   }
   if (CapturedHandler &&
@@ -274,8 +328,8 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
 }
 
 EventReply Layout::OnMouseMove(MouseMovArgs args) {
-  auto *target =
-      HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
+  UpdateHoveredHandler(static_cast<float>(args.X), static_cast<float>(args.Y));
+  auto *target = HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target)
     return EventReply::Ignored;
   if (target->RoutesToScene())
@@ -288,6 +342,7 @@ EventReply Layout::OnMouseMove(MouseMovArgs args) {
 }
 
 EventReply Layout::OnMouseDrag(MouseMovArgs args) {
+  UpdateHoveredHandler(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (CapturedSplitter) {
     Dock.ResizeSplitter(CapturedSplitter, static_cast<float>(args.X),
                         static_cast<float>(args.Y));
@@ -295,13 +350,14 @@ EventReply Layout::OnMouseDrag(MouseMovArgs args) {
   }
   if (!CapturedTarget)
     return EventReply::Ignored;
-  auto *drag = CapturedHandler
-                   ? dynamic_cast<DragBehavior *>(CapturedHandler->CapturedBehavior)
-                   : nullptr;
-  auto *resize = CapturedHandler
-                     ? dynamic_cast<ResizeBehavior *>(
-                           CapturedHandler->CapturedBehavior)
-                     : nullptr;
+  auto *drag =
+      CapturedHandler
+          ? dynamic_cast<DragBehavior *>(CapturedHandler->CapturedBehavior)
+          : nullptr;
+  auto *resize =
+      CapturedHandler
+          ? dynamic_cast<ResizeBehavior *>(CapturedHandler->CapturedBehavior)
+          : nullptr;
   const bool minimumBlocked =
       resize && IsMinimumBlocked(*resize, *CapturedHandler, args);
   const bool wasMoved = drag && drag->HasGestureMoved();
@@ -317,52 +373,67 @@ EventReply Layout::OnMouseDrag(MouseMovArgs args) {
     const std::string key = InteractionName(*CapturedHandler);
     if (!wasMoved)
       WriteTerminal("[Drag] Started: " + key);
-    WriteTerminal("[Drag] Moved: " + key + " (" +
-                  std::to_string(args.X) + ", " + std::to_string(args.Y) +
-                  ")");
+    WriteTerminal("[Drag] Moved: " + key + " (" + std::to_string(args.X) +
+                  ", " + std::to_string(args.Y) + ")");
   }
   if (resize) {
-    const auto *resizeTarget = resize->GetResizeTarget()
-                                   ? resize->GetResizeTarget()
-                                   : CapturedHandler;
+    const auto *resizeTarget =
+        resize->GetResizeTarget() ? resize->GetResizeTarget() : CapturedHandler;
     const std::string key = InteractionName(*resizeTarget);
     if (minimumBlocked)
       WriteTerminal("[Resize] Blocked at minimum: " + key);
     else
-      WriteTerminal("[Resize] Moved: " + key + " (" +
-                    std::to_string(static_cast<int>(resizeTarget->Width)) +
-                    " x " +
-                    std::to_string(static_cast<int>(resizeTarget->Height)) +
-                    ")");
+      WriteTerminal(
+          "[Resize] Moved: " + key + " (" +
+          std::to_string(static_cast<int>(resizeTarget->Width)) + " x " +
+          std::to_string(static_cast<int>(resizeTarget->Height)) + ")");
   }
   return EventReply::Handled;
 }
 
 EventReply Layout::OnMouseUp(MouseMovArgs args) {
+  UpdateHoveredHandler(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (CapturedSplitter) {
     Dock.ResizeSplitter(CapturedSplitter, static_cast<float>(args.X),
                         static_cast<float>(args.Y));
     CapturedSplitter = 0;
+    if (PressedHandler)
+      PressedHandler->SetPressed(false);
+    PressedHandler = nullptr;
     return EventReply::Handled;
   }
-  if (!CapturedTarget)
+  if (!CapturedTarget) {
+    if (PressedHandler)
+      PressedHandler->SetPressed(false);
+    PressedHandler = nullptr;
     return EventReply::Ignored;
-  auto *drag = CapturedHandler
-                   ? dynamic_cast<DragBehavior *>(CapturedHandler->CapturedBehavior)
-                   : nullptr;
-  auto *resize = CapturedHandler
-                     ? dynamic_cast<ResizeBehavior *>(
-                           CapturedHandler->CapturedBehavior)
-                     : nullptr;
+  }
+  auto *drag =
+      CapturedHandler
+          ? dynamic_cast<DragBehavior *>(CapturedHandler->CapturedBehavior)
+          : nullptr;
+  auto *resize =
+      CapturedHandler
+          ? dynamic_cast<ResizeBehavior *>(CapturedHandler->CapturedBehavior)
+          : nullptr;
   const bool completedDrag = drag && drag->HasGestureMoved();
-  const std::string key = CapturedHandler ? InteractionName(*CapturedHandler)
-                                          : "";
+  const std::string key =
+      CapturedHandler ? InteractionName(*CapturedHandler) : "";
   const std::string resizeKey =
       resize && resize->GetResizeTarget()
           ? InteractionName(*resize->GetResizeTarget())
           : key;
   if (CapturedHandler)
     CapturedHandler->DispatchMouseUp(args);
+  // Panel Drop 可能在 Commit 中移除并销毁来源 Tab。Pressed 必须在所有权
+  // 事务之前复位，不能把短期观察指针带过节点回收边界。
+  if (PressedHandler)
+    PressedHandler->SetPressed(false);
+  PressedHandler = nullptr;
+  if (HoveredHandler == CapturedHandler) {
+    HoveredHandler->SetHovered(false);
+    HoveredHandler = nullptr;
+  }
   if (drag && (CapturedHandler->GetBehavior<DockBehavior>() ||
                Dock.Drag.PayloadType == DragPayloadType::Panel)) {
     auto *draggedNode = CapturedHandler;
@@ -387,8 +458,7 @@ EventReply Layout::OnMouseUp(MouseMovArgs args) {
 }
 
 EventReply Layout::OnMouseWheel(MouseWheelArgs args) {
-  auto *target =
-      HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
+  auto *target = HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
   if (!target)
     return EventReply::Ignored;
   if (target->RoutesToScene())
@@ -408,19 +478,21 @@ void Layout::OnPointerCaptureLost() {
     CapturedHandler->CancelPointerCapture();
   CapturedTarget = nullptr;
   CapturedHandler = nullptr;
+  if (PressedHandler)
+    PressedHandler->SetPressed(false);
+  PressedHandler = nullptr;
   Dock.CancelDrag();
   CapturedSplitter = 0;
   Dirty = true;
 }
 
 DockRect Layout::GetDockPreview() const {
-  if (Dock.Drag.State != PanelDragState::Dragging)
+  if (Dock.Drag.State != PanelDragState::Dragging || !Dock.Drag.PreviewVisible)
     return {};
-  return Dock.Drag.DockTarget &&
-                 Dock.Drag.Side != DockSide::Center
+  return Dock.Drag.DockTarget && Dock.Drag.Side != DockSide::Center
              ? Dock.Drag.DockPreviewRect
          : Dock.Drag.PayloadType == DragPayloadType::Panel &&
-                   Dock.Drag.TargetGroup
+                 Dock.Drag.TargetGroup
              ? Dock.Drag.DockPreviewRect
              : Dock.Drag.FloatingPreviewRect;
 }
@@ -450,6 +522,11 @@ bool Layout::CommitPanelDrop(float clientX, float clientY) {
     Dock.CancelDrag();
     return false;
   }
+  if (!drag.PreviewVisible) {
+    // 自身区域是已处理的无操作落点：释放捕获即可，不能拆出 Panel 或改写树。
+    Dock.CancelDrag();
+    return true;
+  }
 
   // TargetGroup 只由 UpdateDrag 在空白标题栏或同组 Tab 上设置。不能根据
   // Center Leaf 反查 Group，否则普通内容区 Center 会被错误解释成合并页签。
@@ -460,16 +537,15 @@ bool Layout::CommitPanelDrop(float clientX, float clientY) {
       // 所有权槽位，拖拽期间仍不触碰真实结构。
       const bool reordered =
           drag.TargetTabIndex < 0 ||
-          targetGroup->SwapPanels(
-              static_cast<size_t>(drag.SourceTabIndex),
-              static_cast<size_t>(drag.TargetTabIndex));
+          targetGroup->SwapPanels(static_cast<size_t>(drag.SourceTabIndex),
+                                  static_cast<size_t>(drag.TargetTabIndex));
       Dock.CancelDrag();
       if (drag.TargetTabIndex >= 0)
         RebuildIndex();
       return reordered;
     }
-    auto panel = drag.SourceGroup->RemovePanel(
-        static_cast<size_t>(drag.SourceTabIndex));
+    auto panel =
+        drag.SourceGroup->RemovePanel(static_cast<size_t>(drag.SourceTabIndex));
     if (!panel) {
       Dock.CancelDrag();
       return false;
@@ -485,15 +561,14 @@ bool Layout::CommitPanelDrop(float clientX, float clientY) {
 
   // 唯一 Panel 投向自己的边缘没有可保留的目标 Leaf；保持原结构比先删除
   // 来源再尝试命中失效 ID 更确定。多 Panel 来源仍可正常拆出新 Group。
-  if (drag.Side != DockSide::Center &&
-      drag.DockTarget == drag.SourceNode &&
+  if (drag.Side != DockSide::Center && drag.DockTarget == drag.SourceNode &&
       drag.SourceGroup->Panels.size() == 1) {
     Dock.CancelDrag();
     return true;
   }
 
-  auto panel = drag.SourceGroup->RemovePanel(
-      static_cast<size_t>(drag.SourceTabIndex));
+  auto panel =
+      drag.SourceGroup->RemovePanel(static_cast<size_t>(drag.SourceTabIndex));
   if (!panel) {
     Dock.CancelDrag();
     return false;
@@ -517,16 +592,15 @@ bool Layout::CommitPanelDrop(float clientX, float clientY) {
 
 void Layout::NormalizePanelGroups(BaseNode &parent) {
   // PanelGroup Pages 是显式的 Panel 所有权边界，其内部不能再次包装。
-  if (parent.Key == "__pages" &&
-      dynamic_cast<PanelGroupNode *>(parent.Parent))
+  if (parent.Key == "__pages" && dynamic_cast<PanelGroupNode *>(parent.Parent))
     return;
   for (auto &child : parent.Children) {
     if (auto *panel = dynamic_cast<PanelNode *>(child.get())) {
       const auto *dock = panel->GetBehavior<DockBehavior>();
       if (!dock || !dock->Properties.Enabled)
         continue;
-      auto panelOwner = std::unique_ptr<PanelNode>(
-          static_cast<PanelNode *>(child.release()));
+      auto panelOwner =
+          std::unique_ptr<PanelNode>(static_cast<PanelNode *>(child.release()));
       auto group = std::make_unique<PanelGroupNode>();
       group->Key = panelOwner->Key + ".__group";
       group->Style = panelOwner->Style;
@@ -569,7 +643,7 @@ BaseNode *Layout::Find(const std::string &key) const {
     if (auto *group = dynamic_cast<PanelGroupNode *>(node);
         group && group->Panels.size() == 1)
       return group->Panels.front();
-      return node;
+    return node;
   }
   return nullptr;
 }
@@ -584,12 +658,13 @@ std::vector<GameObject *> Layout::GetUO() const {
   std::vector<GameObject *> result;
   result.reserve(Visuals.size() + PanelDebugVisuals.size() + 1);
   for (auto *v : Visuals) {
-    assert (v->UO);
+    assert(v->UO);
     result.push_back(v->UO.get());
   }
   // 预览不是 UI 树的常驻节点；仅在有效拖拽帧追加，保持普通
   // 布局的可渲染对象集与引入 Dock 之前一致。
-  if (DockPreviewVisual && Dock.Drag.State == PanelDragState::Dragging) {
+  if (DockPreviewVisual && Dock.Drag.State == PanelDragState::Dragging &&
+      Dock.Drag.PreviewVisible) {
     assert(DockPreviewVisual->UO);
     result.push_back(DockPreviewVisual->UO.get());
   }
@@ -609,7 +684,8 @@ std::vector<GameObject *> Layout::GetMainUO() const {
     if (!Dock.IsFloating(*rootChild))
       result.push_back(visual->UO.get());
   }
-  if (DockPreviewVisual && Dock.Drag.State == PanelDragState::Dragging)
+  if (DockPreviewVisual && Dock.Drag.State == PanelDragState::Dragging &&
+      Dock.Drag.PreviewVisible)
     result.push_back(DockPreviewVisual->UO.get());
   for (const auto &visual : PanelDebugVisuals)
     result.push_back(visual->UO.get());
@@ -688,8 +764,8 @@ void Layout::Calculate(float w, float h) {
 }
 
 void Layout::UpdateTree(BaseNode &node, float parentX, float parentY,
-                        const DirectX::XMFLOAT4 &clip,
-                        bool dispatchAfterLayout, bool parentVisible) {
+                        const DirectX::XMFLOAT4 &clip, bool dispatchAfterLayout,
+                        bool parentVisible) {
   // 计算框位于父内容坐标系；屏幕空间偏移只在这里累加一次，避免求解器依赖渲染坐标。
   const float x = node.Computed.Left;
   const float y = node.Computed.Top;
@@ -743,7 +819,8 @@ void Layout::UpdateDockPreview() {
   if (!DockPreviewVisual)
     return;
   const auto rect = GetDockPreview();
-  DockPreviewVisual->Visible = Dock.Drag.State == PanelDragState::Dragging;
+  DockPreviewVisual->Visible =
+      Dock.Drag.State == PanelDragState::Dragging && Dock.Drag.PreviewVisible;
   DockPreviewVisual->EffectiveVisible = DockPreviewVisual->Visible;
   DockPreviewVisual->Left = rect.Left;
   DockPreviewVisual->Top = rect.Top;
@@ -763,8 +840,7 @@ void Layout::UpdatePanelDebugVisuals() {
   }
   std::vector<const BaseNode *> bounds;
   for (auto *node : Nodes) {
-    if (!node->EffectiveVisible || node->Width <= 0.0f ||
-        node->Height <= 0.0f)
+    if (!node->EffectiveVisible || node->Width <= 0.0f || node->Height <= 0.0f)
       continue;
     bool belongsToPanelTree = false;
     for (auto *ancestor = node; ancestor; ancestor = ancestor->Parent) {

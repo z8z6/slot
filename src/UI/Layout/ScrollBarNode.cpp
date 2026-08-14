@@ -10,7 +10,7 @@ using z8::EventReply;
 ScrollBarNode::ScrollBarNode(ScrollBarOrientation orientation)
     : ThumbNode(nullptr), Orientation(orientation) {
   const auto &style = Theme::Default().ScrollBar;
-  SetColor(style.ScrollBarColor);
+  SetColor(style.TrackColor);
   Style.Margin = 0.0f;
   Style.MinWidth = 0.0f;
   Style.MinHeight = 0.0f;
@@ -18,19 +18,30 @@ ScrollBarNode::ScrollBarNode(ScrollBarOrientation orientation)
   auto thumb = std::make_unique<RectNode>();
   ThumbNode = thumb.get();
   ThumbNode->Key = "__thumb";
-  ThumbNode->SetColor(style.ScrollThumbColor);
+  ThumbNode->HitTestVisible = false;
   ThumbNode->Style.Position = PositionType::Absolute;
   ThumbNode->Style.Margin = 0.0f;
   ThumbNode->Style.MinWidth = 0.0f;
   ThumbNode->Style.MinHeight = 0.0f;
+  ThumbNode->SetCornerRadius(style.CornerRadius);
   if (Orientation == ScrollBarOrientation::Vertical) {
-    ThumbNode->Style.Left = 2.0f;
-    ThumbNode->Style.Right = 2.0f;
+    ThumbNode->Style.Left = style.ThumbInset;
+    ThumbNode->Style.Right = style.ThumbInset;
   } else {
-    ThumbNode->Style.Top = 2.0f;
-    ThumbNode->Style.Bottom = 2.0f;
+    ThumbNode->Style.Top = style.ThumbInset;
+    ThumbNode->Style.Bottom = style.ThumbInset;
   }
   AddChild(std::move(thumb));
+  OnVisualStateChanged();
+}
+
+void ScrollBarNode::OnVisualStateChanged() {
+  if (!ThumbNode)
+    return;
+  const auto state = Pressed   ? WidgetVisualState::Pressed
+                     : Hovered ? WidgetVisualState::Hovered
+                               : WidgetVisualState::Normal;
+  ThumbNode->SetColor(Theme::Default().ScrollBar.ThumbColor.Resolve(state));
 }
 
 void ScrollBarNode::SetMetrics(float viewportExtent, float contentExtent) {
@@ -101,7 +112,7 @@ void ScrollBarNode::OnAfterLayout() {
   const float thumb =
       ContentExtent > 0.0f
           ? (std::min)(track,
-                       (std::max)(style.MinimumScrollThumbLength,
+                       (std::max)(style.MinimumThumbLength,
                                   track * ViewportExtent / ContentExtent))
           : track;
   const float travel = (std::max)(0.0f, track - thumb);

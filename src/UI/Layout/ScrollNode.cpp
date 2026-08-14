@@ -32,14 +32,15 @@ ScrollNode::ScrollNode() {
   VerticalScrollThumbNode = scrollBar->ThumbNode;
   VerticalScrollBarNode->Key = "__vertical_scrollbar";
   VerticalScrollBarNode->Style.Position = PositionType::Absolute;
-  VerticalScrollBarNode->Style.Width = scrollBarStyle.ScrollBarThickness;
+  VerticalScrollBarNode->Style.Width = scrollBarStyle.Thickness;
   BaseNode::AddChild(std::move(scrollBar));
   // 轨道贴齐 ScrollNode 右边界；ResizeBehavior 只负责命中，不应侵占内容视觉
   // 空间，否则加宽滚动条后右侧仍会留下明显的空槽。
-  SetVerticalBarInsets(2.0f, 0.0f, 2.0f);
+  SetVerticalBarInsets(SpacingStyle::ExtraSmall, 0.0f,
+                       SpacingStyle::ExtraSmall);
 
-  AddBehavior<ScrollBehavior>()->BindVertical(
-      ViewportNode, ContentNode, VerticalScrollBarNode);
+  AddBehavior<ScrollBehavior>()->BindVertical(ViewportNode, ContentNode,
+                                              VerticalScrollBarNode);
 }
 
 void ScrollNode::SetVerticalBarInsets(float top, float right, float bottom) {

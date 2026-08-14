@@ -23,6 +23,7 @@ private:
   float Maximum = 0.0f;
   float DragScale = 0.0f;
   bool DraggingThumb = false;
+
 public:
   RectNode *ThumbNode;
   ScrollBarOrientation Orientation;
@@ -42,6 +43,9 @@ public:
   void SetMetrics(float viewportExtent, float contentExtent);
   /** 设置经过夹紧的滚动值；notify 控制是否向 ScrollBehavior 回传。 */
   void SetValue(float value, bool notify = true);
+
+private:
+  void OnVisualStateChanged() override;
 };
 
 } // namespace z8::ui

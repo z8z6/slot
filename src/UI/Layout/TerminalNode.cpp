@@ -8,7 +8,7 @@
 using namespace z8::ui;
 
 TerminalNode::TerminalNode() {
-  SetProperty("Icon", "asset://texture/icons/lucide/terminal.svg");
+  SetTitleIcon(UIIcon::Terminal);
   SetProperty("Title", "Output Log");
 
   auto output = std::make_unique<TextNode>();
@@ -16,7 +16,7 @@ TerminalNode::TerminalNode() {
   OutputNode->Key = "__terminal_output";
   OutputNode->Wrap = true;
   OutputNode->Alignment = TextAlignment::Leading;
-  OutputNode->Style.Margin = 2.0f;
+  OutputNode->Style.Margin = SpacingStyle::ExtraSmall;
   OutputNode->Style.FlexGrow = 0.0f;
   OutputNode->Style.FlexShrink = 0.0f;
   ContentHost()->AddChild(std::move(output));

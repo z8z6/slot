@@ -1,8 +1,8 @@
 #pragma once
 
+#include "UI/Layout/ImageNode.h"
 #include "UI/Layout/PanelNode.h"
 #include "UI/Layout/RectNode.h"
-#include "UI/Layout/ImageNode.h"
 
 #include <cstddef>
 #include <memory>
@@ -20,6 +20,9 @@ public:
   explicit PanelGroupCloseNode(PanelGroupNode &group);
   EventReply OnMouseDown(MouseMovArgs args) override;
   const char *TypeName() const override { return "PanelGroupClose"; }
+
+private:
+  void OnVisualStateChanged() override;
 };
 
 /**
@@ -37,11 +40,18 @@ public:
   PanelGroupTabNode(PanelGroupNode &group, size_t panelIndex,
                     const std::string &title, const std::string &iconSource);
   EventReply OnMouseDown(MouseMovArgs args) override;
+  /** Active 变化时重新解析与 Hover/Pressed 正交的页签视觉状态。 */
+  void RefreshVisualState();
   /** 更新页签图标，同时保留 ImageNode 的资源协议校验。 */
   bool SetIcon(const std::string &iconSource);
+  /** 内部工具控件使用强类型图标，避免把资源 URI 散落到业务代码。 */
+  bool SetIcon(UIIcon icon);
   /** 标题变化时同步更新固有宽度，避免复用页签保留旧标题尺寸。 */
   void SetTitle(const std::string &title);
   const char *TypeName() const override { return "PanelGroupTab"; }
+
+private:
+  void OnVisualStateChanged() override;
 };
 
 /**
@@ -56,6 +66,7 @@ public:
   size_t ActivePanel = 0;
   bool CloseRequested = false;
   PanelGroupCloseNode *CloseButtonNode = nullptr;
+  RectNode *ContentSeparatorNode = nullptr;
   RectNode *DragHandleNode = nullptr;
   RectNode *HeaderNode = nullptr;
   RectNode *TabBarNode = nullptr;
@@ -71,11 +82,11 @@ public:
   BaseNode *ContentHost() override { return this; }
   /** 即时声明需保留 Group 已由用户拖动或拉伸提交的几何。 */
   bool HasInteractiveGeometry() const;
-  /** 交换两个页签及其 Panel 的排列位置，同时保持活动 Panel 身份不变。 */
-  bool SwapPanels(size_t firstIndex, size_t secondIndex);
   /** 移除指定页并选择相邻活动页；空 Group 会请求由 Layout 回收。 */
   std::unique_ptr<PanelNode> RemovePanel(size_t panelIndex);
   bool SetProperty(const std::string &name, const std::string &value) override;
+  /** 交换两个页签及其 Panel 的排列位置，同时保持活动 Panel 身份不变。 */
+  bool SwapPanels(size_t firstIndex, size_t secondIndex);
   const char *TypeName() const override { return "PanelGroup"; }
 
 private:

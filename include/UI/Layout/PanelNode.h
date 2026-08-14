@@ -8,8 +8,8 @@
 #include "UI/Behavior/DockBehavior.h"
 #include "UI/Behavior/DragBehavior.h"
 #include "UI/Behavior/ResizeBehavior.h"
-#include "UI/Layout/ScrollNode.h"
 #include "UI/Layout/ImageNode.h"
+#include "UI/Layout/ScrollNode.h"
 #include "UI/Layout/TextNode.h"
 
 #include <string>
@@ -21,7 +21,7 @@ public:
   /** 所属页签组；非拥有指针，未入组的独立 Panel 为空。 */
   PanelGroupNode *Group = nullptr;
   /** 标题图标的资源 URI；入组后由对应 Tab 继续展示同一图标。 */
-  std::string IconSource = "asset://texture/icons/lucide/box.svg";
+  std::string IconSource;
   ImageNode *TitleIconNode;
   RectNode *TitleBarNode;
   TextNode *TitleNode;
@@ -35,9 +35,12 @@ public:
     return resize && resize->HasInteractiveGeometry();
   }
   bool SetProperty(const std::string &name, const std::string &value) override;
+  /** 内部编辑器控件可按 UIIcon 设置标题图标，声明层仍可继续使用 Source URI。 */
+  bool SetTitleIcon(UIIcon icon);
   const char *TypeName() const override { return "Panel"; }
 
 private:
-  float TitleHeight = 32.0f;
+  /** 构造时取自 Theme；实例属性可覆盖但不会修改全局主题。 */
+  float TitleHeight = 0.0f;
 };
 } // namespace z8::ui

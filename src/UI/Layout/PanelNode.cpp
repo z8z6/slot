@@ -38,23 +38,28 @@ PanelNode::PanelNode()
   TitleBarNode->Style.Padding = 0.0f;
   TitleBarNode->Style.Direction = FlexDirection::Row;
   TitleBarNode->Style.Height = TitleHeight;
+  // PanelGroup 会把该标题栏折叠为 0；清除 Rect 默认最小高度，避免不可见
+  // 标题栏仍在纵向 Flex 中占位，形成内容顶部空白。
+  TitleBarNode->Style.MinHeight = 0.0f;
   TitleBarNode->Style.FlexGrow = 0.0f;
   TitleBarNode->Style.FlexShrink = 0.0f;
 
   auto icon = std::make_unique<ImageNode>();
   TitleIconNode = icon.get();
   TitleIconNode->Key = "__title_icon";
-  TitleIconNode->SetProperty("Source", IconSource);
-  TitleIconNode->SetColor(style.TitleTextColor);
+  TitleIconNode->SetIcon(UIIcon::Cube);
+  IconSource = TitleIconNode->Source;
+  TitleIconNode->SetColor(
+      Theme::Default().Icon.Color.Resolve(WidgetVisualState::Normal));
   TitleIconNode->HitTestVisible = false;
-  TitleIconNode->Style.Margin = 7.0f;
+  TitleIconNode->Style.Margin = SpacingStyle::Medium;
   TitleBarNode->BaseNode::AddChild(std::move(icon));
 
   auto title = std::make_unique<TextNode>();
   TitleNode = title.get();
   TitleNode->Key = "__title";
   TitleNode->Color = style.TitleTextColor;
-  TitleNode->Alignment = TextAlignment::Center;
+  TitleNode->Alignment = TextAlignment::Leading;
   // 标题文字独占标题栏布局框；背景仍由 Panel 绘制，避免为标题额外创建矩形。
   TitleNode->Style.Margin = 0.0f;
   TitleNode->Style.Height = TitleHeight;
@@ -68,7 +73,8 @@ PanelNode::PanelNode()
   ScrollAreaNode->Key = "__scroll";
   ScrollAreaNode->Style.FlexGrow = 1.0f;
   ScrollAreaNode->Style.FlexShrink = 1.0f;
-  ScrollAreaNode->SetVerticalBarInsets(2.0f, 0.0f, 2.0f);
+  ScrollAreaNode->SetVerticalBarInsets(SpacingStyle::ExtraSmall, 0.0f,
+                                       SpacingStyle::ExtraSmall);
   BaseNode::AddChild(std::move(scroll));
 
   // Panel 只组装视觉和能力。行为优先级由组件自身声明，因此边缘 Resize 会在
@@ -88,20 +94,19 @@ PanelNode::PanelNode()
 BaseNode *PanelNode::ContentHost() { return ScrollAreaNode->ContentHost(); }
 
 bool PanelNode::SetProperty(const std::string &name, const std::string &value) {
-  if (Group && (name == "Dock" || name == "DockEnabled" ||
-                name == "DockThreshold" || name == "DockExtent" ||
-                name == "Width" || name == "Height" ||
-                name == "MinWidth" || name == "MinHeight" ||
-                name == "MaxWidth" || name == "MaxHeight" ||
-                name == "Margin"))
+  if (Group &&
+      (name == "Dock" || name == "DockEnabled" || name == "DockThreshold" ||
+       name == "DockExtent" || name == "Width" || name == "Height" ||
+       name == "MinWidth" || name == "MinHeight" || name == "MaxWidth" ||
+       name == "MaxHeight" || name == "Margin"))
     return Group->RectNode::SetProperty(name, value);
   if (name == "Icon" || name == "TitleIcon") {
     if (!TitleIconNode->SetProperty("Source", value))
       return false;
     IconSource = value;
     if (Group) {
-      const auto panel = std::find(Group->Panels.begin(), Group->Panels.end(),
-                                   this);
+      const auto panel =
+          std::find(Group->Panels.begin(), Group->Panels.end(), this);
       if (panel != Group->Panels.end())
         Group->Tabs[static_cast<size_t>(panel - Group->Panels.begin())]
             ->SetIcon(value);
@@ -114,8 +119,8 @@ bool PanelNode::SetProperty(const std::string &name, const std::string &value) {
       return true;
     TitleNode->Text = value;
     if (Group) {
-      const auto panel = std::find(Group->Panels.begin(), Group->Panels.end(),
-                                   this);
+      const auto panel =
+          std::find(Group->Panels.begin(), Group->Panels.end(), this);
       if (panel != Group->Panels.end())
         Group->Tabs[static_cast<size_t>(panel - Group->Panels.begin())]
             ->SetTitle(value);
@@ -148,7 +153,8 @@ bool PanelNode::SetProperty(const std::string &name, const std::string &value) {
     auto *resize = GetBehavior<ResizeBehavior>();
     if (!resize || !resize->SetProperty(name, value))
       return false;
-    ScrollAreaNode->SetVerticalBarInsets(2.0f, 0.0f, 2.0f);
+    ScrollAreaNode->SetVerticalBarInsets(SpacingStyle::ExtraSmall, 0.0f,
+                                         SpacingStyle::ExtraSmall);
     return true;
   }
   // 只把滚动能力属性委托给组合子节点；Id、尺寸等通用属性仍必须作用于 Panel，
@@ -157,4 +163,18 @@ bool PanelNode::SetProperty(const std::string &name, const std::string &value) {
       scroll && scroll->SetProperty(name, value))
     return true;
   return RectNode::SetProperty(name, value);
+}
+
+bool PanelNode::SetTitleIcon(UIIcon icon) {
+  if (!TitleIconNode || !TitleIconNode->SetIcon(icon))
+    return false;
+  IconSource = TitleIconNode->Source;
+  if (Group) {
+    const auto panel =
+        std::find(Group->Panels.begin(), Group->Panels.end(), this);
+    if (panel != Group->Panels.end())
+      return Group->Tabs[static_cast<size_t>(panel - Group->Panels.begin())]
+          ->SetIcon(icon);
+  }
+  return true;
 }

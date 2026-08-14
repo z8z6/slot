@@ -1,6 +1,7 @@
-#include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelGroupNode.h"
 #include "Object/UIObject/UIObject.h"
+#include "UI/Layout/Layout.h"
+#include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
 
@@ -41,8 +42,7 @@ TEST(PanelGroupNodeTest, OwnsPanelsAndOnlyShowsActivePage) {
   ASSERT_TRUE(group.ActivatePanel(1));
   EXPECT_FALSE(first->Visible);
   EXPECT_TRUE(second->Visible);
-  EXPECT_NE(group.Tabs[0]->UO->GetColor().x,
-            group.Tabs[1]->UO->GetColor().x);
+  EXPECT_NE(group.Tabs[0]->UO->GetColor().x, group.Tabs[1]->UO->GetColor().x);
 }
 
 TEST(PanelGroupNodeTest, SizesTabsFromTitleTextAndMarksActiveTab) {
@@ -64,9 +64,75 @@ TEST(PanelGroupNodeTest, SizesTabsFromTitleTextAndMarksActiveTab) {
   EXPECT_LT(observer->Tabs[1]->Width, observer->Width);
   EXPECT_TRUE(observer->Tabs[0]->SelectionNode->Visible);
   EXPECT_FALSE(observer->Tabs[1]->SelectionNode->Visible);
+  ASSERT_NE(observer->ContentSeparatorNode, nullptr);
+  EXPECT_FLOAT_EQ(observer->ContentSeparatorNode->Height,
+                  Theme::Default().Panel.ContentSeparatorWidth);
+  EXPECT_FALSE(observer->ContentSeparatorNode->HitTestVisible);
   ASSERT_TRUE(observer->ActivatePanel(1));
   EXPECT_FALSE(observer->Tabs[0]->SelectionNode->Visible);
   EXPECT_TRUE(observer->Tabs[1]->SelectionNode->Visible);
+}
+
+TEST(PanelGroupNodeTest, RoutesHoverAndPressedWithoutChangingHitGeometry) {
+  Layout layout;
+  auto group = std::make_unique<PanelGroupNode>();
+  auto *observer = group.get();
+  observer->GetBehavior<DockBehavior>()->Properties.Enabled = false;
+  observer->Style.Margin = 0.0f;
+  observer->Style.Width = 400.0f;
+  observer->Style.Height = 300.0f;
+  observer->AddPanel(MakePanel("Scene"));
+  observer->AddPanel(MakePanel("Game"));
+  layout.Root->AddChild(std::move(group));
+  layout.RebuildIndex();
+  layout.Calculate(400.0f, 300.0f);
+
+  auto *first = observer->Tabs[0];
+  auto *second = observer->Tabs[1];
+  const float firstWidth = first->Width;
+  const float secondWidth = second->Width;
+  MouseMovArgs move;
+  move.X = static_cast<int>(first->Left + first->Width * 0.5f);
+  move.Y = static_cast<int>(first->Top + first->Height * 0.5f);
+  EXPECT_EQ(layout.OnMouseMove(move), EventReply::Handled);
+  EXPECT_TRUE(first->Hovered);
+  EXPECT_FALSE(second->Hovered);
+
+  move.X = static_cast<int>(second->Left + second->Width * 0.5f);
+  EXPECT_EQ(layout.OnMouseMove(move), EventReply::Handled);
+  EXPECT_FALSE(first->Hovered);
+  EXPECT_TRUE(second->Hovered);
+  EXPECT_EQ(observer->ActivePanel, 0U);
+  EXPECT_FLOAT_EQ(first->Width, firstWidth);
+  EXPECT_FLOAT_EQ(second->Width, secondWidth);
+
+  ASSERT_NE(layout.OnMouseDown(LeftClick(move.X, move.Y)), EventReply::Ignored);
+  EXPECT_TRUE(second->Pressed);
+  layout.OnPointerCaptureLost();
+  EXPECT_FALSE(second->Pressed);
+}
+
+TEST(PanelGroupNodeTest, MapsTabAndCloseInteractionStatesThroughTheme) {
+  PanelGroupNode group;
+  group.AddPanel(MakePanel("Scene"));
+  group.AddPanel(MakePanel("Game"));
+  const auto &theme = Theme::Default();
+
+  auto *inactiveTab = group.Tabs[1];
+  inactiveTab->SetHovered(true);
+  EXPECT_FLOAT_EQ(inactiveTab->UO->GetColor().x,
+                  theme.Tab.BackgroundColor.Hovered.x);
+  EXPECT_FLOAT_EQ(inactiveTab->LabelNode->Color.x,
+                  theme.Tab.ForegroundColor.Hovered.x);
+  inactiveTab->SetPressed(true);
+  EXPECT_FLOAT_EQ(inactiveTab->UO->GetColor().x,
+                  theme.Tab.BackgroundColor.Pressed.x);
+
+  group.CloseButtonNode->SetHovered(true);
+  EXPECT_FLOAT_EQ(group.CloseButtonNode->UO->GetColor().x,
+                  theme.Button.BackgroundColor.Hovered.x);
+  EXPECT_FLOAT_EQ(group.CloseButtonNode->IconNode->UO->GetColor().x,
+                  theme.Button.ForegroundColor.Hovered.x);
 }
 
 TEST(PanelGroupNodeTest, UpdatesTabWidthAndIconWhenPanelPropertiesChange) {
@@ -82,7 +148,7 @@ TEST(PanelGroupNodeTest, UpdatesTabWidthAndIconWhenPanelPropertiesChange) {
 
   ASSERT_TRUE(panel->SetProperty(
       "Icon", "asset://texture/icons/lucide/settings-2.svg"));
-  EXPECT_EQ(group.Tabs.front()->IconNode->Kind, ImageKind::Settings);
+  EXPECT_EQ(group.Tabs.front()->IconNode->Icon, UIIcon::Settings);
 }
 
 TEST(PanelGroupNodeTest, SwitchesPageByClickingTabTitle) {
@@ -163,6 +229,100 @@ TEST(PanelGroupNodeTest, PanelDragPreviewDoesNotMutateMembershipOrDockTree) {
   layout.OnPointerCaptureLost();
 }
 
+TEST(PanelGroupNodeTest, DraggingPanelInsideItsSourceUsesFloatingPreview) {
+  Layout layout;
+  auto group = std::make_unique<PanelGroupNode>();
+  auto *observer = group.get();
+  auto *scene = group->AddPanel(MakePanel("Scene"));
+  group->AddPanel(MakePanel("Game"));
+  layout.Root->AddChild(std::move(group));
+  layout.RebuildIndex();
+  layout.Calculate(600.0f, 300.0f);
+  const int startX = static_cast<int>(observer->Tabs.front()->Left + 12.0f);
+  const int startY = static_cast<int>(observer->Tabs.front()->Top + 12.0f);
+  const int targetX = static_cast<int>(observer->PagesNode->Left +
+                                       observer->PagesNode->Width * 0.5f);
+  const int targetY = static_cast<int>(observer->PagesNode->Top +
+                                       observer->PagesNode->Height * 0.5f);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
+  auto drag = LeftClick(targetX, targetY);
+  drag.DeltaX = targetX - startX;
+  drag.DeltaY = targetY - startY;
+  ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
+
+  EXPECT_TRUE(layout.Dock.Drag.PreviewVisible);
+  EXPECT_EQ(layout.Dock.Drag.Side, DockSide::Center);
+  const auto preview = layout.GetDockPreview();
+  EXPECT_FLOAT_EQ(preview.Left, layout.Dock.Drag.FloatingPreviewRect.Left);
+  EXPECT_FLOAT_EQ(preview.Top, layout.Dock.Drag.FloatingPreviewRect.Top);
+  EXPECT_FLOAT_EQ(preview.Width, layout.Dock.Drag.FloatingPreviewRect.Width);
+  EXPECT_FLOAT_EQ(preview.Height, layout.Dock.Drag.FloatingPreviewRect.Height);
+  ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
+  ASSERT_EQ(observer->Panels.size(), 1U);
+  ASSERT_NE(scene->Group, nullptr);
+  EXPECT_NE(scene->Group, observer);
+  ASSERT_NE(layout.Dock.GetState(*scene->Group), nullptr);
+  EXPECT_EQ(layout.Dock.GetState(*scene->Group)->Placement,
+            PanelPlacement::Floating);
+  EXPECT_TRUE(layout.Dock.Validate());
+}
+
+TEST(PanelGroupNodeTest, DraggingPanelGroupInsideItselfUsesFloatingPreview) {
+  Layout layout;
+  auto group = std::make_unique<PanelGroupNode>();
+  auto *observer = group.get();
+  observer->AddPanel(MakePanel("Scene"));
+  layout.Root->AddChild(std::move(group));
+  layout.RebuildIndex();
+  layout.Calculate(600.0f, 300.0f);
+  const int startX = static_cast<int>(observer->DragHandleNode->Left +
+                                      observer->DragHandleNode->Width * 0.5f);
+  const int startY = static_cast<int>(observer->HeaderNode->Top + 12.0f);
+  const int targetX = static_cast<int>(observer->PagesNode->Left +
+                                       observer->PagesNode->Width * 0.5f);
+  const int targetY = static_cast<int>(observer->PagesNode->Top +
+                                       observer->PagesNode->Height * 0.5f);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
+  auto drag = LeftClick(targetX, targetY);
+  drag.DeltaX = targetX - startX;
+  drag.DeltaY = targetY - startY;
+  ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
+
+  EXPECT_EQ(layout.Dock.Drag.PayloadType, DragPayloadType::PanelGroup);
+  EXPECT_TRUE(layout.Dock.Drag.PreviewVisible);
+  EXPECT_EQ(layout.Dock.Drag.Side, DockSide::Center);
+  const auto preview = layout.GetDockPreview();
+  EXPECT_FLOAT_EQ(preview.Left, layout.Dock.Drag.FloatingPreviewRect.Left);
+  EXPECT_FLOAT_EQ(preview.Top, layout.Dock.Drag.FloatingPreviewRect.Top);
+  EXPECT_FLOAT_EQ(preview.Width, layout.Dock.Drag.FloatingPreviewRect.Width);
+  EXPECT_FLOAT_EQ(preview.Height, layout.Dock.Drag.FloatingPreviewRect.Height);
+  ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
+  EXPECT_EQ(layout.Dock.GetState(*observer)->Placement,
+            PanelPlacement::Floating);
+  EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(observer), nullptr);
+  EXPECT_TRUE(layout.Dock.Validate());
+}
+
+TEST(PanelGroupNodeTest, GroupedPanelContentStartsBelowOnlyTheSharedHeader) {
+  Layout layout;
+  auto group = std::make_unique<PanelGroupNode>();
+  auto *groupObserver = group.get();
+  auto *panelObserver = group->AddPanel(MakePanel("Scene"));
+  layout.Root->AddChild(std::move(group));
+  layout.RebuildIndex();
+  layout.Calculate(600.0f, 300.0f);
+
+  // 组内标题栏已经由公共 Header 取代；隐藏节点和外层最小尺寸都不能继续
+  // 消耗 Pages 高度，否则所有 Panel 内容都会出现一段伪造的顶部留白。
+  EXPECT_FLOAT_EQ(panelObserver->TitleBarNode->Height, 0.0f);
+  EXPECT_FLOAT_EQ(panelObserver->Top, groupObserver->PagesNode->Top);
+  EXPECT_FLOAT_EQ(panelObserver->Height, groupObserver->PagesNode->Height);
+  EXPECT_FLOAT_EQ(panelObserver->ScrollAreaNode->Top,
+                  groupObserver->PagesNode->Top);
+  EXPECT_FLOAT_EQ(panelObserver->ScrollAreaNode->Height,
+                  groupObserver->PagesNode->Height);
+}
+
 TEST(PanelGroupNodeTest, PanelDropOnEmptyGroupHeaderJoinsTargetTabs) {
   Layout layout;
   auto source = std::make_unique<PanelGroupNode>();
@@ -179,11 +339,11 @@ TEST(PanelGroupNodeTest, PanelDropOnEmptyGroupHeaderJoinsTargetTabs) {
 
   const int startX = static_cast<int>(sourceGroup->Tabs.front()->Left + 12.0f);
   const int startY = static_cast<int>(sourceGroup->Tabs.front()->Top + 12.0f);
-  const int targetX = static_cast<int>(targetGroup->DragHandleNode->Left +
-                                       targetGroup->DragHandleNode->Width * 0.5f);
+  const int targetX =
+      static_cast<int>(targetGroup->DragHandleNode->Left +
+                       targetGroup->DragHandleNode->Width * 0.5f);
   const int targetY = static_cast<int>(targetGroup->HeaderNode->Top + 12.0f);
-  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)),
-            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
   auto drag = LeftClick(targetX, targetY);
   drag.DeltaX = targetX - startX;
   drag.DeltaY = targetY - startY;
@@ -193,6 +353,7 @@ TEST(PanelGroupNodeTest, PanelDropOnEmptyGroupHeaderJoinsTargetTabs) {
             layout.Dock.Tree.FindPanelLeaf(targetGroup)->ID);
   EXPECT_EQ(layout.Dock.Drag.Side, DockSide::Center);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
+  EXPECT_EQ(layout.PressedHandler, nullptr);
 
   ASSERT_EQ(sourceGroup->Panels.size(), 1U);
   ASSERT_EQ(targetGroup->Panels.size(), 2U);
@@ -235,7 +396,7 @@ TEST(PanelGroupNodeTest, PanelContentCenterDropCreatesFloatingGroup) {
   EXPECT_TRUE(layout.Dock.Validate());
 }
 
-TEST(PanelGroupNodeTest, PanelContentCenterInSourceCreatesFloatingGroup) {
+TEST(PanelGroupNodeTest, PanelEdgeInSourceUsesFloatingPreview) {
   Layout layout;
   auto group = std::make_unique<PanelGroupNode>();
   auto *observer = group.get();
@@ -244,18 +405,20 @@ TEST(PanelGroupNodeTest, PanelContentCenterInSourceCreatesFloatingGroup) {
   layout.Root->AddChild(std::move(group));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
-
   ASSERT_NE(layout.OnMouseDown(LeftClick(20, 15)), EventReply::Ignored);
-  auto drag = LeftClick(400, 300);
-  drag.DeltaX = 380;
+  auto drag = LeftClick(10, 300);
+  drag.DeltaX = -10;
   drag.DeltaY = 285;
   ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
+  EXPECT_TRUE(layout.Dock.Drag.PreviewVisible);
+  EXPECT_EQ(layout.Dock.Drag.Side, DockSide::Center);
+  EXPECT_FLOAT_EQ(layout.GetDockPreview().Left,
+                  layout.Dock.Drag.FloatingPreviewRect.Left);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
 
   ASSERT_EQ(observer->Panels.size(), 1U);
   ASSERT_NE(scene->Group, nullptr);
   EXPECT_NE(scene->Group, observer);
-  ASSERT_NE(layout.Dock.GetState(*scene->Group), nullptr);
   EXPECT_EQ(layout.Dock.GetState(*scene->Group)->Placement,
             PanelPlacement::Floating);
   EXPECT_TRUE(layout.Dock.Validate());
@@ -279,8 +442,7 @@ TEST(PanelGroupNodeTest, PanelDropOnExistingTargetTabCreatesFloatingGroup) {
   const int startY = static_cast<int>(sourceGroup->Tabs[0]->Top + 12.0f);
   const int targetX = static_cast<int>(targetGroup->Tabs[0]->Left + 12.0f);
   const int targetY = static_cast<int>(targetGroup->Tabs[0]->Top + 12.0f);
-  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)),
-            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
   auto drag = LeftClick(targetX, targetY);
   drag.DeltaX = targetX - startX;
   drag.DeltaY = targetY - startY;
@@ -314,8 +476,7 @@ TEST(PanelGroupNodeTest, PanelDropOnSiblingTabSwapsOrder) {
   const int startY = static_cast<int>(observer->Tabs[0]->Top + 12.0f);
   const int targetX = static_cast<int>(observer->Tabs[2]->Left + 12.0f);
   const int targetY = static_cast<int>(observer->Tabs[2]->Top + 12.0f);
-  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)),
-            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
   auto drag = LeftClick(targetX, targetY);
   drag.DeltaX = targetX - startX;
   drag.DeltaY = targetY - startY;
@@ -350,8 +511,7 @@ TEST(PanelGroupNodeTest, FloatingGroupCanSwapPanelTabs) {
   const int startY = static_cast<int>(observer->Tabs[0]->Top + 12.0f);
   const int targetX = static_cast<int>(observer->Tabs[1]->Left + 12.0f);
   const int targetY = static_cast<int>(observer->Tabs[1]->Top + 12.0f);
-  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)),
-            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
   auto drag = LeftClick(targetX, targetY);
   drag.DeltaX = targetX - startX;
   drag.DeltaY = targetY - startY;
@@ -526,8 +686,7 @@ TEST(PanelGroupNodeTest, WholeGroupCanRemainFloatingOutsideClientArea) {
 
   const int startX = static_cast<int>(group->DragHandleNode->Left + 12.0f);
   const int startY = static_cast<int>(group->DragHandleNode->Top + 12.0f);
-  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)),
-            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
   auto drag = LeftClick(-120, -80);
   drag.DeltaX = -120 - startX;
   drag.DeltaY = -80 - startY;
@@ -563,7 +722,8 @@ TEST(PanelGroupNodeTest, CloseButtonRemovesDockedGroupAndCollapsesTree) {
   ASSERT_EQ(layout.Root->Children.size(), 1U);
   ASSERT_NE(layout.Dock.Tree.Root, nullptr);
   EXPECT_EQ(layout.Dock.Tree.Root->Type, DockNodeType::Leaf);
-  EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(secondPanel), layout.Dock.Tree.Root.get());
+  EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(secondPanel),
+            layout.Dock.Tree.Root.get());
   EXPECT_EQ(layout.Dock.Drag.State, PanelDragState::Idle);
   EXPECT_TRUE(layout.Dock.Tree.Validate());
 }
