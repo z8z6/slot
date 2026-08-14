@@ -55,6 +55,7 @@ public:
   ~DX12Render() override;
 
   void Init() override;
+  void InvalidateSceneResources() override;
   // 每帧绘制前调用，更新物体状态
   void Update() override;
   // 绘制物体
@@ -69,6 +70,8 @@ public:
 
 private:
   bool IsShutdown = false;
+  /** 延迟到帧边界重建场景批次，避免输入回调直接修改 GPU 资源。 */
+  bool SceneResourcesDirty = false;
 };
 
 }

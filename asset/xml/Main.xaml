@@ -36,14 +36,60 @@
     </Panel>
   </PanelGroup>
 
-  <Panel Id="details" Title="Details" Dock="Right" DockExtent="300">
-    <Text Id="details-name" Text="No object selected" />
-    <Text Id="details-type" Text="Type: -" />
-    <Text Id="details-mesh" Text="Mesh: -" />
-    <Text Id="details-transform" Text="Transform" />
-    <Text Id="details-position" Text="Position: -" />
-    <Text Id="details-rotation" Text="Rotation: -" />
-    <Text Id="details-scale" Text="Scale: -" />
+  <Panel Id="details" Title="Details" Dock="Right" DockExtent="320">
+    <!-- Type 是运行时类信息；其余对象数据均由 TextInput 双向绑定。 -->
+    <Text Id="details-type" Text="No object selected" />
+    <Text Text="Object" />
+    <UI Direction="Row" Height="30">
+      <Text Text="Name" Width="92" />
+      <TextInput Id="details-name" Placeholder="-" FlexGrow="1" Margin="2" />
+    </UI>
+    <Text Text="Resources" />
+    <UI Direction="Row" Height="30">
+      <Text Text="Mesh" Width="92" />
+      <TextInput Id="details-mesh" Placeholder="-" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Material" Width="92" />
+      <TextInput Id="details-material" Placeholder="-" FlexGrow="1" Margin="2" />
+    </UI>
+    <Text Text="Transform" />
+    <UI Direction="Row" Height="30">
+      <Text Text="Position X" Width="92" />
+      <TextInput Id="details-position-x" Placeholder="0" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Position Y" Width="92" />
+      <TextInput Id="details-position-y" Placeholder="0" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Position Z" Width="92" />
+      <TextInput Id="details-position-z" Placeholder="0" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Rotation X" Width="92" />
+      <TextInput Id="details-rotation-x" Placeholder="0" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Rotation Y" Width="92" />
+      <TextInput Id="details-rotation-y" Placeholder="0" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Rotation Z" Width="92" />
+      <TextInput Id="details-rotation-z" Placeholder="0" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Scale X" Width="92" />
+      <TextInput Id="details-scale-x" Placeholder="1" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Scale Y" Width="92" />
+      <TextInput Id="details-scale-y" Placeholder="1" FlexGrow="1" Margin="2" />
+    </UI>
+    <UI Direction="Row" Height="30">
+      <Text Text="Scale Z" Width="92" />
+      <TextInput Id="details-scale-z" Placeholder="1" FlexGrow="1" Margin="2" />
+    </UI>
   </Panel>
   <Scene Id="scene-viewport" Title="Perspective" Dock="Fill" />
 </UI>

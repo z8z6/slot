@@ -10,6 +10,7 @@ slot_add_test_target(slot_ui_controls_tests
         RectNodeTest.cpp
         SceneNodeTest.cpp
         ScrollNodeTest.cpp
+        SceneObjectDetailsBindingTest.cpp
         TerminalNodeTest.cpp
         TextNodeTest.cpp
         TreeViewNodeTest.cpp)

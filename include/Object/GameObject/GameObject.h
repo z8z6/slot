@@ -7,6 +7,8 @@
 #include "Object/Object.h"
 #include "Resource/ResourceHandle.h"
 
+#include <string>
+
 namespace z8
 {
 class Material;
@@ -51,6 +53,8 @@ struct RenderableComponent {
  */
 class GameObject : public Object{
 public:
+  /** 编辑器显示名称属于场景数据，不能只保存在 TreeView 或 Details 控件中。 */
+  std::string Name;
   // Renderable 保存可序列化的资源引用，实际资源所有权统一位于 ResourceManager。
   RenderableComponent Renderable;
   Collider* Collider;

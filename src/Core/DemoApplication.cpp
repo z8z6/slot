@@ -13,23 +13,10 @@
 #include "UI/Layout/TextNode.h"
 #include "UI/Layout/TreeViewNode.h"
 
-#include <iomanip>
-#include <sstream>
 #include <stdexcept>
 
 using namespace z8;
 using namespace z8::ui;
-
-namespace {
-
-std::string FormatVector(const DirectX::XMFLOAT3& value) {
-  std::ostringstream text;
-  text << std::fixed << std::setprecision(2) << value.x << ", " << value.y
-       << ", " << value.z;
-  return text.str();
-}
-
-} // namespace
 
 void DemoApplication::BindEditorLayout() {
   auto* tree = dynamic_cast<TreeViewNode*>(Layout.Find("scene-hierarchy"));
@@ -38,7 +25,6 @@ void DemoApplication::BindEditorLayout() {
 
   ItemObjects.clear();
   ObjectItems.clear();
-  ObjectNames.clear();
   tree->ContentNode->Children.clear();
   tree->SelectedItem = nullptr;
 
@@ -67,12 +53,12 @@ void DemoApplication::BindEditorLayout() {
   for (auto* object : ActiveScene.GetGameObjects()) {
     auto item = std::make_unique<TreeViewItemNode>();
     auto* observer = item.get();
-    const auto name = DescribeObject(*object, index);
+    if (object->Name.empty())
+      object->Name = DescribeObject(*object, index);
     item->Key = "__scene_object_" + std::to_string(index);
-    item->SetText(name);
+    item->SetText(object->Name);
     ItemObjects.emplace(observer, object);
     ObjectItems.emplace(object, observer);
-    ObjectNames.emplace(object, name);
     actors->ContentHost()->AddChild(std::move(item));
     ++index;
   }
@@ -87,6 +73,13 @@ void DemoApplication::BindEditorLayout() {
   // 动态场景项在 XAML 事务提交后才加入；重建一次非拥有索引，使布局、文字和
   // DX12 UI 批次在同一拓扑版本上工作。
   Layout.RebuildIndex();
+  // XAML 热重载会整体替换控件树，因此绑定对象也随新 Layout 重建，绝不缓存
+  // 上一棵树中的 TextInput 指针。资源修改只发出后端失效通知。
+  DetailsBinding = std::make_unique<SceneObjectDetailsBinding>(
+      Layout, Resources, [this] {
+        if (Render)
+          Render->InvalidateSceneResources();
+      });
   OnSceneSelectionChanged(SelectedSceneObject);
 }
 
@@ -113,6 +106,11 @@ void DemoApplication::Init() {
   Window.Open();
 }
 
+void DemoApplication::OnFrame() {
+  if (DetailsBinding)
+    DetailsBinding->Synchronize();
+}
+
 void DemoApplication::OnLayoutReloaded() { BindEditorLayout(); }
 
 void DemoApplication::OnSceneSelectionChanged(GameObject* object) {
@@ -121,7 +119,20 @@ void DemoApplication::OnSceneSelectionChanged(GameObject* object) {
     const auto item = ObjectItems.find(object);
     tree->SelectItem(item == ObjectItems.end() ? nullptr : item->second, false);
   }
-  UpdateDetails(object);
+  const auto item = ObjectItems.find(object);
+  if (DetailsBinding)
+    DetailsBinding->Bind(object,
+                         item == ObjectItems.end() ? nullptr : item->second);
+  if (auto* type = dynamic_cast<TextNode*>(Layout.Find("details-type"))) {
+    if (!object)
+      type->Text = "No object selected";
+    else if (dynamic_cast<SphereObject*>(object))
+      type->Text = "Type: Sphere";
+    else if (dynamic_cast<CubeObject*>(object))
+      type->Text = "Type: Cube";
+    else
+      type->Text = "Type: GameObject";
+  }
 }
 
 void DemoApplication::PrepareScene() {
@@ -143,33 +154,4 @@ void DemoApplication::PrepareScene() {
   // 初始文件缺失无法构成可用 Demo，因此用英文异常明确终止初始化。
   if (!EnableXamlHotReload("asset/xml/Main.xaml"))
     throw std::runtime_error("Unable to load asset/xml/Main.xaml.");
-}
-
-void DemoApplication::UpdateDetails(GameObject* object) {
-  const auto setText = [this](const char* key, std::string value) {
-    if (auto* text = dynamic_cast<TextNode*>(Layout.Find(key)))
-      text->Text = std::move(value);
-  };
-  if (!object) {
-    setText("details-name", "No object selected");
-    setText("details-type", "Type: -");
-    setText("details-mesh", "Mesh: -");
-    setText("details-position", "Position: -");
-    setText("details-rotation", "Rotation: -");
-    setText("details-scale", "Scale: -");
-    return;
-  }
-
-  const auto name = ObjectNames.find(object);
-  setText("details-name",
-          name == ObjectNames.end() ? "GameObject" : name->second);
-  setText("details-type",
-          dynamic_cast<SphereObject*>(object) ? "Type: Sphere"
-                                              : "Type: Cube");
-  setText("details-mesh", "Mesh: " + object->Renderable.Mesh.GetAssetId());
-  setText("details-position",
-          "Position: " + FormatVector(object->Transform.Position));
-  setText("details-rotation",
-          "Rotation: " + FormatVector(object->Transform.Rotation));
-  setText("details-scale", "Scale: " + FormatVector(object->Transform.Scale));
 }

@@ -55,6 +55,8 @@ private:
   MouseCursor GetMouseCursor(MouseMovArgs args) const override;
   LRESULT HandleWindowMessage(HWND window, UINT message, WPARAM wParam,
                               LPARAM lParam) override;
+  /** 每帧布局前同步编辑器业务绑定；基础 Application 没有额外工作。 */
+  virtual void OnFrame() {}
   /** XAML 成功替换控件树后重建业务绑定；失败时不触碰旧树。 */
   virtual void OnLayoutReloaded() {}
   /** 场景选择变化扩展点；基础 Application 不假定存在 Details 控件。 */

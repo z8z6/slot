@@ -81,6 +81,7 @@ int z8::Application::Run() {
           App->Layout.WriteTerminal("[XAML] Reload failed: " +
                                     App->XamlReload->GetLastError());
       }
+      App->OnFrame();
       App->Layout.Calculate(App->Window.LogicalWidth(),
                             App->Window.LogicalHeight());
       App->Render->Update();

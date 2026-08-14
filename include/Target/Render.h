@@ -21,6 +21,8 @@ public:
   virtual void Init() = 0;
   virtual void Update() = 0;
   virtual void Draw() = 0;
+  /** 场景资源软引用改变后使后端重新解析 Mesh、Material 与 Pipeline。 */
+  virtual void InvalidateSceneResources() {}
   virtual void Resize() = 0;
   /**
    * 在 Application 的 CPU 资源和窗口成员析构前显式停止设备资源。

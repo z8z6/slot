@@ -135,7 +135,7 @@ ControlFactory::Instance().Register("MyControl", [] {
 
 Demo 的完整界面声明位于 `asset/xml/Main.xaml`，C++ 只负责创建场景和启用声明入口。`Application::EnableXamlHotReload()` 在首次解析成功后逐帧检查文件签名；保存 XML 后，下一帧会先构造并验证一棵新控件树，再整体替换当前 `Layout`。解析失败只向 Output Log 写入英文诊断并保留上一棵有效树，文件再次保存后自动重试。监视和替换都发生在渲染主线程的布局计算之前，因此不会让 DX12 批次观察到半更新的节点所有权。
 
-Demo 左侧 `PanelGroup` 包含 Content Browser 与 World Outliner 两页。XAML 只声明空的场景 TreeView，`DemoApplication` 在每次成功装载后从 `Scene` 生成层级项并重新绑定选择回调。点击层级项或 SceneViewport 中的 Mesh 都提交到同一个 `SelectedSceneObject`；视口拾取在点击时把屏幕射线变换到对象局部空间并寻找最近三角形，不进入逐帧渲染热路径。右侧 Details Panel 随后显示对象类型、Mesh 资源 ID 和 Transform。
+Demo 左侧 `PanelGroup` 包含 Content Browser 与 World Outliner 两页。XAML 只声明空的场景 TreeView，`DemoApplication` 在每次成功装载后从 `Scene` 生成层级项并重新绑定选择回调。点击层级项或 SceneViewport 中的 Mesh 都提交到同一个 `SelectedSceneObject`；视口拾取在点击时把屏幕射线变换到对象局部空间并寻找最近三角形，不进入逐帧渲染热路径。右侧 Details Panel 用独立 TextInput 编辑对象名称、Mesh、Material 以及 Position/Rotation/Scale 的每个分量。有效输入立即写回对象；未聚焦字段逐帧从模型同步，因此外部对象变化也会反映到界面。资源 ID 只有能被当前 `ResourceManager` 解析时才提交，并在下一帧边界安全重建 DX12 场景批次。
 
 ## ImGui 风格声明
 

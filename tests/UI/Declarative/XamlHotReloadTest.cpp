@@ -3,6 +3,7 @@
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Layout/TextInputNode.h"
 #include "UI/Layout/ToolBarNode.h"
 
 #include <filesystem>
@@ -72,7 +73,18 @@ TEST(XamlHotReloadTest, LoadsProjectInterfaceFromAssetXml) {
   EXPECT_NE(layout.Find("scene-viewport"), nullptr);
   EXPECT_NE(layout.Find("file-explorer"), nullptr);
   EXPECT_NE(layout.Find("scene-hierarchy"), nullptr);
-  EXPECT_NE(layout.Find("details-name"), nullptr);
+  EXPECT_NE(dynamic_cast<TextInputNode *>(layout.Find("details-name")),
+            nullptr);
+  EXPECT_NE(dynamic_cast<TextInputNode *>(layout.Find("details-mesh")),
+            nullptr);
+  EXPECT_NE(dynamic_cast<TextInputNode *>(layout.Find("details-material")),
+            nullptr);
+  EXPECT_NE(dynamic_cast<TextInputNode *>(layout.Find("details-position-x")),
+            nullptr);
+  EXPECT_NE(dynamic_cast<TextInputNode *>(layout.Find("details-rotation-y")),
+            nullptr);
+  EXPECT_NE(dynamic_cast<TextInputNode *>(layout.Find("details-scale-z")),
+            nullptr);
   layout.Calculate(1600.0f, 900.0f);
   const auto *toolbar = dynamic_cast<ToolBarNode *>(layout.Find("toolbar"));
   const auto *terminal = dynamic_cast<PanelNode *>(layout.Find("terminal"));
@@ -92,7 +104,7 @@ TEST(XamlHotReloadTest, LoadsProjectInterfaceFromAssetXml) {
   EXPECT_TRUE(layout.Dock.IsDocked(*leftBrowser));
   ASSERT_EQ(leftBrowser->Panels.size(), 2U);
   EXPECT_NEAR(leftBrowser->Width, 280.0f, 0.01f);
-  EXPECT_NEAR(details->Group->Width, 300.0f, 0.01f);
+  EXPECT_NEAR(details->Group->Width, 320.0f, 0.01f);
   EXPECT_TRUE(layout.Dock.Validate());
 }
 

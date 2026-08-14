@@ -12,6 +12,7 @@ FetchContent_MakeAvailable(googletest)
 # 创建 HWND 或图形设备。
 add_library(slot_test_runtime STATIC
         ../src/Core/Event.cpp
+        ../src/Core/SceneObjectDetailsBinding.cpp
         ../src/Core/ScenePicker.cpp
         ../src/UI/Dock/DockTree.cpp
         ../src/UI/Dock/DockWorkspace.cpp

@@ -63,6 +63,7 @@ void DX12Render::Init()
   MaterialManager.Init();
 
   GOBatch.Init(App->ActiveScene.GetGameObjects());
+  SceneResourcesDirty = false;
   UOBatch.Init(App->Layout.GetMainUO());
   FloatingWindows = std::make_unique<DX12FloatingWindowManager>(*this);
   App->Layout.ConsumeDirty();
@@ -71,8 +72,16 @@ void DX12Render::Init()
   Cmd.Synchronize();
 }
 
+void DX12Render::InvalidateSceneResources() { SceneResourcesDirty = true; }
+
 void DX12Render::Update()
 {
+  if (SceneResourcesDirty) {
+    // Details 输入发生在消息分发阶段；到下一帧统一解析软引用并替换批次，
+    // 可以保持回调不接触 DX12 生命周期，同时保证画面立即采用新资源。
+    GOBatch.Init(App->ActiveScene.GetGameObjects());
+    SceneResourcesDirty = false;
+  }
   // 即时声明只在控件拓扑变化时重建 UI 常量缓冲；稳定帧复用原有 GPU 资源。
   bool topologyChanged = App->Layout.ConsumeDirty();
   topologyChanged = FloatingWindows->Reconcile(topologyChanged);
