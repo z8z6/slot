@@ -22,7 +22,10 @@ ResourceManager::ResourceManager() { RegisterBuiltinResources(); }
 
 ResourceHandle<Mesh> ResourceManager::AddMesh(std::string assetId,
                                                std::unique_ptr<Mesh> mesh) {
-  if (mesh) mesh->ComputeNormals();
+  // 拒绝不能由 16 位索引安全表示的数据，避免错误一直延迟到 GPU 绘制阶段。
+  if (!mesh || !mesh->Validate()) return {};
+  if (mesh->NormalMode == MeshNormalMode::GenerateSmooth)
+    mesh->ComputeNormals();
   return Meshes.Add(std::move(assetId), std::move(mesh));
 }
 

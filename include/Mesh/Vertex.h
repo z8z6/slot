@@ -19,8 +19,14 @@ public:
   DirectX::XMFLOAT3 Normal;
   DirectX::XMFLOAT2 TexCoord;
 
-  Vertex() = default;
-  Vertex(DirectX::XMFLOAT3 P) : Pos(P), Normal(), TexCoord() {}
-  Vertex(float x, float y, float z) : Pos(x,y,z), Normal(), TexCoord() {}
+  /** 默认清零所有属性，避免导入器只写位置时把未初始化数据上传到 GPU。 */
+  Vertex() : Pos{}, Normal{}, TexCoord{} {}
+  Vertex(DirectX::XMFLOAT3 position) : Pos(position), Normal{}, TexCoord{} {}
+  Vertex(DirectX::XMFLOAT3 position, DirectX::XMFLOAT2 texCoord)
+      : Pos(position), Normal{}, TexCoord(texCoord) {}
+  Vertex(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 normal,
+         DirectX::XMFLOAT2 texCoord)
+      : Pos(position), Normal(normal), TexCoord(texCoord) {}
+  Vertex(float x, float y, float z) : Pos(x, y, z), Normal{}, TexCoord{} {}
 };
-}
+} // namespace z8

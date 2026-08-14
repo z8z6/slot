@@ -16,7 +16,7 @@ MSAA → Command → SwapChain → RTV/DSV → Resize
 
 Update 依次更新 Camera、GlobalConst 和两个批次的对象常量。Draw 重置命令资源、切换后备缓冲状态、设置 viewport/scissor、清屏、绑定目标和根签名、绘制 3D/UI，再切回 Present、提交、Present 并等待 Fence。
 
-静态顶点、索引和材质进入 DEFAULT heap，通过 UPLOAD heap 上传；每帧常量使用持久映射 UPLOAD heap。对象 CBV 以批次中最大的对象常量结构为统一步长，并按 256 字节对齐，因此普通世界矩阵和带颜色的 UI 常量可以安全共存。
+静态顶点、索引和材质进入 DEFAULT heap，通过 UPLOAD heap 上传；每帧常量使用持久映射 UPLOAD heap。对象 CBV 以批次中最大的对象常量结构为统一步长，并按 256 字节对齐。普通物体与 UI 都以 World、WorldInvTranspose 为固定前缀，UI 再追加颜色和裁剪数据，因此两类常量可以安全共存。
 
 ## Batch 与 PSO
 

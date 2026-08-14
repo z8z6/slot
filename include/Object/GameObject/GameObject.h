@@ -14,6 +14,22 @@ class Mesh;
 class Collider;
 
 /**
+ * @brief 普通和 UI 顶点着色器共享的对象变换 ABI。
+ *
+ * World 把位置变换到世界空间；WorldInvTranspose 抵消非均匀缩放，使法线仍与
+ * 变换后的曲面切线正交。两个矩阵均按 HLSL 列主序常量的存储约定写入。
+ */
+struct ObjectTransformConst {
+  DirectX::XMFLOAT4X4 World;
+  DirectX::XMFLOAT4X4 WorldInvTranspose;
+
+  /** 从 DirectXMath 行主序世界矩阵同步生成 Shader 所需的两个矩阵。 */
+  void Update(const DirectX::XMFLOAT4X4& world);
+};
+static_assert(sizeof(ObjectTransformConst) == 128,
+              "ObjectTransformConst must match the first two b0 matrices.");
+
+/**
  * @brief 场景对象可渲染部分的持久化资源绑定。
  *
  * Reference 允许场景在资源尚未驻留时存在；渲染器构建 RenderItem 时统一解析成

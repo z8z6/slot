@@ -3,6 +3,8 @@
 cbuffer cbPerObject : register(b0)
 {
 	float4x4 World;
+    // 非均匀缩放下法线必须乘世界逆转置矩阵，不能直接复用 World。
+    float4x4 WorldInvTranspose;
     float4 ObjectColor;
     float4 ClipRect;
     float4 BorderColor;

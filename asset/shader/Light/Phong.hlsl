@@ -12,7 +12,11 @@ float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
 
 float3 BlinnPhong(float3 lightColor, float3 lightVec, float3 normal, float3 toEye, Material mat)
 {
-    const float m = mat.Shininess * 256.0f;
+    // 感知粗糙度先转为平滑度再平方，使常用的 0.2~0.7 区间都有可见且连续的
+    // 高光宽度。旧公式直接乘 256，在默认材质下产生 192 次幂，除严格镜面方向
+    // 外几乎恒为零。
+    const float smoothness = 1.0f - saturate(mat.Roughness);
+    const float m = lerp(4.0f, 96.0f, smoothness * smoothness);
     float3 halfVec = normalize(toEye + lightVec);
 
     float roughnessFactor = (m + 8.0f)*pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
@@ -30,7 +34,8 @@ float3 BlinnPhong(float3 lightColor, float3 lightVec, float3 normal, float3 toEy
 float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEye)
 {
     // The light vector aims opposite the direction the light rays travel.
-    float3 lightVec = -L.Direction;
+    // Direction 的长度不应改变光照强度，归一化后 ndotl 才只表示入射夹角。
+    float3 lightVec = normalize(-L.Direction);
 
     // Scale light down by Lambert's cosine law.
     float ndotl = max(dot(lightVec, normal), 0.0f);

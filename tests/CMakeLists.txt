@@ -49,6 +49,7 @@ add_library(slot_test_runtime STATIC
         ../src/Light/Light.cpp
         ../src/Light/ParallelLight.cpp
         ../src/Mesh/CubeMesh.cpp
+        ../src/Mesh/FbxMeshImporter.cpp
         ../src/Mesh/GridMesh.cpp
         ../src/Mesh/Mesh.cpp
         ../src/Mesh/MountainMesh.cpp
@@ -56,6 +57,7 @@ add_library(slot_test_runtime STATIC
         ../src/Mesh/RectMesh.cpp
         ../src/Mesh/SkullMesh.cpp
         ../src/Mesh/SphereMesh.cpp
+        ../src/Mesh/TriangleMesh.cpp
         ../src/Mesh/Vertex.cpp
         ../src/Object/Camera/Camera.cpp
         ../src/Object/Camera/FirstPersonCamera.cpp
@@ -94,6 +96,7 @@ function(slot_add_test_target target)
 endfunction()
 
 add_subdirectory(Object)
+add_subdirectory(Mesh)
 add_subdirectory(Resource)
 add_subdirectory(Scene)
 add_subdirectory(Shader)
@@ -101,6 +104,7 @@ add_subdirectory(UI)
 
 # 聚合目标只负责便捷构建，不重新合并测试进程；各分类仍可独立链接和执行。
 add_custom_target(slot_tests DEPENDS
+        slot_mesh_tests
         slot_object_tests
         slot_resource_tests
         slot_scene_tests

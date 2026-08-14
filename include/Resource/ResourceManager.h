@@ -22,7 +22,7 @@ public:
   /** 创建应用级资源上下文，并按确定顺序注册全部内建资源。 */
   ResourceManager();
 
-  /** 接管 Mesh；注册成功前统一计算法线，失败时返回无效句柄。 */
+  /** 接管有效 Mesh；按其法线策略生成或保留法线，失败时返回无效句柄。 */
   ResourceHandle<Mesh> AddMesh(std::string assetId,
                                std::unique_ptr<Mesh> mesh);
   /** 接管共享 Material 数据，不创建对象私有副本。 */

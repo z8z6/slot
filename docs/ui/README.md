@@ -57,6 +57,10 @@ if (!result) {
 
 当前 XAML 子集支持 `UI`、`Panel`、`PanelGroup`、`Rect`、`Text`、`Image`、`Scene`、`Terminal`、`Button`、`Toggle`、`Slider`（兼容别名 `Slide`）、`TextInput`、`TreeView`、`TreeItem`、`Menu`、`MenuItem` 和 `ToolBar`（兼容别名 `Toolbar`），以及嵌套、自闭合标签、XML 声明、注释和常用实体。示例：
 
+全部控件、公共属性、Behavior 属性、别名和合法取值见
+[UI 控件属性参考](Properties.md)。该参考以当前 `SetProperty` 解析代码为准，
+并明确区分 XAML 属性与仅能从 C++ 访问的运行时字段。
+
 ```xml
 <UI Direction="Column">
   <Panel Id="inspector" Title="Inspector"

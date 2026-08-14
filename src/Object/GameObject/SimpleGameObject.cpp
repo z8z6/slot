@@ -6,15 +6,8 @@
 #include "Object/Camera/Camera.h"
 
 using namespace z8;
-using namespace DirectX;
-
-
 void SimpleGameObject::Update(Timer* T) {
-  // 更新位置
+  // 世界矩阵与法线逆转置矩阵必须来自同一次 Transform 更新，避免一帧内空间不一致。
   Transform.UpdateWorld();
-  XMMATRIX w = XMLoadFloat4x4(&Transform.World);
-
-  // HLSL默认使用列主序矩阵，DirectXMath 库默认使用行主序矩阵
-  // 二者存储顺序相反，必须通过转置统一
-  XMStoreFloat4x4(&Const, XMMatrixTranspose(w));
+  Const.Update(Transform.World);
 }

@@ -21,6 +21,11 @@ TEST(ResourceManagerTest, ResolvesTypedBuiltinReferences) {
 
   EXPECT_NE(resources.TryGet(mesh), nullptr);
   ASSERT_NE(resources.TryGet(material), nullptr);
+  // 默认金属材质必须提供足够的镜面反射率和有限粗糙度，否则高光项虽存在但
+  // 在常见观察角度下会数值性消失。
+  EXPECT_GT(resources.TryGet(material)->FresnelR0.x, 0.1f);
+  EXPECT_GT(resources.TryGet(material)->Rough, 0.0f);
+  EXPECT_LT(resources.TryGet(material)->Rough, 1.0f);
   EXPECT_EQ(resources.Resolve(resources.TryGet(material)->Program), program);
   ASSERT_NE(resources.TryGet(program), nullptr);
   EXPECT_TRUE(resources.TryGet(program)->VertexShader.IsValid());
