@@ -2,26 +2,14 @@
 
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/ScrollBarNode.h"
+#include "UI/Property/PropertyParser.h"
 
 #include <algorithm>
-#include <cstdlib>
 
 using namespace z8::ui;
 using z8::EventReply;
 
 namespace {
-
-bool ParseBoolean(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1") {
-    result = true;
-    return true;
-  }
-  if (value == "false" || value == "False" || value == "0") {
-    result = false;
-    return true;
-  }
-  return false;
-}
 
 bool ParseVisibility(const std::string &value, ScrollBarVisibility &result) {
   if (value == "Hidden")
@@ -169,8 +157,11 @@ bool ScrollBehavior::SetProperty(const std::string &name,
       Properties.VerticalScrollBar =
           visible ? ScrollBarVisibility::Visible : ScrollBarVisibility::Hidden;
   } else if (name == "WheelStep") {
-    Properties.WheelStep =
-        (std::max)(1.0f, std::strtof(value.c_str(), nullptr));
+    float step = 0.0f;
+    if (!ParseFiniteFloat(value, step))
+      return false;
+    // 零步长无法产生可见滚动反馈，统一提升到一个逻辑像素。
+    Properties.WheelStep = (std::max)(1.0f, step);
     parsed = true;
   } else {
     return false;

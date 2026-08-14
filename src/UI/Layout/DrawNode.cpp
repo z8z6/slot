@@ -1,10 +1,10 @@
 #include "UI/Layout/DrawNode.h"
 
 #include "Object/UIObject/UIObject.h"
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
 
-#include <cstdlib>
 #include <stdexcept>
 #include <utility>
 
@@ -25,14 +25,15 @@ DrawNode::~DrawNode() {
 }
 
 bool DrawNode::SetProperty(const std::string &name,
-                             const std::string &value) {
+                           const std::string &value) {
   if (name == "CornerRadius" || name == "Radius") {
-    const float radius = std::strtof(value.c_str(), nullptr);
-    return radius >= 0.0f && SetCornerRadius(radius);
+    float radius = 0.0f;
+    return ParseFiniteFloat(value, radius) && radius >= 0.0f &&
+           SetCornerRadius(radius);
   }
   if (name == "Border" || name == "BorderWidth") {
-    const float width = std::strtof(value.c_str(), nullptr);
-    if (width < 0.0f)
+    float width = 0.0f;
+    if (!ParseFiniteFloat(value, width) || width < 0.0f)
       return false;
     UO->SetBorder(UO->GetBorderColor(), width);
     return true;

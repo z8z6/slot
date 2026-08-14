@@ -123,7 +123,7 @@ Panel 的行为属性位于各 Behavior 的 `Properties` 中，不再与标题�
        VerticalScrollBar="Auto" />
 ```
 
-加载器对未知控件、未知属性、标签不匹配和不支持的文本节点返回带偏移的错误。控件创建通过 `ControlFactory` 注册；添加新控件类型不需要修改解析器：
+加载器对未知控件、未知属性、标签不匹配和不支持的文本节点返回带偏移的错误。浮点属性必须完整匹配有限数值，带单位后缀、NaN、Infinity 或空值都会被拒绝；布尔属性只接受 `true`/`True`/`1` 与 `false`/`False`/`0`，所有控件共享同一解析规则。控件创建通过 `ControlFactory` 注册；添加新控件类型不需要修改解析器：
 
 ```cpp
 ControlFactory::Instance().Register("MyControl", [] {
@@ -272,7 +272,7 @@ ctest --test-dir cmake-build-debug --output-on-failure
 
 ## 后续扩展
 
-- 为属性解析增加颜色、百分比、边级 margin/padding 和严格数值诊断。
+- 为属性解析增加百分比和边级 margin/padding，并让错误诊断携带期望类型。
 - 增加 Tab/Shift+Tab 焦点导航、文本选区、剪贴板和完整 IME composition。
 - 为 TreeView 增加数据虚拟化和键盘上下行导航，支持大规模层级数据。
 - 增加 XAML 事件绑定和属性元数据生成。

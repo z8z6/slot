@@ -1,25 +1,9 @@
 #include "UI/Behavior/DockBehavior.h"
+#include "UI/Property/PropertyParser.h"
 
 #include <algorithm>
-#include <cstdlib>
 
 using namespace z8::ui;
-
-namespace {
-
-bool ParseBoolean(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1") {
-    result = true;
-    return true;
-  }
-  if (value == "false" || value == "False" || value == "0") {
-    result = false;
-    return true;
-  }
-  return false;
-}
-
-} // namespace
 
 bool DockBehavior::SetProperty(const std::string &name,
                                const std::string &value) {
@@ -43,13 +27,18 @@ bool DockBehavior::SetProperty(const std::string &name,
     return true;
   }
   if (name == "DockThreshold") {
-    Properties.EdgeThreshold =
-        (std::max)(0.0f, std::strtof(value.c_str(), nullptr));
+    float threshold = 0.0f;
+    if (!ParseFiniteFloat(value, threshold))
+      return false;
+    Properties.EdgeThreshold = (std::max)(0.0f, threshold);
     return true;
   }
   if (name == "DockExtent") {
-    Properties.Extent =
-        (std::max)(1.0f, std::strtof(value.c_str(), nullptr));
+    float extent = 0.0f;
+    if (!ParseFiniteFloat(value, extent))
+      return false;
+    // 停靠尺寸参与 Split 比例求解，至少一个逻辑像素可避免退化叶节点。
+    Properties.Extent = (std::max)(1.0f, extent);
     return true;
   }
   return false;

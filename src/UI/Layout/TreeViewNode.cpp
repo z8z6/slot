@@ -1,24 +1,11 @@
 #include "UI/Layout/TreeViewNode.h"
 
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
 
 using namespace z8::ui;
 using z8::EventReply;
-
-namespace {
-
-bool ParseBool(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1")
-    result = true;
-  else if (value == "false" || value == "False" || value == "0")
-    result = false;
-  else
-    return false;
-  return true;
-}
-
-} // namespace
 
 TreeViewItemNode::TreeViewItemNode() {
   const auto &style = Theme::Default().TreeView;
@@ -181,18 +168,18 @@ bool TreeViewItemNode::SetProperty(const std::string &name,
   }
   if (name == "Expanded") {
     bool expanded = false;
-    return ParseBool(value, expanded) && (SetExpanded(expanded), true);
+    return ParseBoolean(value, expanded) && (SetExpanded(expanded), true);
   }
   if (name == "Selected") {
     bool selected = false;
-    if (!ParseBool(value, selected))
+    if (!ParseBoolean(value, selected))
       return false;
     SetSelected(selected);
     return true;
   }
   if (name == "Enabled") {
     bool enabled = false;
-    if (!ParseBool(value, enabled))
+    if (!ParseBoolean(value, enabled))
       return false;
     SetEnabled(enabled);
     return true;

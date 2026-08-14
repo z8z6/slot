@@ -1,5 +1,7 @@
+#include "UI/Behavior/DockBehavior.h"
 #include "UI/Behavior/DragBehavior.h"
 #include "UI/Behavior/ResizeBehavior.h"
+#include "UI/Behavior/ScrollBehavior.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/RectNode.h"
 
@@ -92,6 +94,23 @@ TEST(BehaviorCompositionTest, CancelsGestureWhenTopologyChanges) {
   layout.RebuildIndex();
   EXPECT_EQ(layout.OnMouseDrag(PointerArgs(60, 60, 10, 10)),
             EventReply::Ignored);
+}
+
+TEST(BehaviorCompositionTest, RejectsMalformedNumericPropertiesWithoutMutation) {
+  DockBehavior dock;
+  ResizeBehavior resize;
+  ScrollBehavior scroll;
+  const float extent = dock.Properties.Extent;
+  const float border = resize.Properties.Border;
+  const float step = scroll.Properties.WheelStep;
+
+  // 属性提交采用 parse-then-commit；错误输入不能把现有交互阈值重置为零。
+  EXPECT_FALSE(dock.SetProperty("DockExtent", "300px"));
+  EXPECT_FALSE(resize.SetProperty("ResizeBorder", "wide"));
+  EXPECT_FALSE(scroll.SetProperty("WheelStep", "nan"));
+  EXPECT_FLOAT_EQ(dock.Properties.Extent, extent);
+  EXPECT_FLOAT_EQ(resize.Properties.Border, border);
+  EXPECT_FLOAT_EQ(scroll.Properties.WheelStep, step);
 }
 
 } // namespace z8::ui

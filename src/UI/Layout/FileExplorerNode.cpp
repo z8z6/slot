@@ -1,24 +1,11 @@
 #include "UI/Layout/FileExplorerNode.h"
+#include "UI/Property/PropertyParser.h"
 
 #include <algorithm>
 #include <system_error>
 #include <vector>
 
 using namespace z8::ui;
-
-namespace {
-
-bool ParseBool(const std::string& value, bool& result) {
-  if (value == "true" || value == "True" || value == "1")
-    result = true;
-  else if (value == "false" || value == "False" || value == "0")
-    result = false;
-  else
-    return false;
-  return true;
-}
-
-} // namespace
 
 FileExplorerNode::FileExplorerNode() {
   SelectionChanged = [this](TreeViewItemNode* item) {
@@ -100,7 +87,7 @@ bool FileExplorerNode::SetProperty(const std::string& name,
   }
   if (name == "ShowHidden") {
     bool showHidden = false;
-    if (!ParseBool(value, showHidden))
+    if (!ParseBoolean(value, showHidden))
       return false;
     ShowHidden = showHidden;
     Refresh();

@@ -1,9 +1,8 @@
 #include "UI/Layout/TextNode.h"
 
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
-
-#include <cstdlib>
 
 using namespace z8::ui;
 
@@ -29,7 +28,11 @@ bool TextNode::SetProperty(const std::string &name,
     return true;
   }
   if (name == "FontSize") {
-    FontSize = (std::max)(1.0f, std::strtof(value.c_str(), nullptr));
+    float size = 0.0f;
+    if (!ParseFiniteFloat(value, size))
+      return false;
+    // DirectWrite 的字号必须为正；保留原有最小字号策略以避免零高布局框。
+    FontSize = (std::max)(1.0f, size);
     Style.MinHeight = FontSize * 1.25f;
     return true;
   }

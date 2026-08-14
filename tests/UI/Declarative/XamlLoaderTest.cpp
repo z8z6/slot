@@ -65,6 +65,24 @@ TEST(XamlLoaderTest, ReportsInvalidMarkupInEnglish) {
   EXPECT_NE(duplicate.Error.find("Duplicate control key"), std::string::npos);
 }
 
+TEST(XamlLoaderTest, RejectsMalformedNumericProperties) {
+  constexpr const char *sources[] = {
+      "<UI><Rect Width=\"12px\" /></UI>",
+      "<UI><Rect BorderWidth=\"\" /></UI>",
+      "<UI><Text FontSize=\"nan\" /></UI>",
+      "<UI><Panel TitleHeight=\"inf\" /></UI>",
+      "<UI><Slider Value=\"1.0f\" /></UI>",
+      "<UI><Scene TitleHeight=\"large\" /></UI>"};
+
+  for (const auto *source : sources) {
+    const auto result = XamlLoader().Load(source);
+    EXPECT_FALSE(result) << source;
+    EXPECT_NE(result.Error.find("does not support attribute"),
+              std::string::npos)
+        << source;
+  }
+}
+
 TEST(XamlLoaderTest, CreatesSceneViewportNode) {
   Layout layout;
   const auto result =

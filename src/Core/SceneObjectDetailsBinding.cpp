@@ -7,12 +7,10 @@
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/TextInputNode.h"
 #include "UI/Layout/TreeViewNode.h"
+#include "UI/Property/PropertyParser.h"
 
-#include <charconv>
-#include <cmath>
 #include <iomanip>
 #include <sstream>
-#include <system_error>
 #include <utility>
 
 using namespace z8;
@@ -30,16 +28,6 @@ std::string FormatFloat(float value) {
   std::ostringstream text;
   text << std::setprecision(6) << value;
   return text.str();
-}
-
-bool ParseFloat(const std::string &text, float &value) {
-  if (text.empty())
-    return false;
-  const char *first = text.data();
-  const char *last = first + text.size();
-  const auto result = std::from_chars(first, last, value);
-  return result.ec == std::errc{} && result.ptr == last &&
-         std::isfinite(value);
 }
 
 } // namespace
@@ -131,7 +119,7 @@ void SceneObjectDetailsBinding::BindFloat(
       [&value, valueChanged = std::move(valueChanged)](
           const std::string &text) {
         float parsed = 0.0f;
-        if (!ParseFloat(text, parsed))
+        if (!ParseFiniteFloat(text, parsed))
           return false;
         value = parsed;
         if (valueChanged)

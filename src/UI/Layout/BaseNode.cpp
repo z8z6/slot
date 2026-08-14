@@ -3,8 +3,7 @@
 //
 
 #include "UI/Layout/BaseNode.h"
-
-#include <cstdlib>
+#include "UI/Property/PropertyParser.h"
 
 using namespace z8::ui;
 
@@ -45,10 +44,25 @@ BaseNode *BaseNode::ContentHost() { return this; }
 const char *BaseNode::TypeName() const { return "UI"; }
 
 bool BaseNode::SetProperty(const std::string &name, const std::string &value) {
-  const float number = std::strtof(value.c_str(), nullptr);
-  if (name == "Id" || name == "Key" || name == "Name")
+  if (name == "Id" || name == "Key" || name == "Name") {
     Key = value;
-  else if (name == "Width")
+    return true;
+  }
+  if (name == "Direction") {
+    if (value == "Row")
+      Style.Direction = FlexDirection::Row;
+    else if (value == "Column")
+      Style.Direction = FlexDirection::Column;
+    else
+      return false;
+    return true;
+  }
+
+  // 通用布局数值必须完整、有限；先解析到局部值，失败时不污染已有布局状态。
+  float number = 0.0f;
+  if (!ParseFiniteFloat(value, number))
+    return false;
+  if (name == "Width")
     Style.Width = number;
   else if (name == "Height")
     Style.Height = number;
@@ -68,14 +82,7 @@ bool BaseNode::SetProperty(const std::string &name, const std::string &value) {
     Style.Margin = number;
   else if (name == "Padding")
     Style.Padding = number;
-  else if (name == "Direction") {
-    if (value == "Row")
-      Style.Direction = FlexDirection::Row;
-    else if (value == "Column")
-      Style.Direction = FlexDirection::Column;
-    else
-      return false;
-  } else
+  else
     return false;
   return true;
 }

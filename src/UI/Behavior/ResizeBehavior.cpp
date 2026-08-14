@@ -2,28 +2,12 @@
 
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/BehaviorNode.h"
+#include "UI/Property/PropertyParser.h"
 
 #include <algorithm>
-#include <cstdlib>
 
 using namespace z8::ui;
 using z8::EventReply;
-
-namespace {
-
-bool ParseBoolean(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1") {
-    result = true;
-    return true;
-  }
-  if (value == "false" || value == "False" || value == "0") {
-    result = false;
-    return true;
-  }
-  return false;
-}
-
-} // namespace
 
 void ResizeBehavior::SetProperties(const ResizeProperty &properties) {
   Properties = properties;
@@ -183,17 +167,25 @@ bool ResizeBehavior::SetProperty(const std::string &name,
   if (name == "Resizable" || name == "ResizeEnabled")
     return ParseBoolean(value, Properties.Enabled);
   if (name == "ResizeBorder") {
-    Properties.Border = (std::max)(0.0f, std::strtof(value.c_str(), nullptr));
+    float border = 0.0f;
+    if (!ParseFiniteFloat(value, border))
+      return false;
+    Properties.Border = (std::max)(0.0f, border);
     return true;
   }
   if (name == "MinWidth") {
-    Properties.MinWidth = (std::max)(1.0f, std::strtof(value.c_str(), nullptr));
+    float width = 0.0f;
+    if (!ParseFiniteFloat(value, width))
+      return false;
+    Properties.MinWidth = (std::max)(1.0f, width);
     ApplyMinimumSize();
     return true;
   }
   if (name == "MinHeight") {
-    Properties.MinHeight =
-        (std::max)(1.0f, std::strtof(value.c_str(), nullptr));
+    float height = 0.0f;
+    if (!ParseFiniteFloat(value, height))
+      return false;
+    Properties.MinHeight = (std::max)(1.0f, height);
     ApplyMinimumSize();
     return true;
   }

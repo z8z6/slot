@@ -1,8 +1,7 @@
 #include "UI/Layout/SceneNode.h"
 
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
-
-#include <cstdlib>
 
 using namespace z8::ui;
 
@@ -66,7 +65,11 @@ bool SceneNode::SetProperty(const std::string &name, const std::string &value) {
     return true;
   }
   if (name == "TitleHeight") {
-    TitleHeight = (std::max)(1.0f, std::strtof(value.c_str(), nullptr));
+    float height = 0.0f;
+    if (!ParseFiniteFloat(value, height))
+      return false;
+    // 标题栏同时承担拖动命中，至少保留一个逻辑像素，避免生成不可交互区域。
+    TitleHeight = (std::max)(1.0f, height);
     TitleBarNode->Style.Height = TitleHeight;
     TitleNode->Style.Height = TitleHeight;
     return true;

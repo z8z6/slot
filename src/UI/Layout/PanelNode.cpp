@@ -5,11 +5,11 @@
 #include "UI/Layout/PanelNode.h"
 
 #include "UI/Layout/PanelGroupNode.h"
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
 
 #include <algorithm>
-#include <cstdlib>
 
 using namespace z8::ui;
 
@@ -128,7 +128,11 @@ bool PanelNode::SetProperty(const std::string &name, const std::string &value) {
     return true;
   }
   if (name == "TitleHeight") {
-    TitleHeight = std::strtof(value.c_str(), nullptr);
+    float height = 0.0f;
+    if (!ParseFiniteFloat(value, height))
+      return false;
+    // Panel 标题栏也是拖动手柄；最小正高度保持绘制与输入边界一致。
+    TitleHeight = (std::max)(1.0f, height);
     TitleBarNode->Style.Height = TitleHeight;
     TitleNode->Style.Height = TitleHeight;
     return true;

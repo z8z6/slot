@@ -1,5 +1,6 @@
 #include "UI/Layout/TextInputNode.h"
 
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 
 #include <algorithm>
@@ -20,16 +21,6 @@ size_t NextCodePoint(const std::string &text, size_t offset) {
          IsContinuation(static_cast<unsigned char>(text[offset])))
     ++offset;
   return offset;
-}
-
-bool ParseBool(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1")
-    result = true;
-  else if (value == "false" || value == "False" || value == "0")
-    result = false;
-  else
-    return false;
-  return true;
 }
 
 size_t PreviousCodePoint(const std::string &text, size_t offset) {
@@ -227,7 +218,7 @@ bool TextInputNode::SetProperty(const std::string &name,
   }
   if (name == "Enabled") {
     bool enabled = false;
-    if (!ParseBool(value, enabled))
+    if (!ParseBoolean(value, enabled))
       return false;
     SetEnabled(enabled);
     return true;

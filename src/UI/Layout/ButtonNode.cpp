@@ -1,23 +1,10 @@
 #include "UI/Layout/ButtonNode.h"
 
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 
 using namespace z8::ui;
 using z8::EventReply;
-
-namespace {
-
-bool ParseBool(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1")
-    result = true;
-  else if (value == "false" || value == "False" || value == "0")
-    result = false;
-  else
-    return false;
-  return true;
-}
-
-} // namespace
 
 ButtonNode::ButtonNode() {
   const auto &style = Theme::Default().Button;
@@ -99,7 +86,7 @@ bool ButtonNode::SetProperty(const std::string &name,
   }
   if (name == "Enabled") {
     bool enabled = false;
-    if (!ParseBool(value, enabled))
+    if (!ParseBoolean(value, enabled))
       return false;
     SetEnabled(enabled);
     return true;

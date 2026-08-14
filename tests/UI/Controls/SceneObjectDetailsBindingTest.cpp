@@ -76,6 +76,8 @@ TEST(SceneObjectDetailsBindingTest, SynchronizesEditableObjectFieldsBothWays) {
   positionX->SetText("12.5", true);
   EXPECT_FLOAT_EQ(object.Transform.Position.x, 12.5f);
   EXPECT_FLOAT_EQ(object.Transform.Radius, 12.5f);
+  positionX->SetText("12.5px", true);
+  EXPECT_FLOAT_EQ(object.Transform.Position.x, 12.5f);
 
   mesh->SetText(std::string(builtin::SphereMesh), true);
   EXPECT_EQ(object.Renderable.Mesh.GetAssetId(), builtin::SphereMesh);

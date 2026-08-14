@@ -3,27 +3,12 @@
 #include "UI/Behavior/DockBehavior.h"
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/BehaviorNode.h"
+#include "UI/Property/PropertyParser.h"
 
 #include <algorithm>
 
 using namespace z8::ui;
 using z8::EventReply;
-
-namespace {
-
-bool ParseBoolean(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1") {
-    result = true;
-    return true;
-  }
-  if (value == "false" || value == "False" || value == "0") {
-    result = false;
-    return true;
-  }
-  return false;
-}
-
-} // namespace
 
 EventReply DragBehavior::OnMouseDown(MouseMovArgs args) {
   auto *owner = Owner;

@@ -1,28 +1,14 @@
 #include "UI/Layout/SliderNode.h"
 
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 
 using namespace z8::ui;
 using z8::EventReply;
-
-namespace {
-
-bool ParseBool(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1")
-    result = true;
-  else if (value == "false" || value == "False" || value == "0")
-    result = false;
-  else
-    return false;
-  return true;
-}
-
-} // namespace
 
 SliderNode::SliderNode() {
   const auto &style = Theme::Default().Slider;
@@ -143,8 +129,8 @@ void SliderNode::SetEnabled(bool enabled) {
 bool SliderNode::SetProperty(const std::string &name,
                              const std::string &value) {
   if (name == "Minimum" || name == "Min") {
-    const float minimum = std::strtof(value.c_str(), nullptr);
-    if (!std::isfinite(minimum))
+    float minimum = 0.0f;
+    if (!ParseFiniteFloat(value, minimum))
       return false;
     Minimum = minimum;
     // XAML 属性无顺序语义；临时扩张另一端可让 Min/Max 任意顺序解析，最终
@@ -155,8 +141,8 @@ bool SliderNode::SetProperty(const std::string &name,
     return true;
   }
   if (name == "Maximum" || name == "Max") {
-    const float maximum = std::strtof(value.c_str(), nullptr);
-    if (!std::isfinite(maximum))
+    float maximum = 0.0f;
+    if (!ParseFiniteFloat(value, maximum))
       return false;
     Maximum = maximum;
     if (Minimum >= Maximum)
@@ -165,19 +151,22 @@ bool SliderNode::SetProperty(const std::string &name,
     return true;
   }
   if (name == "Value") {
-    SetValue(std::strtof(value.c_str(), nullptr), false);
+    float next = 0.0f;
+    if (!ParseFiniteFloat(value, next))
+      return false;
+    SetValue(next, false);
     return true;
   }
   if (name == "Step") {
-    const float step = std::strtof(value.c_str(), nullptr);
-    if (step < 0.0f)
+    float step = 0.0f;
+    if (!ParseFiniteFloat(value, step) || step < 0.0f)
       return false;
     Step = step;
     return true;
   }
   if (name == "Enabled") {
     bool enabled = false;
-    if (!ParseBool(value, enabled))
+    if (!ParseBoolean(value, enabled))
       return false;
     SetEnabled(enabled);
     return true;

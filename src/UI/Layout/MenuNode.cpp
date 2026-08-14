@@ -1,5 +1,6 @@
 #include "UI/Layout/MenuNode.h"
 
+#include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"
 
@@ -9,16 +10,6 @@ using namespace z8::ui;
 using z8::EventReply;
 
 namespace {
-
-bool ParseBool(const std::string &value, bool &result) {
-  if (value == "true" || value == "True" || value == "1")
-    result = true;
-  else if (value == "false" || value == "False" || value == "0")
-    result = false;
-  else
-    return false;
-  return true;
-}
 
 size_t Utf8CodePointCount(const std::string &text) {
   return static_cast<size_t>(std::count_if(
@@ -138,7 +129,7 @@ bool MenuItemNode::SetProperty(const std::string &name,
   }
   if (name == "Enabled") {
     bool enabled = false;
-    if (!ParseBool(value, enabled))
+    if (!ParseBoolean(value, enabled))
       return false;
     SetEnabled(enabled);
     return true;
@@ -392,11 +383,11 @@ bool MenuNode::SetProperty(const std::string &name,
   }
   if (name == "Open" || name == "Expanded") {
     bool open = false;
-    return ParseBool(value, open) && (SetOpen(open), true);
+    return ParseBoolean(value, open) && (SetOpen(open), true);
   }
   if (name == "Enabled") {
     bool enabled = false;
-    if (!ParseBool(value, enabled))
+    if (!ParseBoolean(value, enabled))
       return false;
     SetEnabled(enabled);
     return true;
