@@ -22,6 +22,10 @@ public:
   bool Hovered = false;
   /** 左键手势尚未结束；捕获移出控件后仍保持 Pressed 视觉。 */
   bool Pressed = false;
+  /** 控件是否可取得键盘焦点；普通容器保持 false，避免点击面板吞掉快捷键。 */
+  bool Focusable = false;
+  /** Layout 管理的唯一键盘焦点状态，不与 Hover/Pressed 生命周期混用。 */
+  bool Focused = false;
   std::vector<std::unique_ptr<IBehavior>> Behaviors;
   IBehavior *CapturedBehavior = nullptr;
 
@@ -46,6 +50,8 @@ public:
   void SetHovered(bool hovered);
   /** 由 Layout 绑定到一次按下/抬起生命周期，不与 Selected 或 Focused 混用。 */
   void SetPressed(bool pressed);
+  /** 仅由 Layout 的唯一焦点槽调用，控件据此更新边框和插入光标。 */
+  void SetFocused(bool focused);
 
   template <typename T, typename... Args> T *AddBehavior(Args &&...args) {
     static_assert(std::is_base_of_v<IBehavior, T>);

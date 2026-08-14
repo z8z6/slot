@@ -61,6 +61,13 @@ void BehaviorNode::SetPressed(bool pressed) {
   OnVisualStateChanged();
 }
 
+void BehaviorNode::SetFocused(bool focused) {
+  if (Focused == focused)
+    return;
+  Focused = focused;
+  OnVisualStateChanged();
+}
+
 bool BehaviorNode::SetProperty(const std::string &name,
                                const std::string &value) {
   for (const auto &behavior : Behaviors)

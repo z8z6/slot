@@ -13,7 +13,8 @@ enum class UIIcon {
   ChevronDown = 3,
   Cube = 4,
   Terminal = 5,
-  Settings = 6
+  Settings = 6,
+  ChevronRight = 7
 };
 
 /** 图标语义到项目资源的稳定映射；实际尺寸和 Tint 仍由 Theme 决定。 */

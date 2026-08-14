@@ -92,7 +92,7 @@ float4 PS(VertexOut pin) : SV_Target
                 prompt = 1.0f;
             float underline = max(abs(p.y - 0.30f), abs(p.x - 0.30f) - 0.22f);
             iconDistance = min(frame, min(prompt, underline));
-        } else {
+        } else if (ImageKind < 6.5f) {
             // Settings-2：两条滑杆和错开的圆形旋钮与 Lucide 源资源保持同一
             // 语义轮廓；使用 SDF 组合后仍能随 Theme Tint 单色绘制。
             float topLine = max(abs(p.y + 0.42f), abs(p.x - 0.18f) - 0.52f);
@@ -101,6 +101,12 @@ float4 PS(VertexOut pin) : SV_Target
             float bottomKnob = abs(length(p - float2(0.42f, 0.42f)) - 0.18f);
             iconDistance = min(min(topLine, bottomLine),
                                min(topKnob, bottomKnob));
+        } else {
+            // ChevronRight：与展开态 ChevronDown 使用相同折线尺度，旋转语义
+            // 由独立图标表达，避免 TreeItem 为一个状态引入矩阵常量。
+            iconDistance = abs(abs(p.y) - p.x - 0.28f);
+            if (abs(p.y) > 0.62f || p.x < -0.42f || p.x > 0.45f)
+                iconDistance = 1.0f;
         }
         if (iconDistance > stroke)
             discard;

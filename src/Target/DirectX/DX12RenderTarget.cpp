@@ -1,112 +1,99 @@
-//
-// Created by zhou_zhengming on 2026/5/18.
-//
-
 #include "Target/DirectX/DX12RenderTarget.h"
-#include "Target/DirectX/DX12SwapChain.h"
-#include "Core/Window.h"
-#include <dxgi1_4.h>
-#include "d3dx12.h"
+
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Render.h"
-#include "Util/Color.h"
+#include "d3dx12.h"
 
+#include <algorithm>
 
-void z8::DX12RenderTarget::InitDescriptor()
-{
-  // 描述符大小
-  DptSize = Ctx->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  D3D12_DESCRIPTOR_HEAP_DESC RD;
-  // 两个交换链 RTV 供 DirectWrite 互操作，额外一个 RTV 指向 4x 颜色缓冲。
-  RD.NumDescriptors = RtvBufCount + 1;
-  RD.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-  RD.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  RD.NodeMask = 0;
-  // 初始化描述符堆
-  Ok(Ctx->Device->CreateDescriptorHeap(&RD, IID_PPV_ARGS(DptHeap.GetAddressOf())));
-  // 当前描述符
-  CurRtvId = 0;
-  Dpt = DptHeap->GetCPUDescriptorHandleForHeapStart();
-  MsaaDpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(Dpt, RtvBufCount, DptSize);
+using namespace z8;
+
+void DX12RenderTarget::Bind(
+    const D3D12_CPU_DESCRIPTOR_HANDLE *depth) const {
+  const auto target = IsMultisampled() ? MsaaRtv : CurrentRtv;
+  Render->Cmd.List->OMSetRenderTargets(1, &target, TRUE, depth);
 }
 
-void z8::DX12RenderTarget::InitBuffer()
-{
-  // 每次重置缓冲区，也要重置描述符
-  CurRtvId = 0;
-  CD3DX12_CPU_DESCRIPTOR_HANDLE Handle(DptHeap->GetCPUDescriptorHandleForHeapStart());
-  for (UINT i = 0; i < RtvBufCount; i++)
-  {
-    // 初始化缓冲区
-    // 后台缓冲区实际由 SwapChain 创建，所以无需 CreateCommittedResource
-    Ok(Render->SwapChain->GetBuffer(i, IID_PPV_ARGS(&Buffer[i])));
-    // 绑定描述符
-    Ctx->Device->CreateRenderTargetView(Buffer[i].Get(), nullptr, Handle);
-    Handle.Offset(1, DptSize);
+void DX12RenderTarget::ClearBuffer() const {
+  const auto target = IsMultisampled() ? MsaaRtv : CurrentRtv;
+  const float color[] = {ClearColor.x, ClearColor.y, ClearColor.z,
+                         ClearColor.w};
+  Render->Cmd.List->ClearRenderTargetView(target, color, 0, nullptr);
+}
+
+ID3D12Resource *DX12RenderTarget::GetBuffer() const {
+  return Buffer[CurrentBufferIndex].Get();
+}
+
+void DX12RenderTarget::InitBuffer(
+    DX12SwapChain &swapChain, int width, int height, unsigned sampleCount,
+    unsigned sampleQuality, const DirectX::XMFLOAT4 &clearColor) {
+  ClearColor = clearColor;
+  SampleCount = (std::max)(1U, sampleCount);
+  SampleQuality = sampleQuality;
+  SelectBuffer(swapChain.GetCurrentBufferIndex());
+
+  auto handle = RtvHeap->GetCPUDescriptorHandleForHeapStart();
+  for (int index = 0; index < DX12SwapChain::BufferCount; ++index) {
+    Ok(swapChain->GetBuffer(index, IID_PPV_ARGS(&Buffer[index])));
+    Ctx->Device->CreateRenderTargetView(Buffer[index].Get(), nullptr, handle);
+    handle.ptr += RtvSize;
   }
+  MsaaRtv = handle;
 
-  if (Render->Msaa.EnableMsaa) {
-    D3D12_RESOURCE_DESC desc{};
-    desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    desc.Width = Render->GetWindow()->Width;
-    desc.Height = Render->GetWindow()->Height;
-    desc.DepthOrArraySize = 1;
-    desc.MipLevels = 1;
-    desc.Format = Format;
-    desc.SampleDesc.Count = Render->Msaa.GetSampleCount();
-    desc.SampleDesc.Quality = Render->Msaa.GetMsaaQuality();
-    desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-    D3D12_CLEAR_VALUE clearValue{};
-    clearValue.Format = Format;
-    clearValue.Color[0] = Color::EditorBackground.x;
-    clearValue.Color[1] = Color::EditorBackground.y;
-    clearValue.Color[2] = Color::EditorBackground.z;
-    clearValue.Color[3] = Color::EditorBackground.w;
-    const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    // 多采样资源不参与 Present，始终在 RT 与 ResolveSource 之间转换。
-    Ok(Ctx->Device->CreateCommittedResource(
-        &heap, D3D12_HEAP_FLAG_NONE, &desc,
-        D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue,
-        IID_PPV_ARGS(MsaaBuffer.GetAddressOf())));
-    Ctx->Device->CreateRenderTargetView(MsaaBuffer.Get(), nullptr, MsaaDpt);
-  }
+  if (!IsMultisampled())
+    return;
+  D3D12_RESOURCE_DESC description{};
+  description.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  description.Width = static_cast<UINT64>((std::max)(1, width));
+  description.Height = static_cast<UINT>((std::max)(1, height));
+  description.DepthOrArraySize = 1;
+  description.MipLevels = 1;
+  description.Format = Format;
+  description.SampleDesc.Count = SampleCount;
+  description.SampleDesc.Quality = SampleQuality;
+  description.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  description.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  D3D12_CLEAR_VALUE clearValue{};
+  clearValue.Format = Format;
+  clearValue.Color[0] = ClearColor.x;
+  clearValue.Color[1] = ClearColor.y;
+  clearValue.Color[2] = ClearColor.z;
+  clearValue.Color[3] = ClearColor.w;
+  const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+  // MSAA 颜色纹理只属于当前 Surface；交换链仍保持 Flip model 要求的单采样。
+  Ok(Ctx->Device->CreateCommittedResource(
+      &heap, D3D12_HEAP_FLAG_NONE, &description,
+      D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue,
+      IID_PPV_ARGS(MsaaBuffer.GetAddressOf())));
+  Ctx->Device->CreateRenderTargetView(MsaaBuffer.Get(), nullptr, MsaaRtv);
 }
 
-void z8::DX12RenderTarget::Swap()
-{
-  // 更新描述符
-  Dpt = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-  DptHeap->GetCPUDescriptorHandleForHeapStart(), CurRtvId, DptSize);
+void DX12RenderTarget::InitDescriptor() {
+  // Init 可在宿主重新绑定 HWND 时再次进入；先释放旧 heap，避免 GetAddressOf
+  // 覆盖仍持有引用的 COM 指针。
+  RtvHeap.Reset();
+  RtvSize = Ctx->Device->GetDescriptorHandleIncrementSize(
+      D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  D3D12_DESCRIPTOR_HEAP_DESC description{};
+  // 两个交换链 RTV 加一个可选 MSAA RTV；统一大小避免 resize 时重建 heap。
+  description.NumDescriptors = DX12SwapChain::BufferCount + 1;
+  description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+  Ok(Ctx->Device->CreateDescriptorHeap(&description,
+                                       IID_PPV_ARGS(RtvHeap.GetAddressOf())));
 }
 
-void z8::DX12RenderTarget::Bind(bool needDepth) const {
-  const auto target = Render->Msaa.EnableMsaa ? MsaaDpt : Dpt;
-  if (needDepth)
-    Render->Cmd.List->OMSetRenderTargets(1, &target,
-      true, &Render->DepthStencil.Dpt);
-  else
-    Render->Cmd.List->OMSetRenderTargets(1, &target,
-      true, nullptr);
-}
-
-void z8::DX12RenderTarget::ClearBuffer() const {
-  const auto target = Render->Msaa.EnableMsaa ? MsaaDpt : Dpt;
-  Render->Cmd.List->ClearRenderTargetView(target, Color::Clear, 0, nullptr);
-}
-
-void z8::DX12RenderTarget::ResetBuffer()
-{
-  for (auto& Ptr : Buffer)
-    Ptr.Reset();
+void DX12RenderTarget::ResetBuffer() {
+  for (auto &buffer : Buffer)
+    buffer.Reset();
   MsaaBuffer.Reset();
 }
 
-void z8::DX12RenderTarget::Resolve() const {
-  if (!Render->Msaa.EnableMsaa || !MsaaBuffer)
+void DX12RenderTarget::Resolve() const {
+  if (!IsMultisampled() || !MsaaBuffer)
     return;
-  // Resolve 前后显式恢复资源状态：交换链随后由 D3D11On12 从 RT 转为
-  // Present，多采样缓冲则保持 RT，供下一帧直接清除和绘制。
+  // D3D11On12 随后从 RENDER_TARGET 接管交换链缓冲并转换到 PRESENT；Resolve
+  // 因而把目标恢复到 RENDER_TARGET，而不是提前切换到 PRESENT。
   D3D12_RESOURCE_BARRIER barriers[] = {
       CD3DX12_RESOURCE_BARRIER::Transition(
           MsaaBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -126,18 +113,21 @@ void z8::DX12RenderTarget::Resolve() const {
   Render->Cmd.List->ResourceBarrier(2, barriers);
 }
 
-ID3D12Resource* z8::DX12RenderTarget::GetBuffer() const {
-  return Buffer[CurRtvId].Get();
+void DX12RenderTarget::SelectBuffer(int index) {
+  CurrentBufferIndex = index;
+  if (!RtvHeap)
+    return;
+  CurrentRtv = CD3DX12_CPU_DESCRIPTOR_HANDLE(
+      RtvHeap->GetCPUDescriptorHandleForHeapStart(), CurrentBufferIndex,
+      RtvSize);
 }
 
-void z8::DX12RenderTarget::Transition(bool toPresent) const {
-  CD3DX12_RESOURCE_BARRIER Barrier;
-  if (toPresent)
-    Barrier = CD3DX12_RESOURCE_BARRIER::Transition(GetBuffer(),
-    D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-  else
-    Barrier = CD3DX12_RESOURCE_BARRIER::Transition(GetBuffer(),
-    D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-  Render->Cmd.List->ResourceBarrier(1, &Barrier);
+void DX12RenderTarget::Transition(bool toPresent) const {
+  const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+      GetBuffer(),
+      toPresent ? D3D12_RESOURCE_STATE_RENDER_TARGET
+                : D3D12_RESOURCE_STATE_PRESENT,
+      toPresent ? D3D12_RESOURCE_STATE_PRESENT
+                : D3D12_RESOURCE_STATE_RENDER_TARGET);
+  Render->Cmd.List->ResourceBarrier(1, &barrier);
 }

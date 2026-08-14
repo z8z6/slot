@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slot UI Controls"
+  short_description: "Build and extend native Slot UI controls safely"
+  default_prompt: "Use $slot-ui-controls to add or modify a native Slot UI control."

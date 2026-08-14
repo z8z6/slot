@@ -10,6 +10,7 @@
 #include "Target/DirectX/DX12FloatingWindow.h"
 #include "Object/Camera/Camera.h"
 #include "UI/Layout/SceneNode.h"
+#include "Util/Color.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
@@ -20,10 +21,10 @@ using namespace DirectX;
 using namespace z8;
 
 DX12Render::DX12Render(Application* app)
-    : App(app), Cmd(this), SwapChain(this), Msaa(this), RootSignature(this),
-      GOBatch(this), UOBatch(this, true), TextRenderer(this),
-      DepthStencil(this), RenderTarget(this),
-      MeshManager(this), MaterialManager(this), ShaderLibrary(app->Resources) {
+    : App(app), Cmd(this), Msaa(this), WindowSurface(this),
+      DepthStencil(this), MeshManager(this), MaterialManager(this),
+      RootSignature(this), ShaderLibrary(app->Resources), GOBatch(this),
+      UOBatch(this, true) {
   Ctx = &DX12Device::Instance();
 }
 
@@ -39,20 +40,20 @@ void DX12Render::Shutdown() {
   if (Cmd.Queue && Cmd.Fence)
     Cmd.Synchronize();
   FloatingWindows.reset();
-  TextRenderer.Shutdown();
+  WindowSurface.Shutdown();
 }
 
 void DX12Render::Init()
 {
   Msaa.Init();
   Cmd.Init();
-  SwapChain.Init();
-  RenderTarget.InitDescriptor();
+  WindowSurface.Init(App->Window.Wnd, App->Window.Width, App->Window.Height,
+                     Msaa.GetSampleCount(), Msaa.GetMsaaQuality(),
+                     Color::EditorBackground);
   DepthStencil.InitDescriptor();
 
-  Resize();
-
   Cmd.Reset();
+  DepthStencil.InitBuffer();
 
   // 所有 Shader 在设备初始化阶段统一编译
   ShaderLibrary.CompileAll();
@@ -62,7 +63,6 @@ void DX12Render::Init()
 
   GOBatch.Init(App->ActiveScene.GetGameObjects());
   UOBatch.Init(App->Layout.GetMainUO());
-  TextRenderer.Init();
   FloatingWindows = std::make_unique<DX12FloatingWindowManager>(*this);
   App->Layout.ConsumeDirty();
 
@@ -98,16 +98,8 @@ void z8::DX12Render::Draw()
   // 绑定渲染流水线
   Cmd.Reset();
 
-  // 非 MSAA 路径直接渲染交换链；MSAA 路径保持交换链为 Present，直到 Resolve。
-  if (!Msaa.EnableMsaa)
-    RenderTarget.Transition(false);
-
-  // This needs to be reset whenever the command list is reset.
-  Cmd.List->RSSetViewports(1, &ScreenView);
-  Cmd.List->RSSetScissorRects(1, &ScissorRect);
-
-  RenderTarget.Swap();
-  RenderTarget.ClearBuffer();
+  WindowSurface.PrepareFrame();
+  WindowSurface.ColorTarget.ClearBuffer();
 
   // 3D 与 UI 共享同一个 4x 颜色缓冲。SceneNode 的 viewport/scissor 将 3D
   // 限制在中央内容区，随后恢复全屏状态叠加 UI，不再需要不兼容 MSAA 的复制。
@@ -128,31 +120,27 @@ void z8::DX12Render::Draw()
       const D3D12_RECT sceneScissor{left, top, right, bottom};
       Cmd.List->RSSetViewports(1, &sceneView);
       Cmd.List->RSSetScissorRects(1, &sceneScissor);
-      RenderTarget.Bind();
+      WindowSurface.ColorTarget.Bind(&DepthStencil.Dpt);
       RootSignature.Bind();
       GOBatch.Draw();
     }
   }
 
   // UI 总是在场景合成之后覆盖交换链，工具面板不会被 3D 深度遮挡。
-  Cmd.List->RSSetViewports(1, &ScreenView);
-  Cmd.List->RSSetScissorRects(1, &ScissorRect);
+  WindowSurface.ApplyViewport();
 
-  RenderTarget.Bind(false);
+  WindowSurface.ColorTarget.Bind();
 
   RootSignature.Bind();
 
   UOBatch.Draw();
 
-  if (Msaa.EnableMsaa)
-    RenderTarget.Resolve();
+  WindowSurface.ColorTarget.Resolve();
 
   // DirectWrite 通过 D3D11On12 接管同一后备缓冲并完成 PRESENT 转换。
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
-  TextRenderer.Draw(App->Layout);
-
-  SwapChain.Present();
+  WindowSurface.DrawTextAndPresent(App->Layout.GetMainTexts());
   FloatingWindows->Draw();
 }
 
@@ -161,25 +149,12 @@ void DX12Render::Resize()
   Cmd.Synchronize();
   Cmd.Reset();
 
-  TextRenderer.PrepareResize();
-  RenderTarget.ResetBuffer();
   DepthStencil.ResetBuffer();
-  SwapChain.Resize();
-  RenderTarget.InitBuffer();
+  WindowSurface.Resize(GetWindow()->Width, GetWindow()->Height);
   DepthStencil.InitBuffer();
-  TextRenderer.Resize();
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();
-
-  ScreenView.TopLeftX = 0;
-  ScreenView.TopLeftY = 0;
-  ScreenView.Width = static_cast<float>(GetWindow()->Width);
-  ScreenView.Height = static_cast<float>(GetWindow()->Height);
-  ScreenView.MinDepth = 0.0f;
-  ScreenView.MaxDepth = 1.0f;
-
-  ScissorRect = {0, 0, GetWindow()->Width, GetWindow()->Height};
 
   GetCamera()->UpdateProj(GetWindow()->AspectRatio());
 }

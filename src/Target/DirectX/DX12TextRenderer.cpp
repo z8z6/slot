@@ -3,8 +3,6 @@
 #include "Target/DirectX/DX12Command.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Render.h"
-#include "Target/DirectX/DX12RenderTarget.h"
-#include "UI/Layout/Layout.h"
 #include "UI/Layout/TextNode.h"
 
 #include <algorithm>
@@ -31,14 +29,6 @@ std::wstring ToWide(const std::string &text) {
 } // namespace
 
 DX12TextRenderer::DX12TextRenderer(DX12Render *render) : DX12Common(render) {}
-
-void DX12TextRenderer::Init() {
-  CreateDevices();
-  ID3D12Resource *buffers[] = {Render->RenderTarget.Buffer[0].Get(),
-                               Render->RenderTarget.Buffer[1].Get()};
-  CreateTargets(buffers, Render->SwapChain.Format);
-  Initialized = true;
-}
 
 void DX12TextRenderer::Init(ID3D12Resource *const buffers[2],
                             DXGI_FORMAT format) {
@@ -93,9 +83,6 @@ void DX12TextRenderer::Shutdown() {
 
 void DX12TextRenderer::CreateTargets(ID3D12Resource *const buffers[2],
                                      DXGI_FORMAT format) {
-  SourceBuffers[0] = buffers[0];
-  SourceBuffers[1] = buffers[1];
-  SourceFormat = format;
   const auto properties = D2D1::BitmapProperties1(
       D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
       D2D1::PixelFormat(format,
@@ -126,13 +113,11 @@ void DX12TextRenderer::PrepareResize() {
   D3D11Context->Flush();
 }
 
-void DX12TextRenderer::Resize() {
-  // DX12Render 初始化时会先创建交换链缓冲、后创建文字设备，首次 Resize 无需处理。
+void DX12TextRenderer::Resize(ID3D12Resource *const buffers[2],
+                              DXGI_FORMAT format) {
   if (!Initialized)
     return;
-  ID3D12Resource *buffers[] = {Render->RenderTarget.Buffer[0].Get(),
-                               Render->RenderTarget.Buffer[1].Get()};
-  CreateTargets(buffers, Render->SwapChain.Format);
+  CreateTargets(buffers, format);
 }
 
 IDWriteTextFormat *DX12TextRenderer::GetFormat(const ui::TextNode &node) {
@@ -149,10 +134,6 @@ IDWriteTextFormat *DX12TextRenderer::GetFormat(const ui::TextNode &node) {
       L"zh-cn", format.GetAddressOf()));
   format->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
   return Formats.emplace(key, std::move(format)).first->second.Get();
-}
-
-void DX12TextRenderer::Draw(const ui::Layout &layout) {
-  Draw(layout.GetMainTexts(), Render->RenderTarget.CurRtvId, 0.0f, 0.0f);
 }
 
 void DX12TextRenderer::Draw(const std::vector<ui::TextNode *> &texts,
@@ -182,19 +163,28 @@ void DX12TextRenderer::Draw(const std::vector<ui::TextNode *> &texts,
         D2D1::ColorF(color.x, color.y, color.z, color.w),
         brush.GetAddressOf()));
     const auto text = ToWide(node->Text);
-    const auto clip = node->VisibleClip;
-    D2DContext->PushAxisAlignedClip(
-        D2D1::RectF(clip.x - originX, clip.y - originY,
-                    clip.z - originX, clip.w - originY),
-        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-    D2DContext->DrawTextW(text.c_str(), static_cast<UINT32>(text.size()),
-                         format,
-                         D2D1::RectF(node->Left - originX,
-                                     node->Top - originY,
-                                     node->Left + node->Width - originX,
-                                     node->Top + node->Height - originY),
-                         brush.Get());
-    D2DContext->PopAxisAlignedClip();
+    const auto drawClip = [&](const DirectX::XMFLOAT4 &clip) {
+      D2DContext->PushAxisAlignedClip(
+          D2D1::RectF(clip.x - originX, clip.y - originY,
+                      clip.z - originX, clip.w - originY),
+          D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+      D2DContext->DrawTextW(text.c_str(), static_cast<UINT32>(text.size()),
+                           format,
+                           D2D1::RectF(node->Left - originX,
+                                       node->Top - originY,
+                                       node->Left + node->Width - originX,
+                                       node->Top + node->Height - originY),
+                           brush.Get());
+      D2DContext->PopAxisAlignedClip();
+    };
+    if (node->HasTextOcclusion) {
+      // Popup 完全覆盖文字时片段集合为空；此时不能退回原始 clip，否则底层
+      // Panel 标题会再次穿透不透明菜单背景。
+      for (const auto &clip : node->VisibleTextClips)
+        drawClip(clip);
+    } else {
+      drawClip(node->VisibleClip);
+    }
   }
   Ok(D2DContext->EndDraw());
   D3D11On12Device->ReleaseWrappedResources(&resource, 1);

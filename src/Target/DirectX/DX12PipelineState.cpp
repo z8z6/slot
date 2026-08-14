@@ -55,7 +55,7 @@ void DX12PipelineState::Init(const ShaderProgram& program)
   PD.SampleMask = UINT_MAX;
   PD.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
   PD.NumRenderTargets = 1;
-  PD.RTVFormats[0] = Render->RenderTarget.Format;
+  PD.RTVFormats[0] = Render->WindowSurface.ColorTarget.Format;
   PD.SampleDesc.Count = Render->Msaa.GetSampleCount();
   PD.SampleDesc.Quality = Render->Msaa.GetMsaaQuality();
   PD.DSVFormat = Render->DepthStencil.Format;

@@ -50,6 +50,7 @@ public:
   /** 当前唯一 Hover/Pressed 控件；非拥有指针只在本轮稳定控件树内有效。 */
   BehaviorNode *HoveredHandler = nullptr;
   BehaviorNode *PressedHandler = nullptr;
+  BehaviorNode *FocusedHandler = nullptr;
 
   explicit Layout();
   ~Layout() override;
@@ -79,6 +80,8 @@ public:
   size_t GetPanelDebugBorderCount() const { return PanelDebugVisuals.size(); }
 
   EventReply OnKeyDown(KeyArgs args) override;
+  EventReply OnKeyUp(KeyArgs args) override;
+  EventReply OnTextInput(wchar_t character) override;
   EventReply OnMouseDown(MouseMovArgs args) override;
   EventReply OnMouseMove(MouseMovArgs args) override;
   EventReply OnMouseDrag(MouseMovArgs args) override;
@@ -88,8 +91,14 @@ public:
   void OnPointerCaptureLost() override;
 
 private:
+  /** 逐帧复用的非拥有遮挡索引，避免菜单打开期间为每个文字反复分配。 */
+  std::vector<DrawNode *> LaterTextOccluders;
+  std::vector<std::unique_ptr<RectNode>> PanelDebugVisuals;
+
   void BringToFront(BaseNode *node);
   void CancelTreeCaptures(BaseNode *node);
+  /** 点击菜单层级外时关闭所有顶层弹出目录，不改变稳定节点拓扑。 */
+  void CloseMenusOutside(BaseNode *target);
   /** 按统一 DragSession 提交 Panel 成员迁移，并在需要时创建单页 Group。 */
   bool CommitPanelDrop(float clientX, float clientY);
   BehaviorNode *FindBehaviorNode(BaseNode *node) const;
@@ -103,13 +112,16 @@ private:
   bool RemoveClosedPanelGroups(BaseNode &parent);
   /** 根据最终屏幕坐标刷新 Panel 子树诊断覆盖层，不修改节点自身主题状态。 */
   void UpdatePanelDebugVisuals();
+  /** 按画家顺序计算后续不透明浮层对 DirectWrite 文字的裁剪片段。 */
+  void UpdateTextOcclusion();
   void UpdateTree(BaseNode &node, float parentX, float parentY,
                   const DirectX::XMFLOAT4 &clip, bool dispatchAfterLayout,
                   bool parentVisible = true);
   void UpdateDockPreview();
   /** 根据与渲染一致的最上层命中结果切换唯一 Hover 控件。 */
   void UpdateHoveredHandler(float x, float y);
+  /** 切换唯一键盘焦点并同步控件视觉状态。 */
+  void SetFocusedHandler(BehaviorNode *handler);
 
-  std::vector<std::unique_ptr<RectNode>> PanelDebugVisuals;
 };
 } // namespace z8::ui

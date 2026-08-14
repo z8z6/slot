@@ -82,6 +82,83 @@ struct ButtonStyle {
   float ContentPadding = SpacingStyle::Small;
 };
 
+/** Toggle 的方形状态指示器；标签仍使用普通文字层级。 */
+struct ToggleStyle {
+  StateColorStyle IndicatorColor;
+  StateColorStyle ForegroundColor;
+  DirectX::XMFLOAT4 BorderColor;
+  DirectX::XMFLOAT4 FocusedBorderColor;
+  float BorderWidth = 1.0f;
+  float ControlHeight = 24.0f;
+  float IndicatorSize = 14.0f;
+  float CornerRadius = 2.0f;
+  float ContentGap = SpacingStyle::Medium;
+};
+
+/** 水平 Slider 的轨道、已选区和 Thumb 尺寸。 */
+struct SliderStyle {
+  DirectX::XMFLOAT4 TrackColor;
+  DirectX::XMFLOAT4 FillColor;
+  StateColorStyle ThumbColor;
+  float ControlHeight = 24.0f;
+  float MinimumWidth = 96.0f;
+  float TrackThickness = 4.0f;
+  float ThumbSize = 12.0f;
+  float CornerRadius = 2.0f;
+};
+
+/** 单行 TextInput 的焦点边框、文字和插入光标语义。 */
+struct TextInputStyle {
+  StateColorStyle BackgroundColor;
+  StateColorStyle ForegroundColor;
+  DirectX::XMFLOAT4 PlaceholderColor;
+  DirectX::XMFLOAT4 BorderColor;
+  DirectX::XMFLOAT4 FocusedBorderColor;
+  DirectX::XMFLOAT4 CaretColor;
+  float ControlHeight = 24.0f;
+  float MinimumWidth = 120.0f;
+  float ContentPadding = SpacingStyle::Medium;
+  float BorderWidth = 1.0f;
+  float CaretWidth = 1.0f;
+  float CornerRadius = 2.0f;
+};
+
+/** TreeView 行选择、展开图标和层级缩进样式。 */
+struct TreeViewStyle {
+  StateColorStyle RowColor;
+  StateColorStyle ForegroundColor;
+  StateColorStyle IconColor;
+  float RowHeight = 24.0f;
+  float Indent = 12.0f;
+  float IconSize = 12.0f;
+  float ContentGap = SpacingStyle::Small;
+};
+
+/** Menu 触发项、弹出表面和级联目录共用的紧凑编辑器样式。 */
+struct MenuStyle {
+  StateColorStyle BackgroundColor;
+  StateColorStyle ForegroundColor;
+  DirectX::XMFLOAT4 PopupColor;
+  DirectX::XMFLOAT4 PopupBorderColor;
+  float MenuBarHeight = 28.0f;
+  float ItemHeight = 24.0f;
+  float PopupWidth = 184.0f;
+  float HorizontalPadding = SpacingStyle::Medium;
+  float PopupPadding = SpacingStyle::ExtraSmall;
+  float IconSize = 12.0f;
+  float BorderWidth = 1.0f;
+  float CornerRadius = 2.0f;
+};
+
+/** 顶部 ToolBar 是 Menu 集合和固定 Dock 表面，不承担 Panel 页签语义。 */
+struct ToolBarStyle {
+  DirectX::XMFLOAT4 Color;
+  DirectX::XMFLOAT4 BorderColor;
+  float Height = 36.0f;
+  float Padding = SpacingStyle::Small;
+  float BorderWidth = 1.0f;
+};
+
 /** Dock 拖放反馈独立于 Panel 本体，透明度和边框宽度仍由主题统一控制。 */
 struct DockStyle {
   DirectX::XMFLOAT4 PreviewColor;
@@ -154,6 +231,12 @@ struct Theme {
   TextStyle Text;
   IconStyle Icon;
   ButtonStyle Button;
+  ToggleStyle Toggle;
+  SliderStyle Slider;
+  TextInputStyle TextInput;
+  TreeViewStyle TreeView;
+  MenuStyle Menu;
+  ToolBarStyle ToolBar;
   DockStyle Dock;
   TabStyle Tab;
   ScrollBarStyle ScrollBar;

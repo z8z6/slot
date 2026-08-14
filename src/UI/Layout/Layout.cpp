@@ -12,12 +12,14 @@
 #include "UI/Layout/BehaviorNode.h"
 #include "UI/Layout/DrawNode.h"
 #include "UI/Layout/LayoutEngine.h"
+#include "UI/Layout/MenuNode.h"
 #include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/PanelNode.h"
 #include "UI/Layout/RectNode.h"
 #include "UI/Layout/SceneNode.h"
 #include "UI/Layout/TerminalNode.h"
 #include "UI/Layout/TextNode.h"
+#include "UI/Layout/ToolBarNode.h"
 #include "UI/Style/Theme.h"
 
 #include <algorithm>
@@ -98,8 +100,30 @@ void Layout::IndexTree(BaseNode *node) {
     Scenes.push_back(scene);
   if (auto *terminal = dynamic_cast<TerminalNode *>(node))
     Terminals.push_back(terminal);
+  // ToolBar 的级联 Popup 必须覆盖 Scene/Panel。把其子树稳定放到同级画家
+  // 顺序末尾，同时让逆序命中与最终绘制顺序保持一致。
   for (const auto &child : node->Children)
-    IndexTree(child.get());
+    if (!dynamic_cast<ToolBarNode *>(child.get()))
+      IndexTree(child.get());
+  for (const auto &child : node->Children)
+    if (dynamic_cast<ToolBarNode *>(child.get()))
+      IndexTree(child.get());
+}
+
+void Layout::CloseMenusOutside(BaseNode *target) {
+  MenuNode *targetRoot = nullptr;
+  for (auto *node = target; node; node = node->Parent) {
+    auto *menu = dynamic_cast<MenuNode *>(node);
+    if (!menu)
+      continue;
+    targetRoot = menu->RootMenu();
+    break;
+  }
+  for (auto *node : Nodes) {
+    auto *menu = dynamic_cast<MenuNode *>(node);
+    if (menu && menu->IsTopLevel() && menu->Open && menu != targetRoot)
+      menu->CloseBranch();
+  }
 }
 
 void Layout::CancelTreeCaptures(BaseNode *node) {
@@ -119,6 +143,7 @@ void Layout::RebuildIndex() {
   ResetInteractionStates(Root.get());
   HoveredHandler = nullptr;
   PressedHandler = nullptr;
+  FocusedHandler = nullptr;
   RemoveClosedPanelGroups(*Root);
   NormalizePanelGroups(*Root);
   CapturedTarget = nullptr;
@@ -152,6 +177,7 @@ void Layout::ResetInteractionStates(BaseNode *node) {
   if (auto *behavior = dynamic_cast<BehaviorNode *>(node)) {
     behavior->SetHovered(false);
     behavior->SetPressed(false);
+    behavior->SetFocused(false);
   }
   for (const auto &child : node->Children)
     ResetInteractionStates(child.get());
@@ -168,6 +194,18 @@ void Layout::UpdateHoveredHandler(float x, float y) {
   HoveredHandler = next;
   if (HoveredHandler)
     HoveredHandler->SetHovered(true);
+}
+
+void Layout::SetFocusedHandler(BehaviorNode *handler) {
+  if (handler && !handler->Focusable)
+    handler = nullptr;
+  if (handler == FocusedHandler)
+    return;
+  if (FocusedHandler)
+    FocusedHandler->SetFocused(false);
+  FocusedHandler = handler;
+  if (FocusedHandler)
+    FocusedHandler->SetFocused(true);
 }
 
 // 返回命中的最上层交互节点；纯布局和文字节点不会意外吞掉场景输入。
@@ -211,6 +249,11 @@ z8::MouseCursor Layout::GetMouseCursor(MouseMovArgs args) const {
 }
 
 EventReply Layout::OnKeyDown(KeyArgs args) {
+  if (FocusedHandler) {
+    const auto reply = FocusedHandler->OnKeyDown(args);
+    if (reply != EventReply::Ignored)
+      return reply;
+  }
   if (args.Key == '3') {
     // WasDown 来自 Win32 lParam 第 30
     // 位；忽略自动重复，确保一次按键只切换一次。
@@ -234,19 +277,45 @@ EventReply Layout::OnKeyDown(KeyArgs args) {
   return EventReply::Handled;
 }
 
+EventReply Layout::OnKeyUp(KeyArgs args) {
+  return FocusedHandler ? FocusedHandler->OnKeyUp(args) : EventReply::Ignored;
+}
+
+EventReply Layout::OnTextInput(wchar_t character) {
+  return FocusedHandler ? FocusedHandler->OnTextInput(character)
+                        : EventReply::Ignored;
+}
+
 EventReply Layout::OnMouseDown(MouseMovArgs args) {
   UpdateHoveredHandler(static_cast<float>(args.X), static_cast<float>(args.Y));
+  auto *target = HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
+  CloseMenusOutside(target);
+  bool targetsMenuOverlay = false;
+  for (auto *node = target; node; node = node->Parent) {
+    if (!dynamic_cast<MenuNode *>(node))
+      continue;
+    targetsMenuOverlay = true;
+    break;
+  }
   if (args.Button == MouseButton::Left) {
-    if (auto *split = Dock.Tree.FindSplitterAt(static_cast<float>(args.X),
-                                               static_cast<float>(args.Y))) {
+    // Popup 会跨过 ToolBar 与工作区的共享边界；其命中必须先于底层 splitter，
+    // 否则菜单第一行靠上的像素会意外启动 Dock resize。
+    if (auto *split =
+            !targetsMenuOverlay
+                ? Dock.Tree.FindSplitterAt(static_cast<float>(args.X),
+                                           static_cast<float>(args.Y))
+                : nullptr) {
+      SetFocusedHandler(nullptr);
       CapturedSplitter = split->ID;
       return EventReply::Capture;
     }
   }
-  auto *target = HitAt(static_cast<float>(args.X), static_cast<float>(args.Y));
-  if (!target)
+  if (!target) {
+    SetFocusedHandler(nullptr);
     return EventReply::Ignored;
+  }
   if (target->RoutesToScene()) {
+    SetFocusedHandler(nullptr);
     // Scene 内容区通常透传给相机，但外层 SceneNode 的缩放边框与内容相交。
     // 光标命中缩放方向时优先启动 UI 几何手势，否则才把按键留给 3D 场景。
     for (auto *node = target->Parent; node; node = node->Parent) {
@@ -283,6 +352,9 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
       PressedHandler->SetPressed(false);
     PressedHandler = handledNode;
     PressedHandler->SetPressed(true);
+    SetFocusedHandler(handledNode);
+  } else if (args.Button == MouseButton::Left) {
+    SetFocusedHandler(nullptr);
   }
   const bool closesGroup =
       dynamic_cast<PanelGroupCloseNode *>(handledNode) != nullptr;
@@ -483,6 +555,8 @@ void Layout::OnPointerCaptureLost() {
   PressedHandler = nullptr;
   Dock.CancelDrag();
   CapturedSplitter = 0;
+  // 窗口失焦后级联菜单不能悬留；Popup 只切换可见性，关闭不会破坏状态树。
+  CloseMenusOutside(nullptr);
   Dirty = true;
 }
 
@@ -760,6 +834,99 @@ void Layout::Calculate(float w, float h) {
     // 滚动范围只能在布局完成后确定；偏移变化不需要再次测量尺寸，但必须在
     // 绘制前重新传播绝对坐标，否则最新日志仍使用上一帧位置并被 viewport 裁掉。
     UpdateTree(*Root, 0, 0, clip, false);
+  }
+  UpdateTextOcclusion();
+}
+
+void Layout::UpdateTextOcclusion() {
+  const auto renderSurface = [this](const BaseNode &node) -> const BaseNode * {
+    const BaseNode *rootChild = &node;
+    while (rootChild->Parent && rootChild->Parent != Root.get())
+      rootChild = rootChild->Parent;
+    // 主窗口中的全部 Dock leaf 共享一个后备缓冲；Floating 子树各自拥有
+    // DirectWrite target，不能用另一个 HWND 上的 Popup 裁剪它。
+    return Dock.IsFloating(*rootChild) ? rootChild : nullptr;
+  };
+  const auto intersects = [](const DirectX::XMFLOAT4 &a,
+                             const DirectX::XMFLOAT4 &b) {
+    return a.x < b.z && a.z > b.x && a.y < b.w && a.w > b.y;
+  };
+  const auto subtract = [&intersects](
+                            std::vector<DirectX::XMFLOAT4> &clips,
+                            const DirectX::XMFLOAT4 &blocker) {
+    const size_t sourceCount = clips.size();
+    // 输出先附加到同一缓冲区，随后移除旧前缀；capacity 会被 TextNode 跨帧
+    // 保留，菜单保持打开时不会为每行文字持续产生临时堆分配。
+    clips.reserve(sourceCount * 5);
+    for (size_t index = 0; index < sourceCount; ++index) {
+      const auto clip = clips[index];
+      if (!intersects(clip, blocker)) {
+        clips.push_back(clip);
+        continue;
+      }
+      const float left = (std::max)(clip.x, blocker.x);
+      const float top = (std::max)(clip.y, blocker.y);
+      const float right = (std::min)(clip.z, blocker.z);
+      const float bottom = (std::min)(clip.w, blocker.w);
+      // 矩形差最多产生四块不重叠区域；重复绘制同一 DirectWrite layout 并
+      // 分别裁剪这些片段，可保留 Popup 边缘外仍应显示的半行文字。
+      if (clip.y < top)
+        clips.push_back({clip.x, clip.y, clip.z, top});
+      if (bottom < clip.w)
+        clips.push_back({clip.x, bottom, clip.z, clip.w});
+      if (clip.x < left)
+        clips.push_back({clip.x, top, left, bottom});
+      if (right < clip.z)
+        clips.push_back({right, top, clip.z, bottom});
+    }
+    clips.erase(clips.begin(), clips.begin() + sourceCount);
+  };
+
+  LaterTextOccluders.clear();
+  for (auto iterator = Nodes.rbegin(); iterator != Nodes.rend(); ++iterator) {
+    auto *node = *iterator;
+    if (auto *text = dynamic_cast<TextNode *>(node)) {
+      text->HasTextOcclusion = false;
+      text->VisibleTextClips.clear();
+      if (!text->EffectiveVisible)
+        continue;
+      const auto surface = renderSurface(*text);
+      const DirectX::XMFLOAT4 textRect{
+          (std::max)(text->Left, text->VisibleClip.x),
+          (std::max)(text->Top, text->VisibleClip.y),
+          (std::min)(text->Left + text->Width, text->VisibleClip.z),
+          (std::min)(text->Top + text->Height, text->VisibleClip.w)};
+      if (textRect.x >= textRect.z || textRect.y >= textRect.w)
+        continue;
+      for (const auto *occluder : LaterTextOccluders) {
+        if (renderSurface(*occluder) != surface)
+          continue;
+        const DirectX::XMFLOAT4 occluderRect{
+            (std::max)(occluder->Left, occluder->VisibleClip.x),
+            (std::max)(occluder->Top, occluder->VisibleClip.y),
+            (std::min)(occluder->Left + occluder->Width,
+                       occluder->VisibleClip.z),
+            (std::min)(occluder->Top + occluder->Height,
+                       occluder->VisibleClip.w)};
+        if (!intersects(textRect, occluderRect))
+          continue;
+        if (!text->HasTextOcclusion) {
+          text->VisibleTextClips.push_back(textRect);
+          text->HasTextOcclusion = true;
+        }
+        subtract(text->VisibleTextClips, occluderRect);
+      }
+      continue;
+    }
+    auto *visual = dynamic_cast<DrawNode *>(node);
+    if (!visual || !visual->OccludesEarlierText ||
+        !visual->EffectiveVisible)
+      continue;
+    if (visual->Left < visual->VisibleClip.z &&
+        visual->Left + visual->Width > visual->VisibleClip.x &&
+        visual->Top < visual->VisibleClip.w &&
+        visual->Top + visual->Height > visual->VisibleClip.y)
+      LaterTextOccluders.push_back(visual);
   }
 }
 

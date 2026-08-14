@@ -14,6 +14,8 @@ enum class DockPlacement { Auto, Left, Right, Top, Bottom, Fill };
  */
 struct DockProperty {
   bool Enabled = true;
+  /** false 表示边缘控件保持 Extent 像素，并且不暴露相邻 Splitter。 */
+  bool Resizable = true;
   DockPlacement Placement = DockPlacement::Auto;
   float EdgeThreshold = 48.0f;
   float Extent = 300.0f;

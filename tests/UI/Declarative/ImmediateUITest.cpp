@@ -1,10 +1,16 @@
 #include "UI/Declarative/ImmediateUI.h"
 #include "Object/UIObject/UIObject.h"
+#include "UI/Layout/ButtonNode.h"
 #include "UI/Layout/DrawNode.h"
 #include "UI/Layout/ImageNode.h"
 #include "UI/Layout/Layout.h"
+#include "UI/Layout/MenuNode.h"
 #include "UI/Layout/SceneNode.h"
+#include "UI/Layout/SliderNode.h"
 #include "UI/Layout/TerminalNode.h"
+#include "UI/Layout/TextInputNode.h"
+#include "UI/Layout/ToggleNode.h"
+#include "UI/Layout/ToolBarNode.h"
 #include "UI/Style/Theme.h"
 
 #include <gtest/gtest.h>
@@ -159,5 +165,79 @@ TEST(ImmediateUITest, DeclaresReusableBuiltinImage) {
   EXPECT_EQ(image->Icon, UIIcon::Close);
   EXPECT_FLOAT_EQ(image->Style.Width.value(), Theme::Default().Icon.NormalSize);
   EXPECT_FLOAT_EQ(image->UO->GetColor().x, Theme::Default().Text.MutedColor.x);
+}
+
+TEST(ImmediateUITest, SynchronizesCommonControlStateAcrossFrames) {
+  Layout layout;
+  ImmediateUI ui(layout);
+  bool checked = false;
+  float amount = 0.25f;
+  std::string name = "Initial";
+
+  ui.BeginFrame();
+  EXPECT_FALSE(ui.Button("apply", "Apply"));
+  EXPECT_FALSE(ui.Toggle("enabled", "Enabled", checked));
+  EXPECT_FALSE(ui.Slider("amount", amount, 0.0f, 1.0f));
+  EXPECT_FALSE(ui.TextInput("name", name, "Object name"));
+  ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
+
+  auto *button = dynamic_cast<ButtonNode *>(layout.Find("apply"));
+  auto *toggle = dynamic_cast<ToggleNode *>(layout.Find("enabled"));
+  auto *slider = dynamic_cast<SliderNode *>(layout.Find("amount"));
+  auto *input = dynamic_cast<TextInputNode *>(layout.Find("name"));
+  ASSERT_NE(button, nullptr);
+  ASSERT_NE(toggle, nullptr);
+  ASSERT_NE(slider, nullptr);
+  ASSERT_NE(input, nullptr);
+  button->OnKeyDown(KeyArgs(VK_RETURN));
+  toggle->SetChecked(true);
+  slider->SetValue(0.75f);
+  input->SetText("Edited");
+
+  ui.BeginFrame();
+  EXPECT_TRUE(ui.Button("apply", "Apply"));
+  EXPECT_TRUE(ui.Toggle("enabled", "Enabled", checked));
+  EXPECT_TRUE(ui.Slider("amount", amount, 0.0f, 1.0f));
+  EXPECT_TRUE(ui.TextInput("name", name, "Object name"));
+  ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
+  EXPECT_TRUE(checked);
+  EXPECT_FLOAT_EQ(amount, 0.75f);
+  EXPECT_EQ(name, "Edited");
+  EXPECT_EQ(layout.Find("apply"), button);
+  EXPECT_EQ(layout.Find("enabled"), toggle);
+}
+
+TEST(ImmediateUITest, ReusesToolBarAndCascadingMenuScopes) {
+  Layout layout;
+  ImmediateUI ui(layout);
+
+  const auto declare = [&ui](bool &clicked) {
+    ui.BeginFrame();
+    ASSERT_TRUE(ui.BeginToolBar("toolbar"));
+    ASSERT_TRUE(ui.BeginMenu("file", "File"));
+    ASSERT_TRUE(ui.BeginMenu("open", "Open"));
+    clicked = ui.MenuItem("demo", "Demo.slot");
+    ui.EndMenu();
+    ui.EndMenu();
+    ui.EndToolBar();
+    ASSERT_TRUE(ui.EndFrame()) << ui.LastError();
+  };
+
+  bool clicked = false;
+  declare(clicked);
+  ASSERT_FALSE(clicked);
+  auto *toolbar = dynamic_cast<ToolBarNode *>(layout.Find("toolbar"));
+  auto *file = dynamic_cast<MenuNode *>(layout.Find("file"));
+  auto *item = dynamic_cast<MenuItemNode *>(layout.Find("demo"));
+  ASSERT_NE(toolbar, nullptr);
+  ASSERT_NE(file, nullptr);
+  ASSERT_NE(item, nullptr);
+  EXPECT_TRUE(file->IsTopLevel());
+
+  item->OnKeyDown(KeyArgs(VK_RETURN));
+  declare(clicked);
+  EXPECT_TRUE(clicked);
+  EXPECT_EQ(layout.Find("toolbar"), toolbar);
+  EXPECT_EQ(layout.Find("file"), file);
 }
 } // namespace z8::ui

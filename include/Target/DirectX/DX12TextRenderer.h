@@ -9,7 +9,6 @@
 #include <vector>
 
 namespace z8::ui {
-class Layout;
 class TextNode;
 }
 
@@ -22,25 +21,7 @@ namespace z8 {
  * 绘制后必须 Flush，保证 Direct2D 提交发生在 DX12 Present 之前。
  */
 class DX12TextRenderer : public DX12Common {
-public:
-  explicit DX12TextRenderer(DX12Render *render);
-
-  void Init();
-  /** 为附加交换链建立独立 DirectWrite 包装目标。 */
-  void Init(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
-  /** 按 Direct2D → wrapped resource → D3D11On12 的依赖顺序显式释放。 */
-  void Shutdown();
-  void PrepareResize();
-  void Resize();
-  void Draw(const ui::Layout &layout);
-  void Draw(const std::vector<ui::TextNode *> &texts, int bufferIndex,
-            float originX, float originY);
-
 private:
-  void CreateDevices();
-  void CreateTargets(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
-  IDWriteTextFormat *GetFormat(const ui::TextNode &node);
-
   ComPtr<ID3D11Device> D3D11Device;
   ComPtr<ID3D11DeviceContext> D3D11Context;
   ComPtr<ID3D11On12Device> D3D11On12Device;
@@ -52,8 +33,23 @@ private:
   ComPtr<ID2D1Bitmap1> Targets[2];
   std::unordered_map<unsigned, ComPtr<IDWriteTextFormat>> Formats;
   bool Initialized = false;
-  ID3D12Resource *SourceBuffers[2]{};
-  DXGI_FORMAT SourceFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+public:
+  explicit DX12TextRenderer(DX12Render *render);
+
+  void Draw(const std::vector<ui::TextNode *> &texts, int bufferIndex,
+            float originX, float originY);
+  /** 为任意 WindowSurface 的两个交换链缓冲建立 DirectWrite 包装目标。 */
+  void Init(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
+  void PrepareResize();
+  void Resize(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
+  /** 按 Direct2D → wrapped resource → D3D11On12 的依赖顺序显式释放。 */
+  void Shutdown();
+
+private:
+  void CreateDevices();
+  void CreateTargets(ID3D12Resource *const buffers[2], DXGI_FORMAT format);
+  IDWriteTextFormat *GetFormat(const ui::TextNode &node);
 };
 
 } // namespace z8

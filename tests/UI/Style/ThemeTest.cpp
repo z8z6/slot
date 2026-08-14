@@ -28,12 +28,27 @@ TEST(ThemeTest, MapsUnrealEditorPaletteToControlRoles) {
               Color::ControlHover);
   ExpectColor(theme.Button.ForegroundColor.Resolve(WidgetVisualState::Disabled),
               Color::TextDisabled);
+  ExpectColor(theme.Toggle.IndicatorColor.Resolve(WidgetVisualState::Selected),
+              Color::Accent);
+  ExpectColor(theme.Toggle.IndicatorColor.Resolve(WidgetVisualState::Focused),
+              theme.Toggle.IndicatorColor.Normal);
+  ExpectColor(theme.Toggle.FocusedBorderColor, Color::Accent);
+  ExpectColor(theme.Slider.FillColor, Color::Accent);
+  ExpectColor(theme.TextInput.PlaceholderColor, Color::TextMuted);
+  ExpectColor(theme.TreeView.RowColor.Resolve(WidgetVisualState::Selected),
+              Color::SelectionInactive);
+  ExpectColor(theme.Menu.PopupColor, Color::HeaderBackground);
+  ExpectColor(theme.ToolBar.Color, Color::HeaderBackground);
   ExpectColor(theme.Dock.PreviewColor, Color::DockPreview);
   ExpectColor(theme.Demo.SelectedRowColor, Color::SelectionInactive);
   EXPECT_FLOAT_EQ(theme.Panel.BorderWidth, 1.0f);
   EXPECT_FLOAT_EQ(theme.ScrollBar.Thickness, 12.0f);
   EXPECT_FLOAT_EQ(theme.Tab.Height, theme.Panel.TitleHeight);
   EXPECT_FLOAT_EQ(theme.Icon.NormalSize, theme.Tab.IconSize);
+  EXPECT_GT(theme.Slider.ThumbSize, theme.Slider.TrackThickness);
+  EXPECT_GT(theme.TreeView.Indent, 0.0f);
+  EXPECT_GT(theme.Menu.PopupWidth, 100.0f);
+  EXPECT_EQ(theme.ToolBar.Height, theme.Demo.ToolbarHeight);
   EXPECT_NE(theme.Panel.Color.x, theme.Panel.TitleColor.x);
   EXPECT_LT(theme.Panel.TitleHeight, 36.0f);
   EXPECT_GT(theme.Text.FontSize, 0.0f);

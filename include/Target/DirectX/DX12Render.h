@@ -12,11 +12,9 @@
 #include "DX12Msaa.h"
 #include "DX12PipelineState.h"
 #include "DX12RenderBatch.h"
-#include "DX12RenderTarget.h"
 #include "DX12RootSignature.h"
 #include "DX12Shader.h"
-#include "DX12SwapChain.h"
-#include "DX12TextRenderer.h"
+#include "DX12WindowSurface.h"
 #include "Target/Render.h"
 #include "d3d12.h"
 
@@ -34,15 +32,12 @@ public:
   Application* App;
   DX12Device* Ctx;
 
-  D3D12_VIEWPORT ScreenView;
-  D3D12_RECT ScissorRect;
-
   DX12Command Cmd;
-  DX12SwapChain SwapChain;
   DX12Msaa Msaa;
+  /** 主 HWND 的呈现资源；Floating host 持有相同类型的独立实例。 */
+  DX12WindowSurface WindowSurface;
 
   DX12DepthStencil DepthStencil;
-  DX12RenderTarget RenderTarget;
 
   DX12MeshManager MeshManager;
   DX12MaterialManager MaterialManager;
@@ -53,7 +48,6 @@ public:
 
   DX12RenderBatch GOBatch;
   DX12RenderBatch UOBatch;
-  DX12TextRenderer TextRenderer;
   /** Floating PanelGroup 的原生 HWND/交换链投影层。 */
   std::unique_ptr<DX12FloatingWindowManager> FloatingWindows;
 

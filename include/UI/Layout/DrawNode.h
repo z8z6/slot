@@ -16,6 +16,8 @@ namespace z8::ui {
 class DrawNode : public BehaviorNode {
 public:
   std::unique_ptr<UIObject> UO;
+  /** 后绘制的不透明浮层可裁掉更早文字，弥合 DX12 几何与 DirectWrite 通道。 */
+  bool OccludesEarlierText = false;
 
   explicit DrawNode(std::unique_ptr<UIObject> O);
   ~DrawNode() override;

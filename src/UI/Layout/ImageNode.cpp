@@ -18,8 +18,9 @@ constexpr std::array IconRegistry{
                "asset://texture/icons/lucide/chevron-down.svg"},
     UIIconInfo{UIIcon::Cube, "asset://texture/icons/lucide/box.svg"},
     UIIconInfo{UIIcon::Terminal, "asset://texture/icons/lucide/terminal.svg"},
-    UIIconInfo{UIIcon::Settings,
-               "asset://texture/icons/lucide/settings-2.svg"}};
+    UIIconInfo{UIIcon::Settings, "asset://texture/icons/lucide/settings-2.svg"},
+    UIIconInfo{UIIcon::ChevronRight,
+               "asset://texture/icons/lucide/chevron-right.svg"}};
 
 std::optional<UIIcon> ResolveIcon(std::string_view source) {
   for (const auto &entry : IconRegistry)
@@ -33,6 +34,8 @@ std::optional<UIIcon> ResolveIcon(std::string_view source) {
     return UIIcon::ChevronDown;
   if (source == "builtin://icon/cube")
     return UIIcon::Cube;
+  if (source == "builtin://icon/chevron-right")
+    return UIIcon::ChevronRight;
   return std::nullopt;
 }
 

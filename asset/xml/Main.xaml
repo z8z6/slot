@@ -1,26 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Demo 编辑器界面。保存文件后，主线程会在下一帧完成事务式热重载。 -->
 <UI Direction="Column">
-  <Panel Id="toolbar" Title="Level Editor" Dock="Top" DockExtent="48"
-         MinHeight="34" />
+  <ToolBar Id="toolbar" Dock="Top" DockExtent="36">
+    <Menu Id="file-menu" Text="File">
+      <MenuItem Id="new-level" Text="New Level" />
+      <Menu Id="open-menu" Text="Open">
+        <MenuItem Id="open-project" Text="Project" />
+        <Menu Id="recent-menu" Text="Recent">
+          <MenuItem Id="recent-demo" Text="Demo.slot" />
+          <MenuItem Id="recent-empty" Text="Empty.slot" />
+        </Menu>
+      </Menu>
+      <MenuItem Id="save-level" Text="Save" />
+    </Menu>
+    <Menu Id="edit-menu" Text="Edit">
+      <MenuItem Id="undo" Text="Undo" />
+      <MenuItem Id="redo" Text="Redo" />
+    </Menu>
+    <Menu Id="build-menu" Text="Build">
+      <MenuItem Id="build-all" Text="Build All" />
+      <MenuItem Id="build-lighting" Text="Build Lighting" />
+    </Menu>
+  </ToolBar>
 
   <Terminal Id="terminal" Title="Output Log" Dock="Bottom"
             DockExtent="180" />
 
   <Panel Id="outliner" Title="World Outliner" Dock="Left"
          DockExtent="260">
-    <!-- 占位行沿用 Theme 的 Control Surface；真实 Tree 控件实现后再由
-         Selected/Hovered 状态选择语义色，声明文件不持有调色板。 -->
-    <Rect Id="outliner-item-0" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
-    <Rect Id="outliner-item-1" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
-    <Rect Id="outliner-item-2" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
-    <Rect Id="outliner-item-3" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
-    <Rect Id="outliner-item-4" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
-    <Rect Id="outliner-item-5" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
-    <Rect Id="outliner-item-6" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
-    <Rect Id="outliner-item-7" Height="28" FlexGrow="0" FlexShrink="0" Margin="2" />
+    <TreeView Id="scene-tree">
+      <TreeItem Id="environment" Text="Environment">
+        <TreeItem Id="sun" Text="Directional Light" />
+        <TreeItem Id="mountains" Text="Mountains" />
+      </TreeItem>
+      <TreeItem Id="actors" Text="Actors">
+        <TreeItem Id="cube" Text="Cube" Selected="true" />
+        <TreeItem Id="camera" Text="Player Camera" />
+      </TreeItem>
+    </TreeView>
   </Panel>
 
-  <Panel Id="details" Title="Details" Dock="Right" DockExtent="300" />
+  <Panel Id="details" Title="Details" Dock="Right" DockExtent="300">
+    <TextInput Id="object-name" Text="Cube" Placeholder="Object name" />
+    <Toggle Id="object-visible" Text="Visible" Checked="true" />
+    <Slider Id="object-scale" Min="0.1" Max="4" Value="1" Step="0.1" />
+    <Button Id="reset-transform" Text="Reset Transform" />
+  </Panel>
   <Scene Id="scene-viewport" Title="Perspective" Dock="Fill" />
 </UI>

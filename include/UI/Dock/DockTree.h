@@ -22,6 +22,8 @@ struct DockRect {
 
 enum class DockNodeType { Leaf, Split };
 enum class SplitAxis { Horizontal, Vertical };
+/** 固定像素尺寸归属于 Split 的哪一侧；None 继续使用比例布局。 */
+enum class FixedSplitChild { None, A, B };
 enum class DockSide { Left, Right, Top, Bottom, Center };
 enum class PanelPlacement { Docked, Floating };
 
@@ -37,6 +39,9 @@ struct DockNode {
   DockRect Rect;
   SplitAxis Axis = SplitAxis::Vertical;
   float SplitRatio = 0.5f;
+  float FixedExtent = 0.0f;
+  FixedSplitChild FixedChild = FixedSplitChild::None;
+  bool SplitterResizable = true;
   std::unique_ptr<DockNode> ChildA;
   std::unique_ptr<DockNode> ChildB;
   std::vector<BaseNode *> Panels;
@@ -52,6 +57,10 @@ struct DockTransaction {
   DockRect FloatingRect;
   /** 新建 Split 的 childA 比例；仅 Commit 阶段消费。 */
   float SplitRatio = 0.5f;
+  /** 正值表示新插入项保持固定像素尺寸，而不是随父区域按比例缩放。 */
+  float FixedExtent = 0.0f;
+  /** false 时该结构边界不参与鼠标命中或比例修改。 */
+  bool SplitterResizable = true;
 };
 
 /**

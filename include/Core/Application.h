@@ -9,6 +9,7 @@
 #include "Scene.h"
 #include "Timer.h"
 #include "UI/Layout/Layout.h"
+#include "Win32WindowHost.h"
 #include "Window.h"
 
 namespace z8 {
@@ -17,7 +18,7 @@ class UIObject;
 namespace ui {
 class XamlHotReload;
 }
-class Application {
+class Application : public EventTarget, private Win32WindowHost {
 public:
   Window Window;
   std::unique_ptr<Render> Render;
@@ -25,6 +26,8 @@ public:
   ResourceManager Resources;
   Scene ActiveScene;
   ui::Layout Layout;
+  // 保存所有的 App
+  inline static std::vector<Application *> Apps;
 
   Application();
   virtual ~Application();
@@ -32,38 +35,32 @@ public:
   /** 装载 XAML 并启用逐帧文件监视；首次解析失败时保持当前 Layout。 */
   bool EnableXamlHotReload(const std::string &fileName);
   virtual void Init();
-  LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
-
-  // 保存所有的 App
-  inline static std::vector<Application *> Apps;
   // 所有 App 都在这个方法中处理
   static int Run();
-  static LRESULT CALLBACK FakeMsgHandler(HWND, UINT, WPARAM, LPARAM);
 
 private:
-  virtual void PrepareScene();
-  void ShowFrame() const;
-  /** 将事件发送给 UI、场景、相机和灯光中的每一个 Object。 */
-  template <typename Handler>
-  void ForEachObject(Handler&& handler);
-  /** 指针未被 UI 消费时，只向 3D 场景部分继续传播。 */
-  template <typename Handler>
-  void ForEachSceneObject(Handler&& handler);
-
-  void OnMouseMove(MouseMovArgs);
-  void OnMouseDown(MouseMovArgs);
-  void OnMouseUp(MouseMovArgs);
-  void OnMouseWheel(MouseWheelArgs);
-  void OnKeyDown(KeyArgs);
-  void OnKeyUp(KeyArgs);
-
-  // 输入和模态尺寸循环状态必须按 Application 保存，多窗口之间不能互相污染。
-  int MouseX = 0;
-  int MouseY = 0;
-  int WindowX = 0;
-  int WindowY = 0;
-  bool HasMousePosition = false;
+  // 模态尺寸循环属于主交换链策略；通用指针状态由 Win32WindowHost 保存。
   bool InSizeMove = false;
   std::unique_ptr<ui::XamlHotReload> XamlReload;
+
+  /** 将事件发送给 UI、场景、相机和灯光中的每一个 Object。 */
+  template <typename Handler> void ForEachObject(Handler &&handler);
+  /** 指针未被 UI 消费时，只向 3D 场景部分继续传播。 */
+  template <typename Handler> void ForEachSceneObject(Handler &&handler);
+
+  MouseCursor GetMouseCursor(MouseMovArgs args) const override;
+  LRESULT HandleWindowMessage(HWND window, UINT message, WPARAM wParam,
+                              LPARAM lParam) override;
+  EventReply OnKeyDown(KeyArgs args) override;
+  EventReply OnKeyUp(KeyArgs args) override;
+  EventReply OnMouseDown(MouseMovArgs args) override;
+  EventReply OnMouseDrag(MouseMovArgs args) override;
+  EventReply OnMouseMove(MouseMovArgs args) override;
+  EventReply OnMouseUp(MouseMovArgs args) override;
+  EventReply OnMouseWheel(MouseWheelArgs args) override;
+  void OnPointerCaptureLost() override;
+  EventReply OnTextInput(wchar_t character) override;
+  virtual void PrepareScene();
+  void ShowFrame() const;
 };
 } // namespace z8

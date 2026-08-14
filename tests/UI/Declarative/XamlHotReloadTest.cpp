@@ -3,6 +3,7 @@
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/PanelGroupNode.h"
 #include "UI/Layout/PanelNode.h"
+#include "UI/Layout/ToolBarNode.h"
 
 #include <filesystem>
 #include <fstream>
@@ -67,8 +68,10 @@ TEST(XamlHotReloadTest, LoadsProjectInterfaceFromAssetXml) {
   EXPECT_NE(layout.Find("outliner"), nullptr);
   EXPECT_NE(layout.Find("details"), nullptr);
   EXPECT_NE(layout.Find("scene-viewport"), nullptr);
+  EXPECT_NE(layout.Find("scene-tree"), nullptr);
+  EXPECT_NE(layout.Find("object-name"), nullptr);
   layout.Calculate(1600.0f, 900.0f);
-  const auto *toolbar = dynamic_cast<PanelNode *>(layout.Find("toolbar"));
+  const auto *toolbar = dynamic_cast<ToolBarNode *>(layout.Find("toolbar"));
   const auto *terminal = dynamic_cast<PanelNode *>(layout.Find("terminal"));
   const auto *outliner = dynamic_cast<PanelNode *>(layout.Find("outliner"));
   const auto *details = dynamic_cast<PanelNode *>(layout.Find("details"));
@@ -76,13 +79,12 @@ TEST(XamlHotReloadTest, LoadsProjectInterfaceFromAssetXml) {
   ASSERT_NE(terminal, nullptr);
   ASSERT_NE(outliner, nullptr);
   ASSERT_NE(details, nullptr);
-  ASSERT_NE(toolbar->Group, nullptr);
   ASSERT_NE(terminal->Group, nullptr);
   ASSERT_NE(outliner->Group, nullptr);
   ASSERT_NE(details->Group, nullptr);
-  EXPECT_TRUE(layout.Dock.IsDocked(*toolbar->Group));
+  EXPECT_TRUE(layout.Dock.IsDocked(*toolbar));
   EXPECT_TRUE(layout.Dock.IsDocked(*terminal->Group));
-  EXPECT_NEAR(toolbar->Group->Height, 48.0f, 0.01f);
+  EXPECT_NEAR(toolbar->Height, 36.0f, 0.01f);
   EXPECT_NEAR(terminal->Group->Height, 180.0f, 0.01f);
   EXPECT_NEAR(outliner->Group->Width, 260.0f, 0.01f);
   EXPECT_NEAR(details->Group->Width, 300.0f, 0.01f);

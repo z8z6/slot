@@ -51,7 +51,8 @@ DockNode *FindSplitter(DockNode *node, float x, float y, float tolerance) {
                              ? node->ChildA->Rect.Left + node->ChildA->Rect.Width
                              : node->ChildA->Rect.Top + node->ChildA->Rect.Height;
   const float coordinate = node->Axis == SplitAxis::Vertical ? x : y;
-  if (std::abs(coordinate - boundary) <= tolerance)
+  if (node->SplitterResizable &&
+      std::abs(coordinate - boundary) <= tolerance)
     return node;
   if (auto *result = FindSplitter(node->ChildB.get(), x, y, tolerance))
     return result;
@@ -231,9 +232,16 @@ bool DockTree::Commit(const DockTransaction &transaction) {
                         transaction.TargetSide == DockSide::Right
                     ? SplitAxis::Vertical
                     : SplitAxis::Horizontal;
-  split->SplitRatio = std::clamp(transaction.SplitRatio, 0.05f, 0.95f);
+  // 结构层只排除 0/1 退化值；像 ToolBar 这样的固定边缘控件可以合法
+  // 小于工作区的 5%，具体像素最小值由节点样式和 ResizeSplitter 维护。
+  split->SplitRatio = std::clamp(transaction.SplitRatio, 0.001f, 0.999f);
   const bool before = transaction.TargetSide == DockSide::Left ||
                       transaction.TargetSide == DockSide::Top;
+  split->FixedExtent = (std::max)(0.0f, transaction.FixedExtent);
+  split->FixedChild = split->FixedExtent > 0.0f
+                          ? (before ? FixedSplitChild::A : FixedSplitChild::B)
+                          : FixedSplitChild::None;
+  split->SplitterResizable = transaction.SplitterResizable;
   split->ChildA = before ? std::move(newLeaf) : std::move(oldTarget);
   split->ChildB = before ? std::move(oldTarget) : std::move(newLeaf);
   split->ChildA->Parent = split.get();
@@ -246,7 +254,17 @@ void DockTree::LayoutNode(DockNode &node, const DockRect &rect) {
   node.Rect = rect;
   if (node.Type == DockNodeType::Leaf)
     return;
-  node.SplitRatio = std::clamp(node.SplitRatio, 0.05f, 0.95f);
+  const float extent = node.Axis == SplitAxis::Vertical ? rect.Width
+                                                        : rect.Height;
+  if (node.FixedChild != FixedSplitChild::None && extent > 0.0f) {
+    // 固定边缘占用像素而不是比例；窗口 resize 时只让工作区吸收差值，避免
+    // ToolBar 高度随客户区同比放大或缩小。
+    const float fixed = std::clamp(node.FixedExtent, 0.0f, extent);
+    node.SplitRatio = node.FixedChild == FixedSplitChild::A
+                          ? fixed / extent
+                          : 1.0f - fixed / extent;
+  }
+  node.SplitRatio = std::clamp(node.SplitRatio, 0.001f, 0.999f);
   DockRect a = rect;
   DockRect b = rect;
   if (node.Axis == SplitAxis::Vertical) {
@@ -286,7 +304,8 @@ DockRect DockTree::GetPreviewRect(const DockNode &target, DockSide side) const {
 bool DockTree::ResizeSplitter(DockNodeID id, float clientX, float clientY,
                               float minimumExtent) {
   auto *split = Find(id);
-  if (!split || split->Type != DockNodeType::Split)
+  if (!split || split->Type != DockNodeType::Split ||
+      !split->SplitterResizable)
     return false;
   const float extent = split->Axis == SplitAxis::Vertical ? split->Rect.Width
                                                           : split->Rect.Height;

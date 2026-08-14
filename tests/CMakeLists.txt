@@ -24,18 +24,25 @@ add_library(slot_test_runtime STATIC
         ../src/UI/Declarative/XamlLoader.cpp
         ../src/UI/Layout/BaseNode.cpp
         ../src/UI/Layout/BehaviorNode.cpp
+        ../src/UI/Layout/ButtonNode.cpp
         ../src/UI/Layout/DrawNode.cpp
         ../src/UI/Layout/Layout.cpp
         ../src/UI/Layout/LayoutEngine.cpp
         ../src/UI/Layout/ImageNode.cpp
+        ../src/UI/Layout/MenuNode.cpp
         ../src/UI/Layout/PanelGroupNode.cpp
         ../src/UI/Layout/PanelNode.cpp
         ../src/UI/Layout/RectNode.cpp
         ../src/UI/Layout/SceneNode.cpp
+        ../src/UI/Layout/SliderNode.cpp
         ../src/UI/Layout/ScrollBarNode.cpp
         ../src/UI/Layout/ScrollNode.cpp
         ../src/UI/Layout/TerminalNode.cpp
         ../src/UI/Layout/TextNode.cpp
+        ../src/UI/Layout/TextInputNode.cpp
+        ../src/UI/Layout/ToggleNode.cpp
+        ../src/UI/Layout/ToolBarNode.cpp
+        ../src/UI/Layout/TreeViewNode.cpp
         ../src/UI/Style/Theme.cpp
         ../src/Material/Material.cpp
         ../src/Material/MetalMaterial.cpp

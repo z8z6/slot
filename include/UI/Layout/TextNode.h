@@ -4,6 +4,7 @@
 
 #include <DirectXMath.h>
 #include <string>
+#include <vector>
 
 namespace z8::ui {
 
@@ -24,6 +25,9 @@ public:
   DirectX::XMFLOAT4 Color = {0.95f, 0.95f, 0.95f, 1.0f};
   TextAlignment Alignment = TextAlignment::Leading;
   bool Wrap = false;
+  /** 弹层相交时保存文字仍可绘制的矩形片段；空集合也可表示完全遮挡。 */
+  std::vector<DirectX::XMFLOAT4> VisibleTextClips;
+  bool HasTextOcclusion = false;
 
   TextNode();
   explicit TextNode(std::string text);

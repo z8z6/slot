@@ -11,9 +11,9 @@ namespace z8 {
  * Core 层后，场景 Object、UI 节点与可组合 Behavior 可以共享同一事件契约。
  */
 enum class EventReply {
-  Ignored,  // 未处理
-  Handled,  // 已处理
-  Capture   // 捕获
+  Ignored, // 未处理
+  Handled, // 已处理
+  Capture  // 捕获
 };
 
 /** 鼠标按键；None 用于不由单一按键触发的移动事件。 */
@@ -43,8 +43,8 @@ struct MouseMovArgs {
   MouseButton Button = MouseButton::None;
 
   MouseMovArgs() = default;
-  MouseMovArgs(WPARAM wParam, LPARAM lParam, int deltaX = 0,
-               int deltaY = 0, MouseButton button = MouseButton::None);
+  MouseMovArgs(WPARAM wParam, LPARAM lParam, int deltaX = 0, int deltaY = 0,
+               MouseButton button = MouseButton::None);
 };
 
 /** 鼠标滚轮参数；坐标在进入 UI 分发前统一转换为客户区坐标。 */
@@ -72,21 +72,17 @@ struct KeyArgs {
 class EventTarget {
 public:
   virtual ~EventTarget() = default;
-  virtual EventReply OnMouseDown(MouseMovArgs) {
-    return EventReply::Ignored;
-  }
-  virtual EventReply OnMouseMove(MouseMovArgs) {
-    return EventReply::Ignored;
-  }
-  virtual EventReply OnMouseDrag(MouseMovArgs) {
-    return EventReply::Ignored;
-  }
+  virtual EventReply OnMouseDown(MouseMovArgs) { return EventReply::Ignored; }
+  virtual EventReply OnMouseMove(MouseMovArgs) { return EventReply::Ignored; }
+  virtual EventReply OnMouseDrag(MouseMovArgs) { return EventReply::Ignored; }
   virtual EventReply OnMouseUp(MouseMovArgs) { return EventReply::Ignored; }
   virtual EventReply OnMouseWheel(MouseWheelArgs) {
     return EventReply::Ignored;
   }
   virtual EventReply OnKeyDown(KeyArgs) { return EventReply::Ignored; }
   virtual EventReply OnKeyUp(KeyArgs) { return EventReply::Ignored; }
+  /** 接收窗口系统完成键盘布局/IME 转换后的 UTF-16 字符单元。 */
+  virtual EventReply OnTextInput(wchar_t) { return EventReply::Ignored; }
   virtual MouseCursor GetMouseCursor(MouseMovArgs) const {
     return MouseCursor::Arrow;
   }

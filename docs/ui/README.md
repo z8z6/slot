@@ -26,7 +26,11 @@ flowchart LR
 
 场景 `Object`、`Layout`、`BehaviorNode` 和 `IBehavior` 共同继承 Core 的 `EventTarget`，鼠标与键盘事件统一返回 `EventReply::Ignored/Handled/Capture`。`BaseNode` 只负责布局、属性与树所有权；纯布局节点因此不再支付 Behavior 容器、事件虚表和捕获状态的成本。Core 只定义事件 ABI，不负责命中、冒泡或捕获存储。
 
-`PanelNode` 由背景视觉、`TextNode` 标题和 `ScrollNode` 内容区组成。`TerminalNode` 在 Panel 基础上维护限长消息队列与稳定输出 TextNode，用作编辑器底部 Output Log；拖拽与拉伸的开始、移动、最小尺寸阻止和结束消息由 Layout 统一写入。新增消息完成布局后，Terminal 自动把滚动偏移更新到最新的最大值，始终显示最后一行。`ScrollNode` 独立封装 viewport/content/scrollbar 与 `ScrollBehavior`，可被列表和树控件复用。`TextNode` 只保存 UTF-8 文本与排版属性，布局完成后由 DirectWrite 文字通道在 DX12 UI 几何之上绘制；D3D11On12 负责共享交换链缓冲和同步，文字不伪装成矩形网格资源。
+`PanelNode` 由背景视觉、`TextNode` 标题和 `ScrollNode` 内容区组成。`TerminalNode` 在 Panel 基础上维护限长消息队列与稳定输出 TextNode，用作编辑器底部 Output Log；拖拽与拉伸的开始、移动、最小尺寸阻止和结束消息由 Layout 统一写入。新增消息完成布局后，Terminal 自动把滚动偏移更新到最新的最大值，始终显示最后一行。`ScrollNode` 独立封装 viewport/content/scrollbar 与 `ScrollBehavior`，并由 `TreeViewNode` 复用。`TextNode` 只保存 UTF-8 文本与排版属性，布局完成后由 DirectWrite 文字通道在 DX12 UI 几何之上绘制；D3D11On12 负责共享交换链缓冲和同步，文字不伪装成矩形网格资源。
+
+`ButtonNode`、`ToggleNode`、`SliderNode`、`TextInputNode`、`TreeViewNode/TreeViewItemNode`、`MenuNode/MenuItemNode` 和 `ToolBarNode` 是当前常用原生控件。可操作控件继承 `BehaviorNode` 的 Hover、Pressed、Focused 状态；Layout 保证单窗口只有一个键盘焦点，并把 KeyDown/KeyUp 和 WM_CHAR 转换后的字符送给焦点控件。TextInput 内部以 UTF-8 保存业务字符串，以 WM_CHAR 的 UTF-16 字符单元进入平台边界；TreeView 只拥有展开和唯一选择状态，不接管调用方业务数据生命周期。
+
+Menu 使用同一个 `MenuNode` 表达 ToolBar 顶层入口和任意深度的级联目录，叶子命令由 `MenuItemNode` 表达。每级 Popup 是保留式树中的绝对布局子节点，展开只切换可见性，不分配控件或重建 GPU 资源；点击目录外或激活叶子项会关闭整个层级。ToolBar 直接以固定 Top Dock 节点进入 DockTree，不再创建 Panel 标题、PanelGroup 页签或滚动区；其高度始终采用 Theme 像素值，相邻边界不生成可命中的 Splitter。Layout 把 ToolBar 子树放到同级画家顺序末尾，因此 Popup 的绘制与命中都覆盖 Scene/Panel；Popup 还会向 DirectWrite 通道声明不透明遮挡区域，把更早绘制的 Panel 文字裁出菜单背景。级联目录靠近右边界时自动向左展开。
 
 `BaseNode` 实现属性根接口 `IProperty`，因此 XAML、即时声明和未来检查器只需面向统一的 `SetProperty` 协议。可选行为以 `unique_ptr<IBehavior>` 挂载到 `BehaviorNode`，`DragBehavior`、`ResizeBehavior`、`ScrollBehavior`、`DockBehavior` 分别独占自己的配置和运行时状态；交互宿主销毁时先取消捕获并释放行为，再释放视觉子树和 布局几何。
 
@@ -51,7 +55,7 @@ if (!result) {
 }
 ```
 
-当前 XAML 子集支持 `UI`、`Panel`、`Rect`，以及嵌套、自闭合标签、XML 声明、注释和常用实体。示例：
+当前 XAML 子集支持 `UI`、`Panel`、`PanelGroup`、`Rect`、`Text`、`Image`、`Scene`、`Terminal`、`Button`、`Toggle`、`Slider`（兼容别名 `Slide`）、`TextInput`、`TreeView`、`TreeItem`、`Menu`、`MenuItem` 和 `ToolBar`（兼容别名 `Toolbar`），以及嵌套、自闭合标签、XML 声明、注释和常用实体。示例：
 
 ```xml
 <UI Direction="Column">
@@ -60,6 +64,28 @@ if (!result) {
     <Rect Id="properties" FlexGrow="1" Margin="4" />
   </Panel>
 </UI>
+```
+
+常用控件通过统一属性协议配置：
+
+```xml
+<Button Text="Save" Enabled="true" />
+<Toggle Text="Visible" Checked="true" />
+<Slider Min="0" Max="100" Value="50" Step="5" />
+<TextInput Text="Cube" Placeholder="Object name" />
+<TreeView>
+  <TreeItem Text="Root" Expanded="true">
+    <TreeItem Text="Child" />
+  </TreeItem>
+</TreeView>
+<ToolBar Dock="Top" DockExtent="36">
+  <Menu Text="File">
+    <Menu Text="Open">
+      <MenuItem Text="Demo.slot" />
+    </Menu>
+    <MenuItem Text="Save" />
+  </Menu>
+</ToolBar>
 ```
 
 通用属性包括 `Id/Key/Name`、`Width/Height`、`MinWidth/MinHeight`、`MaxWidth/MaxHeight`、`FlexGrow/FlexShrink`、`Margin/Padding`、`Color` 和 `Direction="Row|Column"`。`Color` 接受 `#RRGGBB`、`#RRGGBBAA` 或 `r,g,b[,a]`。
@@ -110,6 +136,19 @@ Demo 的完整界面声明位于 `asset/xml/Main.xaml`，C++ 只负责创建场�
 z8::ui::ImmediateUI ui(Layout);
 ui.BeginFrame();
 
+if (ui.BeginToolBar("toolbar")) {
+  if (ui.BeginMenu("file", "File")) {
+    if (ui.BeginMenu("open", "Open")) {
+      if (ui.MenuItem("demo", "Demo.slot")) {
+        // 执行菜单命令。
+      }
+      ui.EndMenu();
+    }
+    ui.EndMenu();
+  }
+  ui.EndToolBar();
+}
+
 z8::ui::UIStyle panelStyle;
 panelStyle.Width = 360.0f;
 panelStyle.Height = 240.0f;
@@ -117,9 +156,17 @@ panelStyle.Padding = 8.0f;
 
 if (ui.BeginPanel("inspector", "Inspector", panelStyle)) {
   z8::ui::UIStyle row;
-  row.FlexGrow = 1.0f;
+  row.FlexGrow = 0.0f;
   row.Margin = 4.0f;
-  ui.Rect("properties", row);
+  bool visible = true;
+  float scale = 1.0f;
+  std::string name = "Cube";
+  ui.TextInput("name", name, "Object name", row);
+  ui.Toggle("visible", "Visible", visible);
+  ui.Slider("scale", scale, 0.1f, 4.0f);
+  if (ui.Button("apply", "Apply")) {
+    // 提交业务状态。
+  }
   ui.EndPanel();
 }
 
@@ -161,7 +208,7 @@ Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再�
 
 Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交管线。拖动期只更新 Payload、候选目标和半透明预览，不改变 Group 成员、节点 Style 或 DockTree。Panel 只有投到目标 PanelGroup 的空白标题栏时才成为该组的活动 Tab；投到内容 Center、已有跨组 Tab 或窗口外都会在 Commit 阶段创建新的单页 Floating Group，投到边缘则创建新的单页 Dock Group。同组已有 Tab 仍用于交换排列顺序。PanelGroup 投到 Center 或窗口外时整体 Floating，窗口外坐标不会被客户区夹紧，投到边缘时整体 Dock。边缘预览占目标区域的 30%，鼠标释放后的 Split 初始比例仍为 50%。Floating 或未被 DockTree 管理的节点仍可从边缘和四角拉伸；停靠 Panel 不允许通用 Resize 直接写几何，共享边界由 Splitter 仅修改 `SplitRatio`。
 
-每个 Floating PanelGroup 由独立的 Win32 顶层工具窗口承载，并使用自己的 DXGI 交换链、4x MSAA 颜色缓冲和 DirectWrite 包装目标，因此移出主窗口后仍可完整显示、调整尺寸和接收输入。原生宿主不拥有或复制 Panel：主 `Layout` 仍独占控件树与 Dock 状态，主窗口和浮动 HWND 只分别生成对应子树的绘制批次。浮动窗口输入先从屏幕坐标统一换算回主工作区 UI 坐标，因此拖回主窗口边缘或标题栏时继续复用相同的 Dock Target、Preview 和 MouseUp Commit 管线。
+每个 Floating PanelGroup 由独立的 Win32 顶层工具窗口承载，并使用自己的 DXGI 交换链、4x MSAA 颜色缓冲和 DirectWrite 包装目标，因此移出主窗口后仍可完整显示、调整尺寸和接收输入。原生宿主不拥有或复制 Panel：主 `Layout` 仍独占控件树与 Dock 状态，主窗口和浮动 HWND 只分别生成对应子树的绘制批次。主窗口与 Floating host 都通过 `DX12WindowSurface` 组合 `DX12SwapChain`、`DX12RenderTarget` 和 `DX12TextRenderer`，统一执行后备缓冲选择、MSAA Resolve、文字状态交接以及 resize 时的逆依赖释放/重建；设备、命令队列、RootSignature、PSO 和批处理仍由 `DX12Render` 共享。`DX12Buffer` 继续只表达顶点、索引、常量等线性资源，不混入交换链纹理职责。`Application` 与 Floating host 共享 `Win32WindowHost` 完成 WNDPROC 对象转发、指针捕获、拖动增量、键盘、滚轮和系统光标翻译。浮动窗口输入先从屏幕坐标统一换算回主工作区 UI 坐标，因此拖回主窗口边缘或标题栏时继续复用相同的 Dock Target、Preview 和 MouseUp Commit 管线。
 
 默认 `Drag.Region` 为 `TitleBar`。默认滚动总开关开启，仅允许垂直方向；水平滚动条为 `Hidden`，垂直滚动条为 `Auto`，滚轮步长为 40。Panel 根据内容范围计算并夹紧偏移；滚轮移动内容，轨道点击按一页移动，滑块拖拽通过指针捕获连续更新 value。`ScrollBarNode` 只管理 range/value 和滑块，不拥有内容，因而可被后续独立 ScrollView、列表和水平滚动复用。
 
@@ -181,7 +228,7 @@ Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交�
 
 ## 默认主题
 
-`Color` 集中定义中性暗灰表面、克制的蓝色强调、文字层级和反馈色；Panel、标题栏、输入背景和边界只用小幅明度差建立层级，减少大面积纯黑与高反差。`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、Icon、Button、Tab、ScrollBar、Panel 与 Demo 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Default()` 返回当前默认主题。Demo 的占位行沿用 Theme 默认 Surface，不在声明文件复制调色板。
+`Color` 集中定义中性暗灰表面、克制的蓝色强调、文字层级和反馈色；Panel、标题栏、输入背景和边界只用小幅明度差建立层级，减少大面积纯黑与高反差。`Theme::UnrealEditor()` 再把这些基础色映射为 Rect、Text、Icon、Button、Toggle、Slider、TextInput、TreeView、Tab、ScrollBar、Panel 与 Demo 的语义样式。控件构造时应用主题，XAML 或 Immediate UI 属性随后覆盖。`Theme::Default()` 返回当前默认主题。
 
 所有 `DrawNode` 支持像素单位的 `CornerRadius`/`Radius`。UI Shader 使用屏幕空间有符号距离场裁剪圆角并计算边框，因此半径和边框不会随控件缩放改变视觉重量；半径超过短边一半时会自动夹紧。
 
@@ -199,7 +246,7 @@ Rect 支持 `BorderColor` 与像素宽度的 `Border`/`BorderWidth`。边框在 
 
 `LayoutEngine` 计算父空间 left/top/width/height 后，`Layout` 累加父偏移得到绝对像素坐标。求解器支持 Row/Column、grow/shrink、min/max、统一 margin/padding、百分比宽度和四边绝对定位；样式与结果均由节点直接拥有，不经过第三方句柄或 C ABI。矩形原点在中心，因此位置转换为 `(left + width/2, top + height/2)`，缩放为 `(width, height)`；UI Shader 再将像素坐标映射到 NDC 并翻转 Y。
 
-`SceneNode` 是编辑器中央 3D 视口的布局与输入边界，自身不创建普通 `UIObject`，但组合了可绘制标题栏、标题文字和纯布局 Viewport。标题栏用于拖拽，外边界用于拉伸，只有 Viewport 内容区的指针输入继续交给相机和场景对象。DX12 后端把场景与 UI 几何绘制到同一 4x MSAA 颜色缓冲，SceneNode 的 viewport/scissor 约束 3D 内容范围，随后解析到单采样交换链并由 DirectWrite 叠加文字。默认 Demo 采用顶部工具栏、底部 Output Log、左侧 World Outliner、右侧 Details 和中央 SceneNode 的 UE 编辑器式布局。
+`SceneNode` 是编辑器中央 3D 视口的布局与输入边界，自身不创建普通 `UIObject`，但组合了可绘制标题栏、标题文字和纯布局 Viewport。标题栏用于拖拽，外边界用于拉伸，只有 Viewport 内容区的指针输入继续交给相机和场景对象。DX12 后端把场景与 UI 几何绘制到同一 4x MSAA 颜色缓冲，SceneNode 的 viewport/scissor 约束 3D 内容范围，随后解析到单采样交换链并由 DirectWrite 叠加文字。默认 Demo 采用顶部 ToolBar 多级菜单、底部 Output Log、左侧 World Outliner、右侧 Details 和中央 SceneNode 的 UE 编辑器式布局。
 
 FirstPersonCamera 当前默认关闭鼠标观察，等待编辑器视口补齐右键捕获、光标隐藏与恢复协议。Dock 候选在窗口客户区坐标中命中 Leaf，再以相对四分之一边区判定 Left/Right/Top/Bottom，中央 Center 区是 Floating 候选。移除 Panel 后的空 Leaf 会立即折叠其父 Split，并保留晋升子树的稳定 ID。`DockTree::Dump()` 和 `DockWorkspace::Validate()` 用于检查树结构、父子链接及 Docked/Floating 互斥不变量。
 
@@ -219,9 +266,9 @@ ctest --test-dir cmake-build-debug --output-on-failure
 ## 后续扩展
 
 - 为属性解析增加颜色、百分比、边级 margin/padding 和严格数值诊断。
-- 增加 Text 控件、字体图集和批量字形渲染，使 Panel 标题文字可见。
-- 建立 UI 专用 PSO，支持 alpha blend、scissor、z-order 和圆角。
-- 增加键盘焦点、Tab 导航、悬停/光标反馈及 XAML 事件绑定。
+- 增加 Tab/Shift+Tab 焦点导航、文本选区、剪贴板和完整 IME composition。
+- 为 TreeView 增加数据虚拟化和键盘上下行导航，支持大规模层级数据。
+- 增加 XAML 事件绑定和属性元数据生成。
 - 对大型界面把同级协调从顺序前缀扩展为 keyed move，降低大范围重排成本。
 
 ## 关键源码
@@ -235,6 +282,8 @@ ctest --test-dir cmake-build-debug --output-on-failure
 - `include/UI/Dock`、`src/UI/Dock`
 - `include/UI/Property/IProperty.h`
 - `include/UI/Style/Theme.h`
+- `include/Core/Win32WindowHost.h`、`src/Core/Win32WindowHost.cpp`
+- `include/Target/DirectX/DX12WindowSurface.h`、`src/Target/DirectX/DX12WindowSurface.cpp`
 - `src/UI/Layout/Layout.cpp`、`LayoutApplication.cpp`
 - `src/Target/DirectX/DX12Render.cpp`、`DX12RenderBatch.cpp`
 - `tests/UI/Controls`、`tests/UI/Layout`、`tests/UI/Declarative`

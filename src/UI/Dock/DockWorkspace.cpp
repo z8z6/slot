@@ -76,13 +76,19 @@ void DockWorkspace::BuildInitialTree(const std::vector<BaseNode *> &panels,
         dock->Properties.Placement != DockPlacement::Fill;
     const float requested =
         explicitExtent ? dock->Properties.Extent : axisExtent * 0.5f;
+    // 固定高度 ToolBar 在高窗口中可能小于 5%；初始比例只防止零尺寸，真实
+    // 下限由节点 MinWidth/MinHeight 和交互式 splitter 约束维护。
     const float newRatio =
-        axisExtent > 0.0f ? std::clamp(requested / axisExtent, 0.05f, 0.95f)
+        axisExtent > 0.0f ? std::clamp(requested / axisExtent, 0.001f, 0.999f)
                           : 0.5f;
     transaction.SplitRatio = transaction.TargetSide == DockSide::Right ||
                                      transaction.TargetSide == DockSide::Bottom
                                  ? 1.0f - newRatio
                                  : newRatio;
+    if (dock && !dock->Properties.Resizable) {
+      transaction.FixedExtent = requested;
+      transaction.SplitterResizable = false;
+    }
     Tree.Commit(transaction);
     States[panel] = {PanelPlacement::Docked, Tree.FindPanelLeaf(panel)->ID, {}};
   }
