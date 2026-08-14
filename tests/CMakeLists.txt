@@ -12,6 +12,7 @@ FetchContent_MakeAvailable(googletest)
 # 创建 HWND 或图形设备。
 add_library(slot_test_runtime STATIC
         ../src/Core/Event.cpp
+        ../src/Core/ScenePicker.cpp
         ../src/UI/Dock/DockTree.cpp
         ../src/UI/Dock/DockWorkspace.cpp
         ../src/UI/Behavior/DockBehavior.cpp
@@ -26,6 +27,7 @@ add_library(slot_test_runtime STATIC
         ../src/UI/Layout/BehaviorNode.cpp
         ../src/UI/Layout/ButtonNode.cpp
         ../src/UI/Layout/DrawNode.cpp
+        ../src/UI/Layout/FileExplorerNode.cpp
         ../src/UI/Layout/Layout.cpp
         ../src/UI/Layout/LayoutEngine.cpp
         ../src/UI/Layout/ImageNode.cpp

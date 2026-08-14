@@ -1,6 +1,7 @@
 #include "UI/Declarative/XamlLoader.h"
 #include "Object/UIObject/UIObject.h"
 #include "UI/Layout/ButtonNode.h"
+#include "UI/Layout/FileExplorerNode.h"
 #include "UI/Layout/ImageNode.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/MenuNode.h"
@@ -158,6 +159,20 @@ TEST(XamlLoaderTest, CreatesCommonControlsAndNestedTreeItems) {
   EXPECT_EQ(childItem->Parent, rootItem->ItemsNode);
   layout.Calculate(800.0f, 600.0f);
   EXPECT_EQ(tree->SelectedItem, childItem);
+}
+
+TEST(XamlLoaderTest, CreatesFileExplorerAsSpecializedTreeView) {
+  Layout layout;
+  const auto result = XamlLoader().LoadInto(
+      layout,
+      "<UI><FileExplorer Id=\"files\" RootPath=\"asset\" "
+      "ShowHidden=\"false\" /></UI>");
+  ASSERT_TRUE(result) << result.Error;
+
+  auto* explorer = dynamic_cast<FileExplorerNode*>(layout.Find("files"));
+  ASSERT_NE(explorer, nullptr);
+  EXPECT_EQ(explorer->RootPath, std::filesystem::path("asset"));
+  EXPECT_FALSE(explorer->ShowHidden);
 }
 
 TEST(XamlLoaderTest, CreatesToolBarWithCascadingMenus) {

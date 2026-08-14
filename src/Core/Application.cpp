@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "Core/Event.h"
+#include "Core/ScenePicker.h"
 #include "Light/Light.h"
 #include "Light/ParallelLight.h"
 #include "Object/Camera/Camera.h"
@@ -16,6 +17,7 @@
 #include "Object/Object.h"
 #include "Phys/Collider.h"
 #include "UI/Declarative/XamlHotReload.h"
+#include "UI/Layout/SceneNode.h"
 
 #include <dwmapi.h>
 
@@ -71,10 +73,11 @@ int z8::Application::Run() {
       App->ShowFrame();
       if (App->XamlReload) {
         const auto status = App->XamlReload->Poll(App->Layout);
-        if (status == ui::XamlReloadStatus::Reloaded)
+        if (status == ui::XamlReloadStatus::Reloaded) {
+          App->OnLayoutReloaded();
           App->Layout.WriteTerminal("[XAML] Reloaded: " +
                                     App->XamlReload->GetPath().string());
-        else if (status == ui::XamlReloadStatus::Failed)
+        } else if (status == ui::XamlReloadStatus::Failed)
           App->Layout.WriteTerminal("[XAML] Reload failed: " +
                                     App->XamlReload->GetLastError());
       }
@@ -93,7 +96,15 @@ bool Application::EnableXamlHotReload(const std::string &fileName) {
   if (reload->Poll(Layout) != ui::XamlReloadStatus::Reloaded)
     return false;
   XamlReload = std::move(reload);
+  OnLayoutReloaded();
   return true;
+}
+
+void Application::SelectSceneObject(GameObject *object) {
+  if (SelectedSceneObject == object)
+    return;
+  SelectedSceneObject = object;
+  OnSceneSelectionChanged(SelectedSceneObject);
 }
 
 LRESULT Application::HandleWindowMessage(HWND Wnd, UINT Msg, WPARAM wParam,
@@ -285,6 +296,18 @@ EventReply Application::OnMouseDown(MouseMovArgs args) {
   const auto reply = Layout.OnMouseDown(args);
   if (reply != EventReply::Ignored)
     return reply;
+  if (args.Button == MouseButton::Left) {
+    auto *sceneNode = Layout.GetSceneNode();
+    auto *camera = ActiveScene.GetCamera();
+    if (sceneNode && camera) {
+      const auto &viewport = sceneNode->Viewport();
+      const ScenePickRect pickRect{viewport.Left, viewport.Top, viewport.Width,
+                                   viewport.Height};
+      SelectSceneObject(ScenePicker::Pick(
+          ActiveScene, Resources, *camera, pickRect,
+          static_cast<float>(args.X), static_cast<float>(args.Y)));
+    }
+  }
   ForEachSceneObject([&](Object &object) { object.OnMouseDown(args); });
   return EventReply::Handled;
 }

@@ -3,6 +3,7 @@
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/BehaviorNode.h"
 #include "UI/Layout/ButtonNode.h"
+#include "UI/Layout/FileExplorerNode.h"
 #include "UI/Layout/ImageNode.h"
 #include "UI/Layout/MenuNode.h"
 #include "UI/Layout/PanelGroupNode.h"
@@ -34,6 +35,7 @@ ControlFactory::ControlFactory() {
   Register("TextInput", [] { return std::make_unique<TextInputNode>(); });
   Register("TreeView", [] { return std::make_unique<TreeViewNode>(); });
   Register("TreeItem", [] { return std::make_unique<TreeViewItemNode>(); });
+  Register("FileExplorer", [] { return std::make_unique<FileExplorerNode>(); });
   Register("Menu", [] { return std::make_unique<MenuNode>(); });
   Register("MenuItem", [] { return std::make_unique<MenuItemNode>(); });
   Register("ToolBar", [] { return std::make_unique<ToolBarNode>(); });

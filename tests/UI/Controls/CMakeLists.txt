@@ -2,6 +2,7 @@
 slot_add_test_target(slot_ui_controls_tests
         BaseNodeTest.cpp
         BasicControlsTest.cpp
+        FileExplorerNodeTest.cpp
         ImageNodeTest.cpp
         MenuNodeTest.cpp
         PanelNodeTest.cpp

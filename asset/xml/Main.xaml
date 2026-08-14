@@ -26,25 +26,24 @@
   <Terminal Id="terminal" Title="Output Log" Dock="Bottom"
             DockExtent="180" />
 
-  <Panel Id="outliner" Title="World Outliner" Dock="Left"
-         DockExtent="260">
-    <TreeView Id="scene-tree">
-      <TreeItem Id="environment" Text="Environment">
-        <TreeItem Id="sun" Text="Directional Light" />
-        <TreeItem Id="mountains" Text="Mountains" />
-      </TreeItem>
-      <TreeItem Id="actors" Text="Actors">
-        <TreeItem Id="cube" Text="Cube" Selected="true" />
-        <TreeItem Id="camera" Text="Player Camera" />
-      </TreeItem>
-    </TreeView>
-  </Panel>
+  <PanelGroup Id="left-browser" Dock="Left" DockExtent="280">
+    <Panel Id="content-browser" Title="Content Browser">
+      <FileExplorer Id="file-explorer" RootPath="asset" FlexGrow="1" />
+    </Panel>
+    <Panel Id="world-outliner" Title="World Outliner">
+      <!-- 场景对象由 DemoApplication 在装载后写入，TreeView 不拥有业务对象。 -->
+      <TreeView Id="scene-hierarchy" FlexGrow="1" />
+    </Panel>
+  </PanelGroup>
 
   <Panel Id="details" Title="Details" Dock="Right" DockExtent="300">
-    <TextInput Id="object-name" Text="Cube" Placeholder="Object name" />
-    <Toggle Id="object-visible" Text="Visible" Checked="true" />
-    <Slider Id="object-scale" Min="0.1" Max="4" Value="1" Step="0.1" />
-    <Button Id="reset-transform" Text="Reset Transform" />
+    <Text Id="details-name" Text="No object selected" />
+    <Text Id="details-type" Text="Type: -" />
+    <Text Id="details-mesh" Text="Mesh: -" />
+    <Text Id="details-transform" Text="Transform" />
+    <Text Id="details-position" Text="Position: -" />
+    <Text Id="details-rotation" Text="Rotation: -" />
+    <Text Id="details-scale" Text="Scale: -" />
   </Panel>
   <Scene Id="scene-viewport" Title="Perspective" Dock="Fill" />
 </UI>

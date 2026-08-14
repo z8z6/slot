@@ -28,7 +28,7 @@ flowchart LR
 
 `PanelNode` 由背景视觉、`TextNode` 标题和 `ScrollNode` 内容区组成。`TerminalNode` 在 Panel 基础上维护限长消息队列与稳定输出 TextNode，用作编辑器底部 Output Log；拖拽与拉伸的开始、移动、最小尺寸阻止和结束消息由 Layout 统一写入。新增消息完成布局后，Terminal 自动把滚动偏移更新到最新的最大值，始终显示最后一行。`ScrollNode` 独立封装 viewport/content/scrollbar 与 `ScrollBehavior`，并由 `TreeViewNode` 复用。`TextNode` 只保存 UTF-8 文本与排版属性，布局完成后由 DirectWrite 文字通道在 DX12 UI 几何之上绘制；D3D11On12 负责共享交换链缓冲和同步，文字不伪装成矩形网格资源。
 
-`ButtonNode`、`ToggleNode`、`SliderNode`、`TextInputNode`、`TreeViewNode/TreeViewItemNode`、`MenuNode/MenuItemNode` 和 `ToolBarNode` 是当前常用原生控件。可操作控件继承 `BehaviorNode` 的 Hover、Pressed、Focused 状态；Layout 保证单窗口只有一个键盘焦点，并把 KeyDown/KeyUp 和 WM_CHAR 转换后的字符送给焦点控件。TextInput 内部以 UTF-8 保存业务字符串，以 WM_CHAR 的 UTF-16 字符单元进入平台边界；TreeView 只拥有展开和唯一选择状态，不接管调用方业务数据生命周期。
+`ButtonNode`、`ToggleNode`、`SliderNode`、`TextInputNode`、`TreeViewNode/TreeViewItemNode`、`FileExplorerNode`、`MenuNode/MenuItemNode` 和 `ToolBarNode` 是当前常用原生控件。可操作控件继承 `BehaviorNode` 的 Hover、Pressed、Focused 状态；Layout 保证单窗口只有一个键盘焦点，并把 KeyDown/KeyUp 和 WM_CHAR 转换后的字符送给焦点控件。TextInput 内部以 UTF-8 保存业务字符串，以 WM_CHAR 的 UTF-16 字符单元进入平台边界；TreeView 只拥有展开和唯一选择状态，不接管调用方业务数据生命周期。FileExplorer 是 TreeView 的文件系统投影，只缓存行到路径的映射，不读取文件内容，也不承担资源导入业务。
 
 Menu 使用同一个 `MenuNode` 表达 ToolBar 顶层入口和任意深度的级联目录，叶子命令由 `MenuItemNode` 表达。每级 Popup 是保留式树中的绝对布局子节点，展开只切换可见性，不分配控件或重建 GPU 资源；点击目录外或激活叶子项会关闭整个层级。ToolBar 直接以固定 Top Dock 节点进入 DockTree，不再创建 Panel 标题、PanelGroup 页签或滚动区；其高度始终采用 Theme 像素值，相邻边界不生成可命中的 Splitter。Layout 把 ToolBar 子树放到同级画家顺序末尾，因此 Popup 的绘制与命中都覆盖 Scene/Panel；Popup 还会向 DirectWrite 通道声明不透明遮挡区域，把更早绘制的 Panel 文字裁出菜单背景。级联目录靠近右边界时自动向左展开。
 
@@ -55,7 +55,7 @@ if (!result) {
 }
 ```
 
-当前 XAML 子集支持 `UI`、`Panel`、`PanelGroup`、`Rect`、`Text`、`Image`、`Scene`、`Terminal`、`Button`、`Toggle`、`Slider`（兼容别名 `Slide`）、`TextInput`、`TreeView`、`TreeItem`、`Menu`、`MenuItem` 和 `ToolBar`（兼容别名 `Toolbar`），以及嵌套、自闭合标签、XML 声明、注释和常用实体。示例：
+当前 XAML 子集支持 `UI`、`Panel`、`PanelGroup`、`Rect`、`Text`、`Image`、`Scene`、`Terminal`、`Button`、`Toggle`、`Slider`（兼容别名 `Slide`）、`TextInput`、`TreeView`、`TreeItem`、`FileExplorer`、`Menu`、`MenuItem` 和 `ToolBar`（兼容别名 `Toolbar`），以及嵌套、自闭合标签、XML 声明、注释和常用实体。示例：
 
 全部控件、公共属性、Behavior 属性、别名和合法取值见
 [UI 控件属性参考](Properties.md)。该参考以当前 `SetProperty` 解析代码为准，
@@ -82,6 +82,7 @@ if (!result) {
     <TreeItem Text="Child" />
   </TreeItem>
 </TreeView>
+<FileExplorer RootPath="asset" ShowHidden="false" />
 <ToolBar Dock="Top" DockExtent="36">
   <Menu Text="File">
     <Menu Text="Open">
@@ -133,6 +134,8 @@ ControlFactory::Instance().Register("MyControl", [] {
 当前是刻意收敛的 XAML 子集，尚不支持 XML 命名空间、属性元素、数据绑定、资源字典和文本内容。
 
 Demo 的完整界面声明位于 `asset/xml/Main.xaml`，C++ 只负责创建场景和启用声明入口。`Application::EnableXamlHotReload()` 在首次解析成功后逐帧检查文件签名；保存 XML 后，下一帧会先构造并验证一棵新控件树，再整体替换当前 `Layout`。解析失败只向 Output Log 写入英文诊断并保留上一棵有效树，文件再次保存后自动重试。监视和替换都发生在渲染主线程的布局计算之前，因此不会让 DX12 批次观察到半更新的节点所有权。
+
+Demo 左侧 `PanelGroup` 包含 Content Browser 与 World Outliner 两页。XAML 只声明空的场景 TreeView，`DemoApplication` 在每次成功装载后从 `Scene` 生成层级项并重新绑定选择回调。点击层级项或 SceneViewport 中的 Mesh 都提交到同一个 `SelectedSceneObject`；视口拾取在点击时把屏幕射线变换到对象局部空间并寻找最近三角形，不进入逐帧渲染热路径。右侧 Details Panel 随后显示对象类型、Mesh 资源 ID 和 Transform。
 
 ## ImGui 风格声明
 

@@ -137,6 +137,7 @@ Scroll 和 Dock 属性组。“专属属性”列列出该控件额外接受的�
 | `Slider` / `Slide` | L + V | `Minimum`、`Min`、`Maximum`、`Max`、`Value`、`Step`、`Enabled` | `Slide` 仅是标签别名，运行时仍为 Slider |
 | `TextInput` | L + V | `Text`、`Value`、`Placeholder`、`Hint`、`Enabled` | `Text/Value`、`Placeholder/Hint` 分别为别名 |
 | `TreeView` | L + S | 无 | 复用无根矩形的 ScrollNode |
+| `FileExplorer` | L + S | `RootPath`/`Path`、`ShowHidden` | 基于 TreeView 的只读文件目录浏览器 |
 | `TreeItem` | L + V | `Text`、`Label`、`Expanded`、`Selected`、`Enabled` | 只能作为 TreeView/TreeItem 的层级项使用 |
 | `Menu` | L + V | `Text`、`Label`、`Open`、`Expanded`、`Enabled` | `Open/Expanded` 为别名 |
 | `MenuItem` | L + V | `Text`、`Label`、`Enabled` | 叶子命令项 |
@@ -239,6 +240,17 @@ Min 与 Max 的设置顺序不影响最终范围有效性。为避免 `Value` �
 
 只接受 L + S。声明的 `TreeItem` 会进入内部滚动 Content；TreeView 自己管理
 唯一选择项，但没有 `SelectedItem` 字符串属性。
+
+### `FileExplorer`
+
+继承 TreeView 的 L + S 属性，并由控件扫描目录生成 TreeItem；调用方仍负责文件
+打开、导入等业务行为。目录排在文件之前，同类按文件名排序，扫描不会跟随目录
+符号链接。
+
+| 属性 | 含义 | 合法值与约束 |
+| --- | --- | --- |
+| `RootPath` / `Path` | 显示的根目录 | UTF-8 文件系统路径；不存在时显示禁用的 `(not found)` 根项 |
+| `ShowHidden` | 是否显示名称以 `.` 开头的项 | 布尔值；默认 `false` |
 
 ### `TreeItem`
 
@@ -360,4 +372,3 @@ TreeView、TreeItem 或显式 PanelGroup 的强类型声明函数。
 | `TopLevel` | Menu 根据父节点自动推导 |
 | `DockResizable` | DockProperty 内部字段，未接入 SetProperty |
 | `HorizontalOffset`、`VerticalOffset` | ScrollBehavior 运行时状态，未接入 SetProperty |
-

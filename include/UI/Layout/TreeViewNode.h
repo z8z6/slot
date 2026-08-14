@@ -47,7 +47,7 @@ private:
 };
 
 /** 可滚动层级列表；拥有唯一选择项，但不接管 TreeItem 的业务数据生命周期。 */
-class TreeViewNode final : public ScrollNode {
+class TreeViewNode : public ScrollNode {
 public:
   TreeViewItemNode *SelectedItem = nullptr;
   std::function<void(TreeViewItemNode *)> SelectionChanged;
