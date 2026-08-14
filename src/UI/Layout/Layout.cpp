@@ -62,6 +62,23 @@ bool IsMinimumBlocked(const ResizeBehavior &resize, const BehaviorNode &node,
   return (widthAtMinimum && blocksWidth) || (heightAtMinimum && blocksHeight);
 }
 
+/**
+ * 查找当前像素真正声明为可拉伸的最内层祖先。
+ *
+ * Resize 边框是外层窗口能力，可能与内部 scrollbar、tab 或场景 viewport
+ * 重叠。光标和按下必须共享这次仲裁，否则会显示 resize 光标却把捕获交给
+ * 子控件。Dock splitter 和 popup 的更高层优先级仍由 Layout::OnMouseDown 决定。
+ */
+BehaviorNode *FindResizeHandler(BaseNode *target, const MouseMovArgs &args) {
+  for (auto *node = target; node; node = node->Parent) {
+    auto *behavior = dynamic_cast<BehaviorNode *>(node);
+    auto *resize = behavior ? behavior->GetBehavior<ResizeBehavior>() : nullptr;
+    if (resize && resize->HitTest(args) != ResizeRegion::None)
+      return behavior;
+  }
+  return nullptr;
+}
+
 } // namespace
 
 Layout::Layout() : Root(std::make_unique<BehaviorNode>()) {
@@ -314,37 +331,38 @@ EventReply Layout::OnMouseDown(MouseMovArgs args) {
     SetFocusedHandler(nullptr);
     return EventReply::Ignored;
   }
-  if (target->RoutesToScene()) {
+  auto *resizeHandler =
+      args.Button == MouseButton::Left && !targetsMenuOverlay
+          ? FindResizeHandler(target, args)
+          : nullptr;
+  if (target->RoutesToScene() && !resizeHandler) {
     SetFocusedHandler(nullptr);
-    // Scene 内容区通常透传给相机，但外层 SceneNode 的缩放边框与内容相交。
-    // 光标命中缩放方向时优先启动 UI 几何手势，否则才把按键留给 3D 场景。
-    for (auto *node = target->Parent; node; node = node->Parent) {
-      auto *behavior = dynamic_cast<BehaviorNode *>(node);
-      if (!behavior || behavior->QueryMouseCursor(args) == MouseCursor::Arrow)
-        continue;
-      const auto reply = behavior->DispatchMouseDown(args);
-      if (reply == EventReply::Capture) {
-        CapturedTarget = target;
-        CapturedHandler = behavior;
-      }
-      return reply;
-    }
     return EventReply::Ignored;
   }
 
   CapturedTarget = target;
   BehaviorNode *handledNode = nullptr;
-  // 输入只属于节点和 Behavior；UIObject 是渲染数据，不再接收重复事件。
-  for (auto *node = target; node; node = node->Parent) {
-    auto *behavior = dynamic_cast<BehaviorNode *>(node);
-    if (!behavior)
-      continue;
-    const auto reply = behavior->DispatchMouseDown(args);
+  if (resizeHandler) {
+    // 外框拉伸与 splitter 一样先于内容控件；这也覆盖 RoutesToScene 的
+    // viewport 边缘，而内容中央仍继续透传给相机。
+    const auto reply = resizeHandler->DispatchMouseDown(args);
     if (reply == EventReply::Capture)
-      CapturedHandler = behavior;
-    if (reply != EventReply::Ignored) {
-      handledNode = behavior;
-      break;
+      CapturedHandler = resizeHandler;
+    if (reply != EventReply::Ignored)
+      handledNode = resizeHandler;
+  } else {
+    // 输入只属于节点和 Behavior；UIObject 是渲染数据，不再接收重复事件。
+    for (auto *node = target; node; node = node->Parent) {
+      auto *behavior = dynamic_cast<BehaviorNode *>(node);
+      if (!behavior)
+        continue;
+      const auto reply = behavior->DispatchMouseDown(args);
+      if (reply == EventReply::Capture)
+        CapturedHandler = behavior;
+      if (reply != EventReply::Ignored) {
+        handledNode = behavior;
+        break;
+      }
     }
   }
   if (args.Button == MouseButton::Left && handledNode) {
@@ -726,6 +744,12 @@ bool Layout::ConsumeDirty() {
   const bool result = Dirty;
   Dirty = false;
   return result;
+}
+
+bool Layout::ContainsNode(const BaseNode *node) const {
+  // Floating HWND 的销毁晚于 Dock 提交一帧；这里只比较地址而不访问对象，
+  // 因而旧宿主可安全判断观察目标是否已随 RebuildIndex 被回收。
+  return node && std::find(Nodes.begin(), Nodes.end(), node) != Nodes.end();
 }
 
 std::vector<GameObject *> Layout::GetUO() const {

@@ -298,10 +298,9 @@ PanelGroupNode::PanelGroupNode() {
   PagesNode->ClipChildren = true;
   BaseNode::AddChild(std::move(pages));
 
-  // 只有 Tab 与关闭按钮之间的空白标题区可启动 Group 拖动，因此输入
-  // 优先级不依赖 Behavior 注册顺序，Panel 内容也不会误触发拖动。
-  auto *drag = AddBehavior<DragBehavior>();
-  drag->SetHandle(DragHandleNode);
+  // 空白标题区只承担视觉填充；Dock 手势必须从具体 Panel tab 开始，避免
+  // 用户移动 Floating 原生窗口时意外触发整组 Dock 预览。Floating host 会把
+  // 该区域映射为 HTCAPTION，Docked Group 点击这里则保持静默。
   auto *resize = AddBehavior<ResizeBehavior>();
   ResizeProperty resizeProperty;
   resizeProperty.MinWidth = style.MinWidth;

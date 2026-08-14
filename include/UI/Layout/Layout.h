@@ -62,6 +62,10 @@ public:
   void ActivateFloating(BaseNode &node);
   void MarkDirty() { Dirty = true; }
   bool ConsumeDirty();
+  /**
+   * 仅按地址确认非拥有节点是否仍在当前树中；允许调用方传入已失效但不解引用的观察指针。
+   */
+  bool ContainsNode(const BaseNode *node) const;
   void SetRoot(std::unique_ptr<BaseNode> root);
   std::vector<GameObject *> GetUO() const;
   /** 主 HWND 只绘制 DockTree 内容；Floating 子树由各自原生宿主呈现。 */

@@ -26,6 +26,7 @@ TEST(TerminalNodeTest, ReceivesPanelDragMessagesFromLayout) {
   Layout layout;
   auto panel = std::make_unique<PanelNode>();
   auto terminal = std::make_unique<TerminalNode>();
+  auto *panelObserver = panel.get();
   auto *terminalObserver = terminal.get();
   terminal->GetBehavior<DockBehavior>()->Properties.Placement =
       DockPlacement::Bottom;
@@ -38,13 +39,17 @@ TEST(TerminalNodeTest, ReceivesPanelDragMessagesFromLayout) {
   MouseMovArgs pointer;
   pointer.State = MK_LBUTTON;
   pointer.Button = MouseButton::Left;
-  pointer.X = 100;
-  pointer.Y = 16;
+  pointer.X =
+      static_cast<int>(panelObserver->Group->Tabs.front()->Left + 12.0f);
+  pointer.Y =
+      static_cast<int>(panelObserver->Group->Tabs.front()->Top + 12.0f);
+  const int startX = pointer.X;
+  const int startY = pointer.Y;
   ASSERT_NE(layout.OnMouseDown(pointer), EventReply::Ignored);
   pointer.X = 790;
   pointer.Y = 100;
-  pointer.DeltaX = 690;
-  pointer.DeltaY = 84;
+  pointer.DeltaX = pointer.X - startX;
+  pointer.DeltaY = pointer.Y - startY;
   ASSERT_NE(layout.OnMouseDrag(pointer), EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(pointer), EventReply::Ignored);
 

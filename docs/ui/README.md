@@ -197,7 +197,7 @@ Panel（可渲染背景，Column）
 
 Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再覆写鼠标事件或保存手势状态。启用 Dock 的独立 Panel 会自动归入一个单页 `PanelGroupNode`，DockTree 始终以 Group 为最小窗口单元。`DockWorkspace` 持有单窗口的 `DockTree`：Split 节点保存轴向和比例，Leaf 只保存一个 Dock 项。`Dock="Left|Right|Top|Bottom|Fill"` 只用于初次构建结构，运行时几何唯一由树递归计算。拖到 Leaf 中心或无目标区域会创建 Floating 窗口，拖到边缘则创建 Split；标题栏投放不会跨 Group 合并 Tab。
 
-`PanelGroupNode` 表达一个或多个 Panel 的页签组，它自身作为一个 Dock 项参与布局。标题栏按 Tab、空白拖动区、关闭按钮组织：Tab 根据 UTF-8 标题的估算字形宽度和固定左右留白确定长度，不再均分标题栏；活动 Tab 使用抬升背景、亮色文字和底部蓝色指示线。点击 Tab 切换活动页，拖动 Tab 以单个 Panel 为 Payload，拖动空白区则以整个 PanelGroup 为 Payload，关闭按钮移除整个 Group。内容区保留所有页面状态，但只更新、显示和命中当前活动 Panel；XAML 仍可显式声明初始多页组：
+`PanelGroupNode` 表达一个或多个 Panel 的页签组，它自身作为一个 Dock 项参与布局。标题栏按 Tab、空白区、关闭按钮组织：Tab 根据 UTF-8 标题的估算字形宽度和固定左右留白确定长度，不再均分标题栏；活动 Tab 使用抬升背景、亮色文字和底部蓝色指示线。点击 Tab 切换活动页，只有拖动 Tab 才会以单个 Panel 创建 Dock Payload；空白标题区不创建 Group Dock 手势，在 Floating HWND 中只作为原生窗口标题栏移动窗口，关闭按钮移除整个 Group。内容区保留所有页面状态，但只更新、显示和命中当前活动 Panel；XAML 仍可显式声明初始多页组：
 
 ```xml
 <PanelGroup Id="editors">
@@ -206,9 +206,9 @@ Panel 默认组装 Drag、Resize、Scroll、Dock 四个行为，但自身不再�
 </PanelGroup>
 ```
 
-Panel 与 PanelGroup 共用同一个 DragSession、目标检测和事务提交管线。拖动期只更新 Payload、候选目标和半透明预览，不改变 Group 成员、节点 Style 或 DockTree。Panel 只有投到目标 PanelGroup 的空白标题栏时才成为该组的活动 Tab；投到内容 Center、已有跨组 Tab 或窗口外都会在 Commit 阶段创建新的单页 Floating Group，投到边缘则创建新的单页 Dock Group。同组已有 Tab 仍用于交换排列顺序。PanelGroup 投到 Center 或窗口外时整体 Floating，窗口外坐标不会被客户区夹紧，投到边缘时整体 Dock。边缘预览占目标区域的 30%，鼠标释放后的 Split 初始比例仍为 50%。Floating 或未被 DockTree 管理的节点仍可从边缘和四角拉伸；停靠 Panel 不允许通用 Resize 直接写几何，共享边界由 Splitter 仅修改 `SplitRatio`。
+Panel tab 共用同一个 DragSession、目标检测和事务提交管线。拖动期只更新 Payload、候选目标和半透明预览，不改变 Group 成员、节点 Style 或 DockTree。Panel 只有投到目标 PanelGroup 的空白标题栏时才成为该组的活动 Tab；投到内容 Center、已有跨组 Tab 或窗口外都会在 Commit 阶段创建新的单页 Floating Group，投到边缘则创建新的单页 Dock Group。同组已有 Tab 仍用于交换排列顺序。PanelGroup 空白标题区不进入这条管线，因此移动 Floating 原生窗口不会显示 Dock preview；窗口外的 Panel Floating 坐标不会被客户区夹紧。边缘预览占目标区域的 30%，鼠标释放后的 Split 初始比例仍为 50%。Floating 或未被 DockTree 管理的节点仍可从边缘和四角拉伸；停靠 Panel 不允许通用 Resize 直接写几何，共享边界由 Splitter 仅修改 `SplitRatio`。
 
-每个 Floating PanelGroup 由独立的 Win32 顶层工具窗口承载，并使用自己的 DXGI 交换链、4x MSAA 颜色缓冲和 DirectWrite 包装目标，因此移出主窗口后仍可完整显示、调整尺寸和接收输入。原生宿主不拥有或复制 Panel：主 `Layout` 仍独占控件树与 Dock 状态，主窗口和浮动 HWND 只分别生成对应子树的绘制批次。主窗口与 Floating host 都通过 `DX12WindowSurface` 组合 `DX12SwapChain`、`DX12RenderTarget` 和 `DX12TextRenderer`，统一执行后备缓冲选择、MSAA Resolve、文字状态交接以及 resize 时的逆依赖释放/重建；设备、命令队列、RootSignature、PSO 和批处理仍由 `DX12Render` 共享。`DX12Buffer` 继续只表达顶点、索引、常量等线性资源，不混入交换链纹理职责。`Application` 与 Floating host 共享 `Win32WindowHost` 完成 WNDPROC 对象转发、指针捕获、拖动增量、键盘、滚轮和系统光标翻译。浮动窗口输入先从屏幕坐标统一换算回主工作区 UI 坐标，因此拖回主窗口边缘或标题栏时继续复用相同的 Dock Target、Preview 和 MouseUp Commit 管线。
+每个 Floating Dock item 由独立的 Win32 顶层工具窗口承载，并使用自己的 DXGI 交换链、4x MSAA 颜色缓冲和 DirectWrite 包装目标，因此移出主窗口后仍可完整显示、调整尺寸和接收输入。原生宿主不拥有或复制控件：主 `Layout` 仍独占控件树与 Dock 状态，主窗口和浮动 HWND 只分别生成对应子树的绘制批次。主窗口与 Floating host 都通过 `DX12WindowSurface` 组合 `DX12SwapChain`、`DX12RenderTarget` 和 `DX12TextRenderer`，统一执行后备缓冲选择、MSAA Resolve、文字状态交接以及 resize 时的逆依赖释放/重建；设备、命令队列、RootSignature、PSO 和批处理仍由 `DX12Render` 共享。Floating SceneNode 另外持有按自身客户区尺寸创建的 `DX12DepthStencil`，使用本地 viewport 绘制共享 3D 批次，因此 Center/Floating 和边缘 Dock 的提交语义与 Panel 一致。`DX12Buffer` 继续只表达顶点、索引、常量等线性资源，不混入交换链纹理职责。`Application` 与 Floating host 共享 `Win32WindowHost` 完成 WNDPROC 对象转发、指针捕获、拖动增量、键盘、滚轮和系统光标翻译。Floating HWND 通过 `WM_NCHITTEST` 把客户区内外的完整四边和四角统一映射到 Win32 resize，并把 PanelGroup 空白标题区映射为 `HTCAPTION`；Panel tab 仍进入 Layout 的 Dock Target、Preview 和 MouseUp Commit 管线，二者不会竞争捕获。Panel 合并到其他 Group 后，旧 Floating HWND 会延迟到下一帧安全销毁；期间 Host 只按地址查询 `Layout::ContainsNode`，确认节点仍存活后才访问非拥有的 Root/Group/Scene，避免系统补发消息解引用已析构节点。
 
 默认 `Drag.Region` 为 `TitleBar`。默认滚动总开关开启，仅允许垂直方向；水平滚动条为 `Hidden`，垂直滚动条为 `Auto`，滚轮步长为 40。Panel 根据内容范围计算并夹紧偏移；滚轮移动内容，轨道点击按一页移动，滑块拖拽通过指针捕获连续更新 value。`ScrollBarNode` 只管理 range/value 和滑块，不拥有内容，因而可被后续独立 ScrollView、列表和水平滚动复用。
 
@@ -250,7 +250,7 @@ Rect 支持 `BorderColor` 与像素宽度的 `Border`/`BorderWidth`。边框在 
 
 FirstPersonCamera 当前默认关闭鼠标观察，等待编辑器视口补齐右键捕获、光标隐藏与恢复协议。Dock 候选在窗口客户区坐标中命中 Leaf，再以相对四分之一边区判定 Left/Right/Top/Bottom，中央 Center 区是 Floating 候选。移除 Panel 后的空 Leaf 会立即折叠其父 Split，并保留晋升子树的稳定 ID。`DockTree::Dump()` 和 `DockWorkspace::Validate()` 用于检查树结构、父子链接及 Docked/Floating 互斥不变量。
 
-相邻停靠节点共享的边界可直接拉伸：Layout 先于 Panel Behavior 命中 Splitter，DockTree 按当前客户区坐标换算比例，并同时夹紧两个子树的最小尺寸。Panel 可释放到参与同一 DockSpace 的 Panel 或 SceneNode 上重新选择方向。窗口最外侧 6 个 DPI 缩放像素则保留给 Win32 非客户区命中测试，避免外层 Panel 的缩放边缘抢占整个应用窗口的系统拉伸手势。
+相邻停靠节点共享的边界可直接拉伸：Layout 先于 Panel Behavior 命中 Splitter，DockTree 按当前客户区坐标换算比例，并同时夹紧两个子树的最小尺寸。非窗口、非 Dock 节点的外框 Resize 同样先于重叠的 scrollbar、tab 和 scene viewport 仲裁；原生 Floating HWND 的全部可见边缘则只由 `WM_NCHITTEST` 和 `WS_THICKFRAME` 拉伸，避免 UI Resize 与窗口状态机竞争，保证左/上边缘改变原点时仍连续生效。Panel 与 SceneNode 都可释放到参与同一 DockSpace 的叶节点上重新选择方向。主窗口最外侧 6 个 DPI 缩放像素同样保留给 Win32 非客户区命中测试，避免外层节点抢占整个应用窗口的系统拉伸手势。
 
 `Layout` 仅在控件拓扑改变时设置 dirty 标记。`DX12Render` 消费该标记并重建 UI 常量缓冲和 RenderObject 索引；样式或尺寸变化只更新已有常量，不重建 GPU 资源。空 UI 批次现在可安全初始化和绘制。
 

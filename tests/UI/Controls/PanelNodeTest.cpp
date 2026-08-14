@@ -251,6 +251,34 @@ TEST(PanelNodeTest, SelectsResizeCursorForEveryBorderDirection) {
   ASSERT_NE(layout.OnMouseUp(MouseArgs(500, 100)), EventReply::Ignored);
 }
 
+TEST(PanelNodeTest, OuterResizeWinsWhenVisibleScrollbarOverlapsEdge) {
+  Layout layout;
+  auto *panel = AddPanel(layout);
+  for (int index = 0; index < 8; ++index) {
+    auto row = std::make_unique<RectNode>();
+    row->Style.Height = 48.0f;
+    row->Style.FlexGrow = 0.0f;
+    row->Style.FlexShrink = 0.0f;
+    panel->ContentHost()->AddChild(std::move(row));
+  }
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+  layout.Calculate(800.0f, 600.0f);
+  ASSERT_TRUE(panel->ScrollAreaNode->VerticalScrollBarNode->Visible);
+
+  // 滚动条与外框右边缘重叠时，光标既然显示横向拉伸，按下也必须捕获
+  // 外层 ResizeBehavior，不能被更深层的 scrollbar 抢走同一像素。
+  ASSERT_EQ(layout.GetMouseCursor(MouseArgs(299, 100)),
+            MouseCursor::SizeHorizontal);
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(299, 100)), EventReply::Ignored);
+  ASSERT_EQ(layout.CapturedHandler, panel);
+  ASSERT_NE(layout.OnMouseDrag(MouseArgs(339, 100, 40, 0)),
+            EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(MouseArgs(339, 100)), EventReply::Ignored);
+  layout.Calculate(800.0f, 600.0f);
+  EXPECT_FLOAT_EQ(panel->Width, 340.0f);
+}
+
 TEST(PanelNodeTest, ExposesSeparatedDefaultBehaviorProperties) {
   PanelNode panel;
   auto *drag = panel.GetBehavior<DragBehavior>();
@@ -413,8 +441,13 @@ TEST(PanelNodeTest, DocksPanelAtNearestEdgeAfterDragging) {
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
 
-  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseDrag(MouseArgs(790, 100, 690, 84)),
+  const int startX =
+      static_cast<int>(firstObserver->Group->Tabs.front()->Left + 12.0f);
+  const int startY =
+      static_cast<int>(firstObserver->Group->Tabs.front()->Top + 12.0f);
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(startX, startY)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(
+                MouseArgs(790, 100, 790 - startX, 100 - startY)),
             EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(MouseArgs(790, 100)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
@@ -437,8 +470,13 @@ TEST(PanelNodeTest, CenterDropCreatesFloatingWindow) {
   layout.Root->AddChild(std::move(second));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
-  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseDrag(MouseArgs(600, 300, 500, 284)),
+  const int startX =
+      static_cast<int>(panel->Group->Tabs.front()->Left + 12.0f);
+  const int startY =
+      static_cast<int>(panel->Group->Tabs.front()->Top + 12.0f);
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(startX, startY)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(
+                MouseArgs(600, 300, 600 - startX, 300 - startY)),
             EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(MouseArgs(600, 300)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
@@ -459,8 +497,13 @@ TEST(PanelNodeTest, DocksPanelAgainstSiblingAndReflowsWorkspace) {
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
 
-  ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseDrag(MouseArgs(790, 300, 690, 284)),
+  const int startX =
+      static_cast<int>(firstObserver->Group->Tabs.front()->Left + 12.0f);
+  const int startY =
+      static_cast<int>(firstObserver->Group->Tabs.front()->Top + 12.0f);
+  ASSERT_NE(layout.OnMouseDown(MouseArgs(startX, startY)), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseDrag(
+                MouseArgs(790, 300, 790 - startX, 300 - startY)),
             EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(MouseArgs(790, 300)), EventReply::Ignored);
   layout.Calculate(800.0f, 600.0f);
@@ -484,14 +527,20 @@ TEST(PanelNodeTest, DocksPanelsOnBothHorizontalSides) {
     layout.Calculate(800.0f, 600.0f);
     EXPECT_FLOAT_EQ(movingObserver->Width, targetObserver->Width);
 
-    ASSERT_NE(layout.OnMouseDown(MouseArgs(100, 16)), EventReply::Ignored);
+    const int startX = static_cast<int>(
+        movingObserver->Group->Tabs.front()->Left + 12.0f);
+    const int startY =
+        static_cast<int>(movingObserver->Group->Tabs.front()->Top + 12.0f);
+    ASSERT_NE(layout.OnMouseDown(MouseArgs(startX, startY)),
+              EventReply::Ignored);
     const int dropX =
         static_cast<int>(targetObserver->Left +
                          targetObserver->Width * (dockLeft ? 0.2f : 0.8f));
     const int dropY =
         static_cast<int>(targetObserver->Top + targetObserver->Height * 0.5f);
     ASSERT_NE(
-        layout.OnMouseDrag(MouseArgs(dropX, dropY, dropX - 100, dropY - 16)),
+        layout.OnMouseDrag(
+            MouseArgs(dropX, dropY, dropX - startX, dropY - startY)),
         EventReply::Ignored);
     ASSERT_NE(layout.OnMouseUp(MouseArgs(dropX, dropY)), EventReply::Ignored);
     const auto *movingLeaf = layout.Dock.Tree.FindPanelLeaf(movingObserver);

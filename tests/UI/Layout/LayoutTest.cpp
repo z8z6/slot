@@ -153,15 +153,19 @@ TEST(LayoutTest, DocksPanelWhenDroppedOverSceneViewport) {
   MouseMovArgs pointer;
   pointer.State = MK_LBUTTON;
   pointer.Button = MouseButton::Left;
-  pointer.X = 100;
-  pointer.Y = 16;
+  pointer.X =
+      static_cast<int>(panelObserver->Group->Tabs.front()->Left + 12.0f);
+  pointer.Y =
+      static_cast<int>(panelObserver->Group->Tabs.front()->Top + 12.0f);
+  const int startX = pointer.X;
+  const int startY = pointer.Y;
   ASSERT_NE(layout.OnMouseDown(pointer), EventReply::Ignored);
   pointer.X =
       static_cast<int>(sceneObserver->Left + sceneObserver->Width * 0.8f);
   pointer.Y =
       static_cast<int>(sceneObserver->Top + sceneObserver->Height * 0.5f);
-  pointer.DeltaX = pointer.X - 100;
-  pointer.DeltaY = pointer.Y - 16;
+  pointer.DeltaX = pointer.X - startX;
+  pointer.DeltaY = pointer.Y - startY;
   ASSERT_NE(layout.OnMouseDrag(pointer), EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(pointer), EventReply::Ignored);
 

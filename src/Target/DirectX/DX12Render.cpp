@@ -53,7 +53,8 @@ void DX12Render::Init()
   DepthStencil.InitDescriptor();
 
   Cmd.Reset();
-  DepthStencil.InitBuffer();
+  DepthStencil.InitBuffer(App->Window.Width, App->Window.Height,
+                          Msaa.GetSampleCount(), Msaa.GetMsaaQuality());
 
   // 所有 Shader 在设备初始化阶段统一编译
   ShaderLibrary.CompileAll();
@@ -103,7 +104,8 @@ void z8::DX12Render::Draw()
 
   // 3D 与 UI 共享同一个 4x 颜色缓冲。SceneNode 的 viewport/scissor 将 3D
   // 限制在中央内容区，随后恢复全屏状态叠加 UI，不再需要不兼容 MSAA 的复制。
-  if (const auto *scene = App->Layout.GetSceneNode()) {
+  if (const auto *scene = App->Layout.GetSceneNode();
+      scene && !App->Layout.Dock.IsFloating(*scene)) {
     const auto &viewport = scene->Viewport();
     const auto left = static_cast<LONG>((std::max)(0.0f, viewport.Left));
     const auto top = static_cast<LONG>((std::max)(0.0f, viewport.Top));
@@ -151,7 +153,8 @@ void DX12Render::Resize()
 
   DepthStencil.ResetBuffer();
   WindowSurface.Resize(GetWindow()->Width, GetWindow()->Height);
-  DepthStencil.InitBuffer();
+  DepthStencil.InitBuffer(GetWindow()->Width, GetWindow()->Height,
+                          Msaa.GetSampleCount(), Msaa.GetMsaaQuality());
 
   Cmd.CloseAndExecute();
   Cmd.Synchronize();

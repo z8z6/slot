@@ -173,7 +173,7 @@ TEST(PanelGroupNodeTest, SwitchesPageByClickingTabTitle) {
   EXPECT_EQ(layout.Dock.Drag.State, PanelDragState::Idle);
 }
 
-TEST(PanelGroupNodeTest, MouseDownChoosesPanelOrGroupPayloadFromHitRegion) {
+TEST(PanelGroupNodeTest, MouseDownOnlyStartsDockPayloadFromPanelTab) {
   Layout layout;
   auto group = std::make_unique<PanelGroupNode>();
   auto *observer = group.get();
@@ -189,8 +189,9 @@ TEST(PanelGroupNodeTest, MouseDownChoosesPanelOrGroupPayloadFromHitRegion) {
   layout.OnPointerCaptureLost();
 
   ASSERT_NE(layout.OnMouseDown(LeftClick(300, 15)), EventReply::Ignored);
-  EXPECT_EQ(layout.Dock.Drag.PayloadType, DragPayloadType::PanelGroup);
-  EXPECT_EQ(layout.Dock.Drag.PayloadGroup, observer);
+  EXPECT_EQ(layout.Dock.Drag.State, PanelDragState::Idle);
+  EXPECT_EQ(layout.Dock.Drag.PayloadType, DragPayloadType::None);
+  EXPECT_EQ(layout.Dock.Drag.PayloadGroup, nullptr);
   layout.OnPointerCaptureLost();
 }
 
@@ -267,7 +268,7 @@ TEST(PanelGroupNodeTest, DraggingPanelInsideItsSourceUsesFloatingPreview) {
   EXPECT_TRUE(layout.Dock.Validate());
 }
 
-TEST(PanelGroupNodeTest, DraggingPanelGroupInsideItselfUsesFloatingPreview) {
+TEST(PanelGroupNodeTest, DraggingPanelGroupBlankHeaderDoesNotStartDock) {
   Layout layout;
   auto group = std::make_unique<PanelGroupNode>();
   auto *observer = group.get();
@@ -288,18 +289,14 @@ TEST(PanelGroupNodeTest, DraggingPanelGroupInsideItselfUsesFloatingPreview) {
   drag.DeltaY = targetY - startY;
   ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
 
-  EXPECT_EQ(layout.Dock.Drag.PayloadType, DragPayloadType::PanelGroup);
-  EXPECT_TRUE(layout.Dock.Drag.PreviewVisible);
-  EXPECT_EQ(layout.Dock.Drag.Side, DockSide::Center);
-  const auto preview = layout.GetDockPreview();
-  EXPECT_FLOAT_EQ(preview.Left, layout.Dock.Drag.FloatingPreviewRect.Left);
-  EXPECT_FLOAT_EQ(preview.Top, layout.Dock.Drag.FloatingPreviewRect.Top);
-  EXPECT_FLOAT_EQ(preview.Width, layout.Dock.Drag.FloatingPreviewRect.Width);
-  EXPECT_FLOAT_EQ(preview.Height, layout.Dock.Drag.FloatingPreviewRect.Height);
+  // 空白标题区不再产生 Group Dock payload；Floating HWND 会在消息层把
+  // 同一区域解释为 HTCAPTION，因而移动窗口也不会出现 Dock preview。
+  EXPECT_EQ(layout.Dock.Drag.State, PanelDragState::Idle);
+  EXPECT_EQ(layout.Dock.Drag.PayloadType, DragPayloadType::None);
+  EXPECT_FALSE(layout.Dock.Drag.PreviewVisible);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
-  EXPECT_EQ(layout.Dock.GetState(*observer)->Placement,
-            PanelPlacement::Floating);
-  EXPECT_EQ(layout.Dock.Tree.FindPanelLeaf(observer), nullptr);
+  EXPECT_EQ(layout.Dock.GetState(*observer)->Placement, PanelPlacement::Docked);
+  EXPECT_NE(layout.Dock.Tree.FindPanelLeaf(observer), nullptr);
   EXPECT_TRUE(layout.Dock.Validate());
 }
 
@@ -359,6 +356,51 @@ TEST(PanelGroupNodeTest, PanelDropOnEmptyGroupHeaderJoinsTargetTabs) {
   ASSERT_EQ(targetGroup->Panels.size(), 2U);
   EXPECT_EQ(scene->Group, targetGroup);
   EXPECT_EQ(targetGroup->Panels[targetGroup->ActivePanel], scene);
+  EXPECT_TRUE(layout.Dock.Validate());
+}
+
+TEST(PanelGroupNodeTest, DockingLastFloatingPanelInvalidatesSourceHostRoot) {
+  Layout layout;
+  auto source = std::make_unique<PanelGroupNode>();
+  auto target = std::make_unique<PanelGroupNode>();
+  auto *sourceGroup = source.get();
+  auto *targetGroup = target.get();
+  auto *scene = source->AddPanel(MakePanel("Scene"));
+  target->AddPanel(MakePanel("Inspector"));
+  layout.Root->AddChild(std::move(source));
+  layout.Root->AddChild(std::move(target));
+  layout.RebuildIndex();
+  layout.Calculate(800.0f, 600.0f);
+
+  // 直接构造已有 Floating Host 的前置状态；Group 级事务仍是 DockWorkspace
+  // 的内部能力，但用户输入只会从下面的具体 Panel tab 开始。
+  layout.Dock.BeginDrag(*sourceGroup, 20.0f, 15.0f);
+  layout.Dock.UpdateDrag(900.0f, 300.0f);
+  ASSERT_TRUE(layout.Dock.CommitDrag(900.0f, 300.0f));
+  layout.Calculate(800.0f, 600.0f);
+  ASSERT_EQ(layout.Dock.GetState(*sourceGroup)->Placement,
+            PanelPlacement::Floating);
+
+  const int startX =
+      static_cast<int>(sourceGroup->Tabs.front()->Left + 12.0f);
+  const int startY =
+      static_cast<int>(sourceGroup->Tabs.front()->Top + 12.0f);
+  const int targetX =
+      static_cast<int>(targetGroup->DragHandleNode->Left +
+                       targetGroup->DragHandleNode->Width * 0.5f);
+  const int targetY = static_cast<int>(targetGroup->HeaderNode->Top + 12.0f);
+  ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
+  auto drag = LeftClick(targetX, targetY);
+  drag.DeltaX = targetX - startX;
+  drag.DeltaY = targetY - startY;
+  ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
+  ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
+
+  // MouseUp 返回时旧 HWND 尚未 Reconcile，但旧 Group 已析构；Host 必须能
+  // 依赖此纯地址结果跳过随后到达的 WM_NCHITTEST 等系统消息。
+  EXPECT_FALSE(layout.ContainsNode(sourceGroup));
+  EXPECT_EQ(scene->Group, targetGroup);
+  ASSERT_EQ(targetGroup->Panels.size(), 2U);
   EXPECT_TRUE(layout.Dock.Validate());
 }
 
@@ -598,6 +640,9 @@ TEST(PanelGroupNodeTest, DraggingLastPanelRemovesEmptySourceAndCollapsesTree) {
   ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
 
+  // Floating Host 会比这次提交晚一帧回收；旧 Group 指针只能用于身份查询，
+  // ContainsNode 必须在不解引用它的前提下报告所有权已经失效。
+  EXPECT_FALSE(layout.ContainsNode(sourceGroup));
   EXPECT_EQ(scene->Group == sourceGroup, false);
   EXPECT_EQ(layout.Root->Children.size(), 2U);
   ASSERT_NE(layout.Dock.Tree.Root, nullptr);
@@ -636,7 +681,7 @@ TEST(PanelGroupNodeTest, RemovingLastPanelRequestsGroupClose) {
   EXPECT_TRUE(group.CloseRequested);
 }
 
-TEST(PanelGroupNodeTest, CenterDropFloatsWholeGroupWithoutMergingTabs) {
+TEST(PanelGroupNodeTest, BlankGroupHeaderDoesNotFloatWholeGroup) {
   Layout layout;
   auto first = std::make_unique<PanelNode>();
   auto second = std::make_unique<PanelNode>();
@@ -653,13 +698,15 @@ TEST(PanelGroupNodeTest, CenterDropFloatsWholeGroupWithoutMergingTabs) {
   auto *sourceGroup = firstPanel->Group;
   auto *targetGroup = secondPanel->Group;
 
-  // 单页 Tab 占据标题栏左侧，空白标题区才是整组拖动入口。
+  // 单页 Tab 之外的空白标题区只用于移动原生 Floating HWND；Docked Group
+  // 在这里按下不会创建 DockSession，也不会改变两个 Group 的归属。
   ASSERT_NE(layout.OnMouseDown(LeftClick(200, 15)), EventReply::Ignored);
   auto drag = LeftClick(600, 300);
   drag.DeltaX = 400;
   drag.DeltaY = 285;
   ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
-  EXPECT_EQ(layout.Dock.Drag.Side, DockSide::Center);
+  EXPECT_EQ(layout.Dock.Drag.State, PanelDragState::Idle);
+  EXPECT_FALSE(layout.Dock.Drag.PreviewVisible);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
 
   ASSERT_EQ(sourceGroup->Panels.size(), 1U);
@@ -668,11 +715,11 @@ TEST(PanelGroupNodeTest, CenterDropFloatsWholeGroupWithoutMergingTabs) {
   EXPECT_EQ(secondPanel->Group, targetGroup);
   ASSERT_NE(layout.Dock.GetState(*sourceGroup), nullptr);
   EXPECT_EQ(layout.Dock.GetState(*sourceGroup)->Placement,
-            PanelPlacement::Floating);
+            PanelPlacement::Docked);
   EXPECT_TRUE(layout.Dock.Tree.Validate());
 }
 
-TEST(PanelGroupNodeTest, WholeGroupCanRemainFloatingOutsideClientArea) {
+TEST(PanelGroupNodeTest, PanelCanRemainFloatingOutsideClientArea) {
   Layout layout;
   auto first = std::make_unique<PanelNode>();
   auto second = std::make_unique<PanelNode>();
@@ -681,11 +728,15 @@ TEST(PanelGroupNodeTest, WholeGroupCanRemainFloatingOutsideClientArea) {
   layout.Root->AddChild(std::move(second));
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
-  auto *group = firstPanel->Group;
-  ASSERT_NE(group, nullptr);
+  auto *sourceGroup = firstPanel->Group;
+  ASSERT_NE(sourceGroup, nullptr);
 
-  const int startX = static_cast<int>(group->DragHandleNode->Left + 12.0f);
-  const int startY = static_cast<int>(group->DragHandleNode->Top + 12.0f);
+  // 只有具体 Panel tab 才可创建 Dock payload；释放到客户区外后，该 Panel
+  // 被提交到新的单页 Floating Group，坐标仍允许位于主窗口左上方。
+  const int startX =
+      static_cast<int>(sourceGroup->Tabs.front()->Left + 12.0f);
+  const int startY =
+      static_cast<int>(sourceGroup->Tabs.front()->Top + 12.0f);
   ASSERT_NE(layout.OnMouseDown(LeftClick(startX, startY)), EventReply::Ignored);
   auto drag = LeftClick(-120, -80);
   drag.DeltaX = -120 - startX;
@@ -693,6 +744,8 @@ TEST(PanelGroupNodeTest, WholeGroupCanRemainFloatingOutsideClientArea) {
   ASSERT_NE(layout.OnMouseDrag(drag), EventReply::Ignored);
   ASSERT_NE(layout.OnMouseUp(drag), EventReply::Ignored);
 
+  auto *group = firstPanel->Group;
+  ASSERT_NE(group, nullptr);
   const auto *state = layout.Dock.GetState(*group);
   ASSERT_NE(state, nullptr);
   EXPECT_EQ(state->Placement, PanelPlacement::Floating);

@@ -58,8 +58,8 @@ private:
  * Panel 的页签与 Dock 容器。
  *
  * 启用 Dock 的独立 Panel 会在索引布局树时自动包装为单页 Group。
- * Dock 拖动始终操作整个 Group，Tab 只负责切换页面。组内所有页面占用
- * 同一内容矩形，但只有活动 Panel 可见且可命中，避免重叠输入。
+ * Dock 拖动只从具体 Panel tab 开始；空白标题区不创建 Group Dock 手势。
+ * 组内所有页面占用同一内容矩形，但只有活动 Panel 可见且可命中。
  */
 class PanelGroupNode final : public RectNode {
 public:
