@@ -3,10 +3,10 @@
 //
 
 #pragma once
-#include "Light.h"
+#include "BaseLight.h"
 
 namespace z8 {
-class ParallelLight : public Light{
+class ParallelLight : public BaseLight{
 };
 }
 

@@ -3,11 +3,11 @@
 //
 
 #include "Target/DirectX/DX12GlobalConst.h"
-#include "../../../include/Object/Camera/Camera.h"
+#include "../../../include/Object/Camera/BaseCamera.h"
 #include "Core/Timer.h"
 #include "Core/Window.h"
+#include "Light/BaseLight.h"
 #include "Target/DirectX/DX12Render.h"
-#include "Light/Light.h"
 
 using namespace z8;
 using namespace DirectX;

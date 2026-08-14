@@ -57,13 +57,13 @@ void SceneObjectDetailsBinding::Bind(GameObject *object,
       });
   BindField(
       "details-mesh",
-      [object] { return object->Renderable.Mesh.GetAssetId(); },
+      [object] { return object->Renderable.Mesh.GetId(); },
       [resources = &Resources, resourcesChanged = ResourcesChanged,
        object](const std::string &value) {
-        ResourceReference<Mesh> reference(value);
+        ResourceRef<Mesh> reference(value);
         if (!resources->Resolve(reference).IsValid())
           return false;
-        if (object->Renderable.Mesh.GetAssetId() == value)
+        if (object->Renderable.Mesh.GetId() == value)
           return true;
         object->Renderable.Mesh = std::move(reference);
         if (resourcesChanged)
@@ -72,13 +72,13 @@ void SceneObjectDetailsBinding::Bind(GameObject *object,
       });
   BindField(
       "details-material",
-      [object] { return object->Renderable.Material.GetAssetId(); },
+      [object] { return object->Renderable.Material.GetId(); },
       [resources = &Resources, resourcesChanged = ResourcesChanged,
        object](const std::string &value) {
-        ResourceReference<Material> reference(value);
+        ResourceRef<Material> reference(value);
         if (!resources->Resolve(reference).IsValid())
           return false;
-        if (object->Renderable.Material.GetAssetId() == value)
+        if (object->Renderable.Material.GetId() == value)
           return true;
         object->Renderable.Material = std::move(reference);
         if (resourcesChanged)

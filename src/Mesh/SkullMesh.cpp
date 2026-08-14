@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/20.
 //
 
-#include "Mesh/SkullMesh.h"
+#include "Mesh/BuiltinMesh.h"
 #include "Mesh/ObjMeshImporter.h"
 
 using namespace z8;

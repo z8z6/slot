@@ -1,6 +1,6 @@
 # 着色器与常量 ABI
 
-Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS、深度和混合状态组合成一个绘制管线资源。普通 Shader 不再创建 C++ 派生类：`asset/shader/*.shader.json` 是注册来源，CMake 生成显式注册代码，`DX12Render::Init` 再统一编译 ResourceManager 中的全部 Shader。
+Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS、深度和混合状态组合成一个绘制管线资源。普通 Shader 不再创建 C++ 派生类：`asset/shader/*.shader.json` 是注册来源，CMake 生成带规范 `AssetId` 的显式注册代码，并通过 `ResourceManager::Add` 自动进入 Shader 或 ShaderProgram 资源池；`DX12Render::Init` 再统一编译 ResourceManager 中的全部 Shader。
 
 编译器按 Target 自动选择：Shader Model 6.x 使用 DXC，旧版 Target 使用 FXC。DXC 路径支持 include、HLSL 2021、Debug 的 `-Zi/-Od` 和 Release 的 `-O3`。每个 DX12Render 拥有自己的 `DX12ShaderLibrary`，CPU 描述仍由 Application 的 ResourceManager 统一拥有。
 

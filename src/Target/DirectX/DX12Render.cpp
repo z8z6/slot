@@ -5,17 +5,16 @@
 #include "Target/DirectX/DX12Render.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
+#include "Object/Camera/BaseCamera.h"
 #include "Target/DirectX/DX12Device.h"
-#include "Target/DirectX/DX12Shader.h"
 #include "Target/DirectX/DX12FloatingWindow.h"
-#include "Object/Camera/Camera.h"
+#include "Target/DirectX/DX12Shader.h"
 #include "UI/Layout/SceneNode.h"
 #include "Util/Color.h"
 #include "Util/Math.h"
 #include "d3dcompiler.h"
 #include "d3dx12.h"
 #include <dxgi1_4.h>
-
 
 using namespace DirectX;
 using namespace z8;
@@ -62,7 +61,7 @@ void DX12Render::Init()
   MeshManager.Init();
   MaterialManager.Init();
 
-  GOBatch.Init(App->ActiveScene.GetGameObjects());
+  GOBatch.Init(App->ActiveScene.GOs.get());
   SceneResourcesDirty = false;
   UOBatch.Init(App->Layout.GetMainUO());
   FloatingWindows = std::make_unique<DX12FloatingWindowManager>(*this);
@@ -79,7 +78,7 @@ void DX12Render::Update()
   if (SceneResourcesDirty) {
     // Details 输入发生在消息分发阶段；到下一帧统一解析软引用并替换批次，
     // 可以保持回调不接触 DX12 生命周期，同时保证画面立即采用新资源。
-    GOBatch.Init(App->ActiveScene.GetGameObjects());
+    GOBatch.Init(App->ActiveScene.GOs.get());
     SceneResourcesDirty = false;
   }
   // 即时声明只在控件拓扑变化时重建 UI 常量缓冲；稳定帧复用原有 GPU 资源。
@@ -177,9 +176,9 @@ void DX12Render::Resize()
 }
 
 
-Camera * DX12Render::GetCamera() const
+BaseCamera * DX12Render::GetCamera() const
 {
-  return App->ActiveScene.GetCamera();
+  return App->ActiveScene.Camera.get();
 }
 
 Window* DX12Render::GetWindow() const {
@@ -189,6 +188,6 @@ Window* DX12Render::GetWindow() const {
 Timer *DX12Render::GetTimer() const {
   return &App->Timer;
 }
-Light *DX12Render::GetLight() const {
-  return App->ActiveScene.GetLight();
+BaseLight *DX12Render::GetLight() const {
+  return App->ActiveScene.Light.get();
 }

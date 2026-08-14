@@ -4,7 +4,7 @@
 
 #include "Object/UIObject/UIObject.h"
 
-#include "Object/Camera/Camera.h"
+#include "Object/Camera/BaseCamera.h"
 #include "Resource/BuiltinResource.h"
 
 #include <iostream>
@@ -15,7 +15,7 @@ using namespace z8;
 
 z8::UIObject::UIObject() {
   // UI 材质间接选择关闭深度并启用混合的 Program，对象不直接绑定 Shader。
-  Renderable.Material = ResourceReference<Material>(builtin::UIMaterial);
+  Renderable.Material = ResourceRef<Material>(builtin::UIMaterial);
 }
 
 void UIObject::SetPosition(float x, float y, float w, float h) {

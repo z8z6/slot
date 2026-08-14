@@ -1,17 +1,12 @@
 #include "Core/Scene.h"
 
-#include "Light/Light.h"
-#include "Object/Camera/Camera.h"
+#include "Light/ParallelLight.h"
+#include "Object/Camera/BaseCamera.h"
 
 using namespace z8;
 
-Scene::Scene() = default;
-Scene::~Scene() = default;
-
-void Scene::SetCamera(std::unique_ptr<Camera> camera) {
-  ActiveCamera = std::move(camera);
+Scene::Scene() {
+  Camera.set<BaseCamera>();
+  Light.set<ParallelLight>();
 }
 
-void Scene::SetLight(std::unique_ptr<Light> light) {
-  MainLight = std::move(light);
-}

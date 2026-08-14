@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/11.
 //
 
-#include "Mesh/RectMesh.h"
+#include "Mesh/BuiltinMesh.h"
 
 using namespace DirectX;
 using namespace z8;

@@ -10,9 +10,9 @@
 
 #include "Core/Event.h"
 #include "Core/ScenePicker.h"
-#include "Light/Light.h"
+#include "Light/BaseLight.h"
 #include "Light/ParallelLight.h"
-#include "Object/Camera/Camera.h"
+#include "Object/Camera/BaseCamera.h"
 #include "Object/GameObject/RotateCube.h"
 #include "Object/Object.h"
 #include "Phys/Collider.h"
@@ -44,15 +44,14 @@ Application::~Application() {
 }
 
 void Application::Init() {
-  ActiveScene.SetCamera(std::make_unique<Camera>());
-  ActiveScene.SetLight(std::make_unique<ParallelLight>());
+
   PrepareScene();
   Render = Render::CreateRender(this);
   Render->Init();
   Window.Open();
 }
 
-void Application::PrepareScene() { ActiveScene.CreateGameObject<RotateCube>(); }
+void Application::PrepareScene() {  }
 
 int z8::Application::Run() {
   MSG msg = {nullptr};
@@ -248,11 +247,11 @@ template <typename Handler> void Application::ForEachObject(Handler &&handler) {
 
 template <typename Handler>
 void Application::ForEachSceneObject(Handler &&handler) {
-  for (auto *object : ActiveScene.GetGameObjects())
+  for (auto *object : ActiveScene.GOs)
     handler(*object);
-  if (auto *camera = ActiveScene.GetCamera())
+  if (auto *camera = ActiveScene.Camera.get())
     handler(*camera);
-  if (auto *light = ActiveScene.GetLight())
+  if (auto *light = ActiveScene.Light.get())
     handler(*light);
 }
 
@@ -311,7 +310,7 @@ EventReply Application::OnMouseDown(MouseMovArgs args) {
     return reply;
   if (args.Button == MouseButton::Left) {
     auto *sceneNode = Layout.GetSceneNode();
-    auto *camera = ActiveScene.GetCamera();
+    auto *camera = ActiveScene.Camera.get();
     if (sceneNode && camera) {
       const auto &viewport = sceneNode->Viewport();
       const ScenePickRect pickRect{viewport.Left, viewport.Top, viewport.Width,

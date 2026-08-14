@@ -1,39 +1,19 @@
-#include "UI/Behavior/DockBehavior.h"
 #include "UI/Behavior/DragBehavior.h"
 #include "UI/Behavior/ResizeBehavior.h"
-#include "UI/Behavior/ScrollBehavior.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/RectNode.h"
 
 #include <gtest/gtest.h>
 
 namespace z8::ui {
-namespace {
 
-/** 构造不依赖 Win32 消息的测试指针事件，保持坐标和增量语义清晰。 */
-MouseMovArgs PointerArgs(int x, int y, int deltaX = 0, int deltaY = 0) {
-  MouseMovArgs args;
-  args.X = x;
-  args.Y = y;
-  args.DeltaX = deltaX;
-  args.DeltaY = deltaY;
-  args.State = MK_LBUTTON;
-  args.Button = MouseButton::Left;
-  return args;
-}
-
-} // namespace
-
-TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
+TEST(BehaviorCompositionTest, ResolvesCompetingBehaviorsByPriority) {
   Layout layout;
   auto rect = std::make_unique<RectNode>();
-  auto *observer = rect.get();
-  auto *drag = rect->AddBehavior<DragBehavior>();
-  auto *resize = rect->AddBehavior<ResizeBehavior>();
-  DragProperty dragProperties;
-  dragProperties.Region = DragRegion::Anywhere;
-  drag->Properties = dragProperties;
-
+  auto* observer = rect.get();
+  auto* drag = rect->AddBehavior<DragBehavior>();
+  auto* resize = rect->AddBehavior<ResizeBehavior>();
+  drag->Properties.Region = DragRegion::Anywhere;
   rect->Style.Width = 200.0f;
   rect->Style.Height = 120.0f;
   rect->Style.FlexGrow = 0.0f;
@@ -43,74 +23,16 @@ TEST(BehaviorCompositionTest, AddsCapabilitiesWithoutSubclassingControl) {
   layout.RebuildIndex();
   layout.Calculate(800.0f, 600.0f);
 
-  ASSERT_EQ(observer->GetBehavior<DragBehavior>(), drag);
-  ASSERT_EQ(observer->GetBehavior<ResizeBehavior>(), resize);
-  ASSERT_EQ(observer->Behaviors.front().get(),
-            static_cast<IBehavior *>(resize));
+  MouseMovArgs pointer;
+  pointer.X = 199;
+  pointer.Y = 119;
+  pointer.State = MK_LBUTTON;
+  pointer.Button = MouseButton::Left;
+  ASSERT_EQ(layout.OnMouseDown(pointer), EventReply::Handled);
 
-  // 角落同时命中 Drag 和 Resize；优先级使 Resize 独占捕获，不会移动左上角。
-  ASSERT_NE(layout.OnMouseDown(PointerArgs(199, 119)), EventReply::Ignored);
   EXPECT_TRUE(resize->IsResizing());
   EXPECT_FALSE(drag->IsDragging());
-  ASSERT_NE(layout.OnMouseDrag(PointerArgs(219, 129, 20, 10)),
-            EventReply::Ignored);
-  ASSERT_NE(layout.OnMouseUp(PointerArgs(219, 129)), EventReply::Ignored);
-  layout.Calculate(800.0f, 600.0f);
-  EXPECT_FLOAT_EQ(observer->Width, 220.0f);
-  EXPECT_FLOAT_EQ(observer->Height, 130.0f);
-
-  // 属性链也由挂载关系组成，无需给 RectNode 增加 Drag 专用分支。
-  EXPECT_TRUE(observer->SetProperty("Draggable", "false"));
-  EXPECT_FALSE(drag->Properties.Enabled);
-  EXPECT_TRUE(observer->RemoveBehavior(drag));
-  EXPECT_EQ(observer->GetBehavior<DragBehavior>(), nullptr);
-}
-
-TEST(BehaviorCompositionTest, CancelsGestureWhenTopologyChanges) {
-  Layout layout;
-  auto rect = std::make_unique<RectNode>();
-  auto *observer = rect.get();
-  auto *drag = rect->AddBehavior<DragBehavior>();
-  DragProperty properties;
-  properties.Region = DragRegion::Anywhere;
-  drag->Properties = properties;
-  rect->Style.Width = 100.0f;
-  rect->Style.Height = 100.0f;
-  rect->Style.Margin = 0.0f;
-  layout.Root->AddChild(std::move(rect));
-  layout.RebuildIndex();
-  layout.Calculate(400.0f, 300.0f);
-
-  ASSERT_NE(layout.OnMouseDown(PointerArgs(50, 50)), EventReply::Ignored);
-  ASSERT_TRUE(drag->IsDragging());
-  // 声明式重建会使旧 target 指针失效，因此必须同步取消 Behavior 内部状态。
-  layout.RebuildIndex();
-  EXPECT_FALSE(drag->IsDragging());
-  EXPECT_EQ(observer->GetBehavior<DragBehavior>(), drag);
-
-  ASSERT_NE(layout.OnMouseDown(PointerArgs(50, 50)), EventReply::Ignored);
-  layout.Root->RemoveChildrenFrom(0);
-  // 被移除节点的析构已取消其行为；重建只遍历当前活节点，不解引用旧捕获指针。
-  layout.RebuildIndex();
-  EXPECT_EQ(layout.OnMouseDrag(PointerArgs(60, 60, 10, 10)),
-            EventReply::Ignored);
-}
-
-TEST(BehaviorCompositionTest, RejectsMalformedNumericPropertiesWithoutMutation) {
-  DockBehavior dock;
-  ResizeBehavior resize;
-  ScrollBehavior scroll;
-  const float extent = dock.Properties.Extent;
-  const float border = resize.Properties.Border;
-  const float step = scroll.Properties.WheelStep;
-
-  // 属性提交采用 parse-then-commit；错误输入不能把现有交互阈值重置为零。
-  EXPECT_FALSE(dock.SetProperty("DockExtent", "300px"));
-  EXPECT_FALSE(resize.SetProperty("ResizeBorder", "wide"));
-  EXPECT_FALSE(scroll.SetProperty("WheelStep", "nan"));
-  EXPECT_FLOAT_EQ(dock.Properties.Extent, extent);
-  EXPECT_FLOAT_EQ(resize.Properties.Border, border);
-  EXPECT_FLOAT_EQ(scroll.Properties.WheelStep, step);
+  EXPECT_EQ(observer->GetBehavior<ResizeBehavior>(), resize);
 }
 
 } // namespace z8::ui

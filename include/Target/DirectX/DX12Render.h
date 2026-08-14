@@ -19,10 +19,10 @@
 #include "d3d12.h"
 
 namespace z8 {
-class Camera;
+class BaseCamera;
 class Window;
 class Timer;
-class Light;
+class BaseLight;
 class Application;
 class DX12FloatingWindowManager;
 
@@ -63,10 +63,10 @@ public:
   void Resize() override;
   void Shutdown() override;
 
-  Camera* GetCamera() const;
+  BaseCamera* GetCamera() const;
   Window* GetWindow() const;
   Timer* GetTimer() const;
-  Light* GetLight() const;
+  BaseLight* GetLight() const;
 
 private:
   bool IsShutdown = false;

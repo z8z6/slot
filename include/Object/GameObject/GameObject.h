@@ -7,6 +7,7 @@
 #include "Object/Object.h"
 #include "Resource/ResourceHandle.h"
 
+#include <memory>
 #include <string>
 
 namespace z8
@@ -38,8 +39,8 @@ static_assert(sizeof(ObjectTransformConst) == 128,
  * Handle，之后的帧循环不再进行字符串查询。
  */
 struct RenderableComponent {
-  ResourceReference<Mesh> Mesh;
-  ResourceReference<Material> Material;
+  ResourceRef<Mesh> Mesh;
+  ResourceRef<Material> Material;
 };
 
 /**
@@ -55,7 +56,6 @@ class GameObject : public Object{
 public:
   /** 编辑器显示名称属于场景数据，不能只保存在 TreeView 或 Details 控件中。 */
   std::string Name;
-  // Renderable 保存可序列化的资源引用，实际资源所有权统一位于 ResourceManager。
   RenderableComponent Renderable;
   Collider* Collider;
 

@@ -3,7 +3,7 @@
 //
 
 #include "Object/GameObject/SimpleGameObject.h"
-#include "Object/Camera/Camera.h"
+#include "Object/Camera/BaseCamera.h"
 
 using namespace z8;
 void SimpleGameObject::Update(Timer* T) {

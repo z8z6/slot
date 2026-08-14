@@ -16,7 +16,7 @@
 
 | 取值 | 含义 |
 | --- | --- |
-| `GenerateSmooth` | 默认值。`ResourceManager::AddMesh` 按三角形面积加权生成平滑法线；非法和零面积三角形不会参与累加。 |
+| `GenerateSmooth` | 默认值。`ResourceManager::Add` 按三角形面积加权生成平滑法线；非法和零面积三角形不会参与累加。 |
 | `PreserveAuthored` | 保留导入文件的分裂法线，或球体等曲面的解析法线，避免硬边被跨面平均。 |
 
 Cube 和双面 Rect 按面拆分顶点，以保留硬边及正反面法线；Grid 覆盖完整 `[0, 1]` UV 且正面朝 `+Y`。Sphere 使用共享边中点细分二十面体，默认六级细分的基础拓扑为 40962 个顶点，不会越过 16 位索引上限；球面法线使用归一化位置直接计算，经度接缝和极点按三角形复制 UV 顶点，避免插值横穿整张纹理。
@@ -39,7 +39,7 @@ if (!imported) {
   // imported.Error 是可供编辑器展示的英文诊断。
   return;
 }
-auto handle = resources.AddMesh("model://scene", std::move(imported.Value));
+auto handle = resources.Add("model://scene", std::move(imported.Value));
 ```
 
 内置解析器当前支持 ASCII FBX 7.x 的以下网格数据：
@@ -56,8 +56,9 @@ auto handle = resources.AddMesh("model://scene", std::move(imported.Value));
 
 ## 新增模型
 
-1. 继承 Mesh，设置唯一 Name 并填充 V/I。
-2. 在 `BuiltinResource.h` 添加规范 Asset ID，并由 `ResourceManager::AddMesh` 注册所有权。
+1. 继承 Mesh，覆盖 `GetName()` 返回唯一规范 ID，并填充 V/I。
+2. 在 `BuiltinResource.h` 添加规范 Asset ID，由 Mesh 类型的 `GetName()` 返回该 ID，
+   再交给 `ResourceManager::Add` 自动注册所有权。
 3. 创建 SimpleGameObject 子类，通过 `Renderable.Mesh` 保存类型化资源引用。
 4. 使用 `Scene::CreateGameObject` 把对象加入活动场景。
 

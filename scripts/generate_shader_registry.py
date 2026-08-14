@@ -37,21 +37,26 @@ def generate(manifest_paths: list[Path]) -> str:
             handle_name = f"shader{index}{stage_name.title()}"
             stage_handles[stage_name] = handle_name
             shader_name = f'{data["name"]}_{"V" if stage_name == "vertex" else "P"}'
-            shader_id = f'{data["assetId"]}/{stage_name}'
+            # Shader 阶段与 ShaderProgram 属于不同资源池，名称前缀也必须明确区分；
+            # 以 Program 的末段派生可读路径，但不复用 shader-program 类别前缀。
+            program_slug = data["assetId"].rsplit("/", 1)[-1]
+            shader_id = f'builtin://shader/{program_slug}/{stage_name}'
             lines.extend([
                 f"  auto {handle_name}Description = std::make_unique<Shader>();",
+                f"  {handle_name}Description->AssetId = {cpp_string(shader_id)};",
                 f"  {handle_name}Description->Name = {cpp_string(shader_name)};",
                 f"  {handle_name}Description->FileName = L{cpp_string(data['source'])};",
                 f"  {handle_name}Description->Entry = {cpp_string(stage['entry'])};",
                 f"  {handle_name}Description->Target = "
                 f"{cpp_string(stage.get('target', default_target))};",
-                f"  const auto {handle_name} = resources.AddShader("
-                f"{cpp_string(shader_id)}, std::move({handle_name}Description));",
+                f"  const auto {handle_name} = "
+                f"resources.Add(std::move({handle_name}Description));",
             ])
 
         program_name = f"program{index}"
         lines.extend([
             f"  auto {program_name} = std::make_unique<ShaderProgram>();",
+            f"  {program_name}->AssetId = {cpp_string(data['assetId'])};",
             f"  {program_name}->Name = {cpp_string(data['name'])};",
             f"  {program_name}->VertexShader = {stage_handles['vertex']};",
             f"  {program_name}->PixelShader = {stage_handles['pixel']};",
@@ -59,8 +64,7 @@ def generate(manifest_paths: list[Path]) -> str:
             f"{'true' if data.get('enableDepth', True) else 'false'};",
             f"  {program_name}->EnableBlend = "
             f"{'true' if data.get('enableBlend', False) else 'false'};",
-            f"  resources.AddShaderProgram({cpp_string(data['assetId'])}, "
-            f"std::move({program_name}));",
+            f"  resources.Add(std::move({program_name}));",
             "",
         ])
 

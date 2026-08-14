@@ -2,7 +2,7 @@
 
 #include "Core/Scene.h"
 #include "Mesh/Mesh.h"
-#include "Object/Camera/Camera.h"
+#include "Object/Camera/BaseCamera.h"
 #include "Object/GameObject/GameObject.h"
 #include "Resource/ResourceManager.h"
 
@@ -45,7 +45,7 @@ bool IntersectTriangle(FXMVECTOR origin, FXMVECTOR direction,
 } // namespace
 
 GameObject* ScenePicker::Pick(Scene& scene, const ResourceManager& resources,
-                              Camera& camera, const ScenePickRect& viewport,
+                              BaseCamera& camera, const ScenePickRect& viewport,
                               float pointerX, float pointerY) {
   if (viewport.Width <= 0.0f || viewport.Height <= 0.0f ||
       pointerX < viewport.Left || pointerY < viewport.Top ||
@@ -73,7 +73,7 @@ GameObject* ScenePicker::Pick(Scene& scene, const ResourceManager& resources,
 
   GameObject* closestObject = nullptr;
   float closestDistanceSquared = (std::numeric_limits<float>::max)();
-  for (auto* object : scene.GetGameObjects()) {
+  for (auto* object : scene.GOs.get()) {
     const auto meshHandle = resources.Resolve(object->Renderable.Mesh);
     const auto* mesh = resources.TryGet(meshHandle);
     if (!mesh)

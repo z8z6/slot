@@ -2,15 +2,18 @@
 // Created by zhou_zhengming on 2026/5/19.
 //
 
-#include "Mesh/GridMesh.h"
+#include "Mesh/BuiltinMesh.h"
 #include <cmath>
 #include <limits>
 
 using namespace z8;
 using namespace DirectX;
 
-z8::GridMesh::GridMesh(float width, float depth, unsigned m, unsigned n) {
-  Name = "Grid";
+z8::GridMesh::GridMesh() {
+  float width = 100;
+  float depth = 100;
+  unsigned m = 101;
+  unsigned n = 101;
   const size_t vertexCount = static_cast<size_t>(m) * n;
   if (!std::isfinite(width) || !std::isfinite(depth) || width <= 0.0f ||
       depth <= 0.0f || m < 2 || n < 2 ||

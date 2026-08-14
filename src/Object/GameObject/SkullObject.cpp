@@ -8,5 +8,5 @@
 using namespace z8;
 
 z8::SkullObject::SkullObject() {
-  Renderable.Mesh = ResourceReference<Mesh>(builtin::SkullMesh);
+  Renderable.Mesh = ResourceRef<Mesh>(builtin::SkullMesh);
 }

@@ -7,7 +7,7 @@
 
 namespace z8
 {
-class Camera : public Object {
+class BaseCamera : public Object {
 private:
   DirectX::XMFLOAT3 Target;
   DirectX::XMFLOAT3 Up;
@@ -19,7 +19,7 @@ private:
   inline static float Far = 1000.0f;
   inline static float Fov = 120.0f;
 public:
-  Camera();
+  BaseCamera();
   DirectX::XMFLOAT4X4& GetView() { return View; }
   DirectX::XMFLOAT4X4& GetProj() { return Proj; }
   DirectX::XMFLOAT4X4& GetViewProj() { return ViewProj; }

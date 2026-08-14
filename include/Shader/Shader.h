@@ -8,10 +8,14 @@
 namespace z8 {
 struct Shader {
   // Shader 只描述与后端无关的编译输入；DXIL 所有权位于 DX12ShaderLibrary。
+  std::string AssetId;
   std::wstring FileName;
   std::string Name;
   std::string Target;
   std::string Entry;
+
+  /** Shader 由 manifest 创建，因此资源身份作为数据保存而不是派生 C++ 类型。 */
+  std::string GetName() const { return AssetId; }
 };
 
 }

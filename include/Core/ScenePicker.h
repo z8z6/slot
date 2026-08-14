@@ -2,7 +2,7 @@
 
 namespace z8 {
 
-class Camera;
+class BaseCamera;
 class GameObject;
 class ResourceManager;
 class Scene;
@@ -24,7 +24,7 @@ struct ScenePickRect {
 class ScenePicker final {
 public:
   static GameObject* Pick(Scene& scene, const ResourceManager& resources,
-                          Camera& camera, const ScenePickRect& viewport,
+                          BaseCamera& camera, const ScenePickRect& viewport,
                           float pointerX, float pointerY);
 };
 

@@ -14,11 +14,15 @@ namespace z8 {
  * Program 中可避免后端通过对象 RTTI 猜测 UI 等特殊状态。
  */
 struct ShaderProgram {
+  std::string AssetId;
   std::string Name;
   ResourceHandle<Shader> VertexShader;
   ResourceHandle<Shader> PixelShader;
   bool EnableDepth = true;
   bool EnableBlend = false;
+
+  /** 返回 manifest 中的规范名称，供 ResourceManager 自动选择并注册资源池。 */
+  std::string GetName() const { return AssetId; }
 };
 
 } // namespace z8

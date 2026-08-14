@@ -9,5 +9,5 @@
 using namespace z8;
 
 z8::MountainObject::MountainObject() {
-  Renderable.Mesh = ResourceReference<Mesh>(builtin::MountainMesh);
+  Renderable.Mesh = ResourceRef<Mesh>(builtin::MountainMesh);
 }

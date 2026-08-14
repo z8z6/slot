@@ -30,13 +30,13 @@ public:
   // FBX 的分裂法线及球体解析法线不能再做跨顶点平均，否则会破坏硬边或精确曲率。
   MeshNormalMode NormalMode = MeshNormalMode::GenerateSmooth;
 
-  Mesh() = default;
   virtual ~Mesh() = default;
 
   unsigned VSize() const { return V.size() * sizeof(Vertex); }
   unsigned VElemSize() const { return sizeof(Vertex); }
   unsigned ISize() const { return I.size() * sizeof(IndexTy); }
   unsigned ICount() const { return I.size(); }
+  virtual std::string GetName() const;
   /** 按三角形面积加权生成平滑法线，并安全跳过非法或退化三角形。 */
   void ComputeNormals();
   /** 验证 16 位索引网格可安全上传；失败时可返回英文诊断信息。 */

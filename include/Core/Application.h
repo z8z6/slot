@@ -25,21 +25,19 @@ public:
   Timer Timer;
   ResourceManager Resources;
   Scene ActiveScene;
-  /** 当前编辑器选择；Scene 保留所有权，切换场景前必须清空。 */
   GameObject *SelectedSceneObject = nullptr;
   ui::Layout Layout;
-  // 保存所有的 App
+
   inline static std::vector<Application *> Apps;
 
   Application();
-  virtual ~Application();
+  ~Application() override;
 
-  /** 装载 XAML 并启用逐帧文件监视；首次解析失败时保持当前 Layout。 */
+
   bool EnableXamlHotReload(const std::string &fileName);
   /** 统一提交树选择或视口拾取结果，并通知编辑器刷新检查器。 */
   void SelectSceneObject(GameObject *object);
   virtual void Init();
-  // 所有 App 都在这个方法中处理
   static int Run();
 
 private:

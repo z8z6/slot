@@ -2,12 +2,19 @@
 // Created by zhou_zhengming on 2026/5/22.
 //
 #include "Mesh/Mesh.h"
+#include "Resource/BuiltinResource.h"
 
 #include <cmath>
 #include <limits>
 
 using namespace z8;
 using namespace DirectX;
+
+
+std::string Mesh::GetName() const {
+  // 基类无法替导入资源臆造稳定 ID；具体内建类型或导入边界必须提供完整名称。
+  return {};
+}
 
 void Mesh::ComputeNormals() {
   // 1. 将所有顶点法线清零

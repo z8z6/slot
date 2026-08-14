@@ -16,10 +16,14 @@ enum class EventReply {
   Capture  // 捕获
 };
 
-/** 鼠标按键；None 用于不由单一按键触发的移动事件。 */
+/**
+ * 鼠标按键；None 用于不由单一按键触发的移动事件。
+ */
 enum class MouseButton { None, Left, Middle, Right, X1, X2 };
 
-/** 平台无关的 UI 指针形状，由窗口适配层映射为系统光标资源。 */
+/**
+ * 平台无关的 UI 指针形状，由窗口适配层映射为系统光标资源。
+ */
 enum class MouseCursor {
   Arrow,
   SizeHorizontal,
@@ -47,7 +51,9 @@ struct MouseMovArgs {
                MouseButton button = MouseButton::None);
 };
 
-/** 鼠标滚轮参数；坐标在进入 UI 分发前统一转换为客户区坐标。 */
+/**
+ * 鼠标滚轮参数；坐标在进入 UI 分发前统一转换为客户区坐标。
+ */
 struct MouseWheelArgs {
   unsigned State = 0;
   int X = 0;
@@ -55,7 +61,9 @@ struct MouseWheelArgs {
   int Delta = 0;
 };
 
-/** 键盘事件参数，保留 Win32 重复、扫描码和扩展键语义供控件判断。 */
+/**
+ * 键盘事件参数，保留 Win32 重复、扫描码和扩展键语义供控件判断。
+ */
 struct KeyArgs {
   unsigned Key = 0;
   unsigned RepeatCount = 0;
@@ -76,12 +84,9 @@ public:
   virtual EventReply OnMouseMove(MouseMovArgs) { return EventReply::Ignored; }
   virtual EventReply OnMouseDrag(MouseMovArgs) { return EventReply::Ignored; }
   virtual EventReply OnMouseUp(MouseMovArgs) { return EventReply::Ignored; }
-  virtual EventReply OnMouseWheel(MouseWheelArgs) {
-    return EventReply::Ignored;
-  }
+  virtual EventReply OnMouseWheel(MouseWheelArgs) { return EventReply::Ignored; }
   virtual EventReply OnKeyDown(KeyArgs) { return EventReply::Ignored; }
   virtual EventReply OnKeyUp(KeyArgs) { return EventReply::Ignored; }
-  /** 接收窗口系统完成键盘布局/IME 转换后的 UTF-16 字符单元。 */
   virtual EventReply OnTextInput(wchar_t) { return EventReply::Ignored; }
   virtual MouseCursor GetMouseCursor(MouseMovArgs) const {
     return MouseCursor::Arrow;

@@ -2,16 +2,15 @@
 // Created by zhou_zhengming on 2026/5/21.
 //
 
-#include "Mesh/MountainMesh.h"
+#include "Mesh/BuiltinMesh.h"
 
 using namespace z8;
 using namespace DirectX;
 
-MountainMesh::MountainMesh(float width, float depth, unsigned m, unsigned n)
-: GridMesh(width, depth, m, n){
+MountainMesh::MountainMesh()
+{
   for (auto& v : V)
     v.Pos.y = GetHeight(v.Pos.x, v.Pos.z);
-  Name = "Mountain";
 }
 
 float MountainMesh::GetHeight(float x, float z)const

@@ -48,8 +48,8 @@ add_library(slot_test_runtime STATIC
         ../src/UI/Layout/TreeViewNode.cpp
         ../src/UI/Style/Theme.cpp
         ../src/Material/Material.cpp
-        ../src/Material/MetalMaterial.cpp
-        ../src/Light/Light.cpp
+        ../src/Material/BuiltinMaterial.cpp
+        ../src/Light/BaseLight.cpp
         ../src/Light/ParallelLight.cpp
         ../src/Mesh/CubeMesh.cpp
         ../src/Mesh/FbxMeshImporter.cpp
@@ -62,7 +62,7 @@ add_library(slot_test_runtime STATIC
         ../src/Mesh/SphereMesh.cpp
         ../src/Mesh/TriangleMesh.cpp
         ../src/Mesh/Vertex.cpp
-        ../src/Object/Camera/Camera.cpp
+        ../src/Object/Camera/BaseCamera.cpp
         ../src/Object/Camera/FirstPersonCamera.cpp
         ../src/Object/GameObject/CubeObject.cpp
         ../src/Object/GameObject/GameObject.cpp
@@ -70,6 +70,7 @@ add_library(slot_test_runtime STATIC
         ../src/Object/Transform.cpp
         ../src/Object/UIObject/RectUIObject.cpp
         ../src/Object/UIObject/UIObject.cpp
+        ../src/Resource/ResourceHandle.cpp
         ../src/Resource/ResourceManager.cpp
         ../src/Core/Scene.cpp
         ../src/Target/DirectX/DX12Shader.cpp

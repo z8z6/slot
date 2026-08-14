@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/11.
 //
 
-#include "Mesh/CubeMesh.h"
+#include "Mesh/BuiltinMesh.h"
 
 using namespace DirectX;
 using namespace z8;
@@ -16,10 +16,10 @@ CubeMesh::CubeMesh() {
     V.emplace_back(topLeft, XMFLOAT2{0.0f, 0.0f});
     V.emplace_back(topRight, XMFLOAT2{1.0f, 0.0f});
     V.emplace_back(bottomRight, XMFLOAT2{1.0f, 1.0f});
-    I.insert(I.end(), {base, static_cast<IndexTy>(base + 1),
-                       static_cast<IndexTy>(base + 2), base,
-                       static_cast<IndexTy>(base + 2),
-                       static_cast<IndexTy>(base + 3)});
+    I.insert(I.end(),
+             {base, static_cast<IndexTy>(base + 1),
+              static_cast<IndexTy>(base + 2), base,
+              static_cast<IndexTy>(base + 2), static_cast<IndexTy>(base + 3)});
   };
 
   // 四点均按从物体外部观察的顺时针顺序传入。

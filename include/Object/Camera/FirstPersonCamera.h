@@ -3,10 +3,10 @@
 //
 
 #pragma once
-#include "Camera.h"
+#include "BaseCamera.h"
 
 namespace z8 {
-class FirstPersonCamera : public Camera {
+class FirstPersonCamera : public BaseCamera {
 public:
   // 编辑器视口尚未建立按键捕获/隐藏光标协议前，默认禁止鼠标驱动相机。
   bool MouseLookEnabled = false;

@@ -2,14 +2,14 @@
 // Created by zhou_zhengming on 2026/5/15.
 //
 
-#include "Object/Camera/Camera.h"
+#include "Object/Camera/BaseCamera.h"
 
 #include <utility>
 
 using namespace DirectX;
 using namespace z8;
 
-Camera::Camera()
+BaseCamera::BaseCamera()
 :
 Target(0,0,0),
 Up(0,1,0)
@@ -19,12 +19,12 @@ Up(0,1,0)
   UpdateView();
 }
 
-void Camera::Update(Timer *) {
+void BaseCamera::Update(Timer *) {
   UpdateView();
   UpdateViewProj();
 }
 
-void Camera::UpdateView()
+void BaseCamera::UpdateView()
 {
   XMVECTOR pos = XMVectorSet(Transform.Position.x, Transform.Position.y, Transform.Position.z, 1.0f);
   XMVECTOR target = XMLoadFloat3(&Target);
@@ -36,20 +36,20 @@ void Camera::UpdateView()
   XMStoreFloat4x4(&View, view);
 }
 
-void Camera::UpdateProj(float aspect)
+void BaseCamera::UpdateProj(float aspect)
 {
   XMMATRIX P = XMMatrixPerspectiveFovLH(XMConvertToRadians(Fov), aspect, Near, Far);
   XMStoreFloat4x4(&Proj, P);
 }
 
-void Camera::UpdateViewProj() {
+void BaseCamera::UpdateViewProj() {
   XMMATRIX view = XMLoadFloat4x4(&View);
   XMMATRIX proj = XMLoadFloat4x4(&Proj);
   XMMATRIX vp = view * proj;
   XMStoreFloat4x4(&ViewProj, vp);
 }
 
-void Camera::UpdateTarget() {
+void BaseCamera::UpdateTarget() {
   // 欧拉角转弧度
   float yaw   = XMConvertToRadians(Transform.Rotation.y);
   float pitch = XMConvertToRadians(Transform.Rotation.x);

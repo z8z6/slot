@@ -1,23 +1,21 @@
 #include "Core/Scene.h"
 
-#include "Light/ParallelLight.h"
-#include "Object/Camera/Camera.h"
+#include "Light/BaseLight.h"
+#include "Object/Camera/BaseCamera.h"
 #include "Object/GameObject/CubeObject.h"
 
 #include <gtest/gtest.h>
 
 namespace z8 {
 
-TEST(SceneTest, OwnsCameraLightAndGameObjects) {
+TEST(SceneTest, OwnsDefaultContextAndGameObjects) {
   Scene scene;
-  scene.SetCamera(std::make_unique<Camera>());
-  scene.SetLight(std::make_unique<ParallelLight>());
-  auto& cube = scene.CreateGameObject<CubeObject>();
+  auto* cube = scene.GOs.add<CubeObject>();
 
-  EXPECT_NE(scene.GetCamera(), nullptr);
-  EXPECT_NE(scene.GetLight(), nullptr);
-  ASSERT_EQ(scene.GetGameObjects().size(), 1U);
-  EXPECT_EQ(scene.GetGameObjects().front(), &cube);
+  EXPECT_NE(scene.Camera.get(), nullptr);
+  EXPECT_NE(scene.Light.get(), nullptr);
+  ASSERT_EQ(scene.GOs.size(), 1U);
+  EXPECT_EQ(&scene.GOs.front(), cube);
 }
 
 } // namespace z8
