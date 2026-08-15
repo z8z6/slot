@@ -10,6 +10,7 @@
 #include "Mesh/Mesh.h"
 #include "Resource/ResourceHandle.h"
 #include "Shader/ShaderProgram.h"
+#include "Texture/Texture.h"
 
 #include <memory>
 #include <unordered_map>
@@ -32,6 +33,7 @@ public:
   ResourceHandle<Mesh> Mesh;
   ResourceHandle<Material> Material;
   ResourceHandle<ShaderProgram> Program;
+  ResourceHandle<Texture> Texture;
   DX12PipelineState* Pipeline;
   unsigned ConstBufIndex;
 

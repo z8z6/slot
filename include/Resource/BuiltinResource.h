@@ -24,6 +24,11 @@ inline constexpr std::string_view SphereMesh = "builtin://mesh/sphere";
 
 inline constexpr std::string_view MetalMaterial = "builtin://material/metal";
 inline constexpr std::string_view UIMaterial = "builtin://material/ui";
+inline constexpr std::string_view GrassBlockMaterial =
+    "builtin://material/grass-block";
+
+inline constexpr std::string_view GrassBlockTexture =
+    "builtin://texture/grass-block";
 
 inline constexpr std::string_view GameObjectProgram =
     "builtin://shader-program/game-object";

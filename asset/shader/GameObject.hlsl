@@ -1,5 +1,8 @@
 #include "Core/Const.hlsl"
 
+Texture2D gBaseColorTexture : register(t0);
+SamplerState gBaseColorSampler : register(s0);
+
 struct VertexIn
 {
 	float3 LocalPositon     : POSITION;
@@ -35,11 +38,19 @@ float4 PS(VertexOut pin) : SV_Target
     pin.WorldNormal = normalize(pin.WorldNormal);
     float3 toEyeW = normalize(Camera - pin.WorldPositon);
     // 材质常量由 RenderItem 在 b1 逐对象绑定；共享 Mesh 不再隐式使用固定 Metal 数据。
-    Material mat = { gAlbedo, gFresnelR0, saturate(gRough) };
+    float4 baseColor = gAlbedo;
+    if (gHasBaseColorTexture != 0)
+        baseColor *= gBaseColorTexture.Sample(gBaseColorSampler, pin.TexC);
+    Material mat = { baseColor, gFresnelR0, saturate(gRough) };
     float3 shadowFactor = 1.0f;
 
-    float4 Direct = ComputeLighting(gLight, mat, pin.WorldPositon, pin.WorldNormal, toEyeW, shadowFactor);
-    float4 Ambient = AmbientLight * gAlbedo;
+    float4 Direct = 0.0f;
+    // 每盏方向光独立计算 BRDF 后线性累加；固定上限避免动态资源数组。
+    [loop]
+    for (uint index = 0; index < min(LightCount, 8u); ++index)
+        Direct += ComputeLighting(gLights[index], mat, pin.WorldPositon,
+                                  pin.WorldNormal, toEyeW, shadowFactor);
+    float4 Ambient = AmbientLight * baseColor;
     float4 color = Ambient + Direct;
     return color;
 }

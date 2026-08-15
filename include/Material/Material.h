@@ -10,9 +10,12 @@
 namespace z8
 {
 struct ShaderProgram;
+class Texture;
 class Material {
 public:
   DirectX::XMFLOAT4 Albedo = DirectX::XMFLOAT4(DirectX::Colors::ForestGreen);
+  /** 可选基础色纹理；为空时 Shader 只使用 Albedo。 */
+  ResourceRef<Texture> BaseColorTexture;
   DirectX::XMFLOAT3 FresnelR0 = { 0.02f, 0.02f, 0.02f };
   float Rough = 0.25f;
   std::string Name;

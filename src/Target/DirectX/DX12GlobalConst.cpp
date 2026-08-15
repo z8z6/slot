@@ -9,6 +9,8 @@
 #include "Light/BaseLight.h"
 #include "Target/DirectX/DX12Render.h"
 
+#include <algorithm>
+
 using namespace z8;
 using namespace DirectX;
 
@@ -21,10 +23,17 @@ void DX12GlobalConst::Update(DX12Render* R) {
   // 相机
   Camera = R->GetCamera()->Transform.Position;
 
-  Light = {};
-  Light.Position = R->GetLight()->Transform.Position;
-  Light.Strength = R->GetLight()->Color;
-  Light.Direction = R->GetLight()->Direction;
+  Lights = {};
+  const auto& sceneLights = R->GetLights();
+  LightCount = static_cast<uint32_t>((std::min)(
+      sceneLights.size(), static_cast<size_t>(MaxLights)));
+  for (uint32_t index = 0; index < LightCount; ++index) {
+    const auto* light = sceneLights[index];
+    if (!light) continue;
+    Lights[index].Position = light->Transform.Position;
+    Lights[index].Strength = light->Color;
+    Lights[index].Direction = light->Direction;
+  }
 
   ScreenSize.x = static_cast<float>(R->GetWindow()->Width);
   ScreenSize.y = static_cast<float>(R->GetWindow()->Height);

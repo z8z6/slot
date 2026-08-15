@@ -46,6 +46,7 @@ target_link_libraries(
         d2d1.lib
         dwrite.lib
         dwmapi.lib
+        windowscodecs.lib
 )
 
 set_target_properties(slot PROPERTIES

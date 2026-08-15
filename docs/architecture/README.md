@@ -12,7 +12,7 @@ flowchart TD
     App --> Render[Render 接口]
     Render --> DX[DX12Render]
     DX --> Resources[命令/交换链/RT/DS]
-    DX --> Managers[Mesh/Material Manager]
+    DX --> Managers[Mesh/Material/Texture Manager]
     DX --> GO[3D Batch]
     DX --> UI[UI Batch]
 ```
@@ -30,7 +30,7 @@ flowchart TD
 
 `Render::CreateRender` 当前始终创建 `DX12Render`，DirectX 11 和 Vulkan 枚举仅为预留。每个窗口拥有独立渲染器与交换链，`DX12Device` 的 Factory/Device 是进程级单例。
 
-`Application` 显式拥有 `ResourceManager` 和活动 `Scene`。ResourceManager 独占 CPU 资源，Scene 独占相机、主灯光和 GameObject；Renderer 与输入系统只保存生命周期受限的观察指针。UI Layout 是窗口级覆盖层，不因 3D Scene 切换而自动销毁。
+`Application` 显式拥有 `ResourceManager` 和活动 `Scene`。ResourceManager 独占 CPU 资源，Scene 独占相机、光源集合和 GameObject；Renderer 与输入系统只保存生命周期受限的观察指针。UI Layout 是窗口级覆盖层，不因 3D Scene 切换而自动销毁。
 
 场景使用类型化软引用表达资源依赖，批次初始化时解析为运行时 Handle。DX12 缓存只拥有设备相关数据，避免资源表示层依赖具体后端。
 

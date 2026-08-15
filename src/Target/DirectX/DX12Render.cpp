@@ -22,7 +22,8 @@ using namespace z8;
 DX12Render::DX12Render(Application* app)
     : App(app), Cmd(this), Msaa(this), WindowSurface(this),
       DepthStencil(this), MeshManager(this), MaterialManager(this),
-      RootSignature(this), ShaderLibrary(app->Resources), GOBatch(this),
+      TextureManager(this), RootSignature(this),
+      ShaderLibrary(app->Resources), GOBatch(this),
       UOBatch(this, true) {
   Ctx = &DX12Device::Instance();
 }
@@ -60,6 +61,7 @@ void DX12Render::Init()
   RootSignature.Init();
   MeshManager.Init();
   MaterialManager.Init();
+  TextureManager.Init();
 
   GOBatch.Init(App->ActiveScene.GOs.get());
   SceneResourcesDirty = false;
@@ -188,6 +190,6 @@ Window* DX12Render::GetWindow() const {
 Timer *DX12Render::GetTimer() const {
   return &App->Timer;
 }
-BaseLight *DX12Render::GetLight() const {
-  return App->ActiveScene.Light.get();
+const std::vector<BaseLight*>& DX12Render::GetLights() const {
+  return App->ActiveScene.Lights.get();
 }

@@ -14,9 +14,12 @@
 #include "DX12RenderBatch.h"
 #include "DX12RootSignature.h"
 #include "DX12Shader.h"
+#include "DX12TextureManager.h"
 #include "DX12WindowSurface.h"
 #include "Target/Render.h"
 #include "d3d12.h"
+
+#include <vector>
 
 namespace z8 {
 class BaseCamera;
@@ -41,6 +44,7 @@ public:
 
   DX12MeshManager MeshManager;
   DX12MaterialManager MaterialManager;
+  DX12TextureManager TextureManager;
   DX12GlobalConst GlobalConst;
   DX12RootSignature RootSignature;
   // ShaderLibrary 是每个渲染器的设备相关缓存，CPU 描述仍由 Application::Resources 拥有。
@@ -66,7 +70,8 @@ public:
   BaseCamera* GetCamera() const;
   Window* GetWindow() const;
   Timer* GetTimer() const;
-  BaseLight* GetLight() const;
+  /** 返回场景光源观察列表；所有权仍由 Scene 持有。 */
+  const std::vector<BaseLight*>& GetLights() const;
 
 private:
   bool IsShutdown = false;

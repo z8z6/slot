@@ -251,7 +251,7 @@ void Application::ForEachSceneObject(Handler &&handler) {
     handler(*object);
   if (auto *camera = ActiveScene.Camera.get())
     handler(*camera);
-  if (auto *light = ActiveScene.Light.get())
+  for (auto* light : ActiveScene.Lights)
     handler(*light);
 }
 

@@ -31,8 +31,13 @@ void DX12RenderBatch::Init(const std::vector<GameObject *> &Os) {
     RO.Mesh = Render->App->Resources.Resolve(O->Renderable.Mesh);
     RO.Material = Render->App->Resources.Resolve(O->Renderable.Material);
     const auto* material = Render->App->Resources.TryGet(RO.Material);
-    if (material)
+    if (material) {
       RO.Program = Render->App->Resources.Resolve(material->Program);
+      RO.Texture =
+          Render->App->Resources.Resolve(material->BaseColorTexture);
+      if (!material->BaseColorTexture.GetId().empty() && !RO.Texture.IsValid())
+        throw std::runtime_error("Material references an unknown texture.");
+    }
     if (!RO.Mesh.IsValid() || !RO.Material.IsValid() || !RO.Program.IsValid())
       throw std::runtime_error("Renderable references an unknown resource.");
 
@@ -65,7 +70,6 @@ void DX12RenderBatch::Init(const std::vector<GameObject *> &Os) {
                      });
 
   // 2. 初始化常量缓冲区
-  Buffer.InitDescriptor();
   Buffer.InitBuffer();
 }
 
@@ -78,13 +82,12 @@ void DX12RenderBatch::Update() const {
 
 void DX12RenderBatch::Draw() {
   if (ROs.empty()) return;
-  // 设置常量缓冲区的描述符堆
-  ID3D12DescriptorHeap* descriptorHeaps[] = {Buffer.DptHeap.Get()};
-  Render->Cmd.List->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+  // b0/b1/b2 使用根 CBV，因此唯一 Shader-visible 描述符堆可稳定留给纹理 SRV。
+  Render->TextureManager.Bind();
 
   // 寄存器 b2: 全局常量
-  Render->Cmd.List->SetGraphicsRootDescriptorTable(2,
-    Buffer.GetGPUDescriptor(Buffer.GetGlobalConstIndex()));
+  Render->Cmd.List->SetGraphicsRootConstantBufferView(
+      2, Buffer.GetGPUAddress(Buffer.GetGlobalConstIndex()));
 
   // 依次绘制各个物体
   for (auto& O : ROs) {
@@ -92,14 +95,17 @@ void DX12RenderBatch::Draw() {
     // 寄存器 b1: 每个 RenderItem 绑定自己的 256 字节对齐材质常量。
     Render->Cmd.List->SetGraphicsRootConstantBufferView(
         1, Render->MaterialManager.GetGPUAddress(O.Material));
+    if (O.Texture.IsValid())
+      Render->Cmd.List->SetGraphicsRootDescriptorTable(
+          3, Render->TextureManager.GetGPUDescriptor(O.Texture));
     Render->MeshManager.Bind();
     // 寄存器 b0: 物体位置常量
-    Render->Cmd.List->SetGraphicsRootDescriptorTable(0, Buffer.GetGPUDescriptor(O.ConstBufIndex));
+    Render->Cmd.List->SetGraphicsRootConstantBufferView(
+        0, Buffer.GetGPUAddress(O.ConstBufIndex));
     Render->Cmd.List->DrawIndexedInstanced(O.SubMesh->IndexCount,
     1, O.SubMesh->StartIndexLocation,
     O.SubMesh->BaseVertexLocation, 0);
   }
 
 }
-
 

@@ -4,7 +4,9 @@
 
 #pragma once
 #include <DirectXMath.h>
+#include <array>
 #include <cstddef>
+#include <cstdint>
 
 namespace z8 {
 class DX12Render;
@@ -24,11 +26,13 @@ struct DX12Light {
  * @note 必须注意对齐，GPU侧的类布局可能不一致
  **/
 struct  DX12GlobalConst {
+  static constexpr uint32_t MaxLights = 8;
+
   DirectX::XMFLOAT4X4A ViewProj;
-  DX12Light Light;
+  std::array<DX12Light, MaxLights> Lights;
   DirectX::XMFLOAT4 AmbientLight;
   DirectX::XMFLOAT3 Camera;
-  float p0;
+  uint32_t LightCount = 0;
   DirectX::XMFLOAT2 ScreenSize;
   /** UI 顶点仍保存 Layout 全局坐标；独立宿主用该原点映射到本地 NDC。 */
   DirectX::XMFLOAT2 UIOrigin = {0.0f, 0.0f};
@@ -46,9 +50,11 @@ struct  DX12GlobalConst {
 private:
   void WriteToBuffer(DX12Render* R) const;
 };
-static_assert(offsetof(DX12GlobalConst, UIScale) == 168,
+static_assert(offsetof(DX12GlobalConst, LightCount) == 476,
+              "Light count must match cbPass packing in Const.hlsl.");
+static_assert(offsetof(DX12GlobalConst, UIScale) == 504,
               "UI scale must match cbPass packing in Const.hlsl.");
-static_assert(sizeof(DX12GlobalConst) == 176,
+static_assert(sizeof(DX12GlobalConst) == 512,
               "Global constants must match cbPass size in Const.hlsl.");
 
 

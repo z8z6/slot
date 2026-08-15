@@ -16,26 +16,23 @@ namespace z8
  */
 class DX12ConstBuffer: public DX12Common
 {
+  unsigned BufferCount = 0;
   unsigned SingleBufSize = 0;
   unsigned StepSize = 0;
 public:
   DX12RenderBatch* Batch;
   DX12UploadBuffer Buffer;
-  ComPtr<ID3D12DescriptorHeap> DptHeap;
-  unsigned DptSize = 0;
-  D3D12_CPU_DESCRIPTOR_HANDLE Dpt;
-  unsigned DptCount = 0;
 
   explicit DX12ConstBuffer(DX12RenderBatch* B);
 
-  void InitDescriptor();
   void InitBuffer();
-  D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptor(int index) const;
+  /** 根 CBV 直接使用上传缓冲地址，给 SRV 堆保留唯一 Shader-visible 槽位。 */
+  D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress(unsigned index) const;
 
   // 根据索引获取常量缓冲区的指针
   char* GetCPUOffset(unsigned index) const;
   // 获取全局常量的索引
-  unsigned GetGlobalConstIndex() const { return DptCount - 1; }
+  unsigned GetGlobalConstIndex() const { return BufferCount - 1; }
 
   // 返回 256 字节对齐的缓冲区大小
   static unsigned AlignedSize(unsigned size);

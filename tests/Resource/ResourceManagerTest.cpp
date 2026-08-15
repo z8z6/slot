@@ -15,13 +15,17 @@ TEST(ResourceManagerTest, ResolvesTypedBuiltinReferences) {
   const auto mesh =
       resources.Resolve(ResourceRef<Mesh>(builtin::CubeMesh));
   const auto material =
-      resources.Resolve(ResourceRef<Material>(builtin::MetalMaterial));
+      resources.Resolve(ResourceRef<Material>(builtin::GrassBlockMaterial));
   const auto program = resources.Resolve(
       ResourceRef<ShaderProgram>(builtin::GameObjectProgram));
 
   EXPECT_NE(resources.TryGet(mesh), nullptr);
   ASSERT_NE(resources.TryGet(material), nullptr);
   EXPECT_EQ(resources.Resolve(resources.TryGet(material)->Program), program);
+  const auto texture = resources.Resolve(
+      resources.TryGet(material)->BaseColorTexture);
+  ASSERT_NE(resources.TryGet(texture), nullptr);
+  EXPECT_TRUE(resources.TryGet(texture)->Validate());
   ASSERT_NE(resources.TryGet(program), nullptr);
   EXPECT_TRUE(resources.TryGet(program)->VertexShader.IsValid());
   EXPECT_TRUE(resources.TryGet(program)->PixelShader.IsValid());

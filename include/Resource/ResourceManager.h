@@ -5,6 +5,7 @@
 #include "ResourcePool.h"
 #include "Shader/Shader.h"
 #include "Shader/ShaderProgram.h"
+#include "Texture/Texture.h"
 
 #include <memory>
 #include <string>
@@ -21,7 +22,10 @@ using StoredResourceTy = std::conditional_t<
                        std::conditional_t<std::is_same_v<Shader, T>, Shader,
                                           std::conditional_t<
                                               std::is_same_v<ShaderProgram, T>,
-                                              ShaderProgram, void>>>>;
+                                              ShaderProgram,
+                                              std::conditional_t<
+                                                  std::is_same_v<Texture, T>,
+                                                  Texture, void>>>>>;
 
 /**
  * @brief 应用级资源所有者和类型安全查询入口。
@@ -34,6 +38,7 @@ class ResourceManager {
   ResourcePool<Material> Materials;
   ResourcePool<Shader> Shaders;
   ResourcePool<ShaderProgram> ShaderPrograms;
+  ResourcePool<Texture> Textures;
 
 public:
   /** 创建应用级资源上下文，并按确定顺序注册全部内建资源。 */
@@ -61,6 +66,7 @@ public:
     return ShaderPrograms;
   }
   const ResourcePool<Shader>& GetShaders() const { return Shaders; }
+  const ResourcePool<Texture>& GetTextures() const { return Textures; }
 
   /** 把持久化软引用解析为运行时句柄，不执行 I/O。 */
   template <typename ResourceTy>
@@ -119,6 +125,8 @@ ResourceManager::Add(std::string assetId, std::unique_ptr<T> resource) {
     if (!resource || !resource->Validate()) return {};
     if (resource->NormalMode == MeshNormalMode::GenerateSmooth)
       resource->ComputeNormals();
+  } else if constexpr (std::is_same_v<StoredTy, Texture>) {
+    if (!resource || !resource->Validate()) return {};
   }
   return Pool<StoredTy>().Add(std::move(assetId), std::move(resource));
 }
@@ -131,6 +139,7 @@ bool ResourceManager::MatchesType(ResourceTy type) {
   if constexpr (std::is_same_v<T, Shader>) return type == ResourceTy::Shader;
   if constexpr (std::is_same_v<T, ShaderProgram>)
     return type == ResourceTy::ShaderProgram;
+  if constexpr (std::is_same_v<T, Texture>) return type == ResourceTy::Texture;
   return false;
 }
 
@@ -151,6 +160,8 @@ const ResourcePool<T>& ResourceManager::Pool() const {
     return Shaders;
   } else if constexpr (std::is_same_v<T, ShaderProgram>) {
     return ShaderPrograms;
+  } else if constexpr (std::is_same_v<T, Texture>) {
+    return Textures;
   } else {
     static_assert(!sizeof(T),
                   "ResourceManager::Pool received an unsupported resource type.");

@@ -15,7 +15,9 @@
 using namespace z8;
 
 DX12Material::DX12Material(const Material* material)
-  : Albedo(material->Albedo), FresnelR0(material->FresnelR0), Rough(material->Rough)
+  : Albedo(material->Albedo), FresnelR0(material->FresnelR0),
+    Rough(material->Rough),
+    HasBaseColorTexture(material->BaseColorTexture.GetId().empty() ? 0U : 1U)
 {}
 
 z8::DX12MaterialManager::DX12MaterialManager(DX12Render *R) : DX12Common(R), Buffer(R){}

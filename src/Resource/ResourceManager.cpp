@@ -2,6 +2,8 @@
 #include "Material/BuiltinMaterial.h"
 #include "Mesh/BuiltinMesh.h"
 
+#include <stdexcept>
+
 using namespace z8;
 
 namespace z8 {
@@ -19,6 +21,13 @@ void ResourceManager::RegisterBuiltinResources() {
   Add(std::make_unique<RectMesh>());
   Add(std::make_unique<SkullMesh>());
   Add(std::make_unique<SphereMesh>());
+  auto grassTexture = std::make_unique<Texture>();
+  grassTexture->AssetId = builtin::GrassBlockTexture;
+  std::string textureError;
+  if (!grassTexture->Load(L"asset/texture/grass-block.png", &textureError))
+    throw std::runtime_error(textureError);
+  Add(std::move(grassTexture));
+  Add(std::make_unique<GrassBlockMaterial>());
   Add(std::make_unique<MetalMaterial>());
   Add(std::make_unique<UIMaterial>());
 

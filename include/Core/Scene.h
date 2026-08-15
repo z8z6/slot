@@ -10,12 +10,13 @@ class BaseCamera;
 class BaseLight;
 
 /**
- * @brief 一个可独立装载和销毁的场景，统一拥有相机、灯光和场景对象。
+ * @brief 一个可独立装载和销毁的场景，统一拥有相机、多光源和场景对象。
  */
 class Scene {
 public:
   Owner<BaseCamera> Camera;
-  Owner<BaseLight> Light;
+  /** 光源按稳定声明顺序上传；超过后端上限的尾部光源不会参与当前帧。 */
+  OwnerArray<BaseLight> Lights;
   OwnerArray<GameObject> GOs;
 
   Scene();

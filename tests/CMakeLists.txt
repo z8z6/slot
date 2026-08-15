@@ -74,6 +74,7 @@ add_library(slot_test_runtime STATIC
         ../src/Resource/ResourceManager.cpp
         ../src/Core/Scene.cpp
         ../src/Target/DirectX/DX12Shader.cpp
+        ../src/Texture/Texture.cpp
         ../src/Util/Color.cpp
         ../src/Util/MeshGenerator.cpp
         "${GENERATED_SHADER_REGISTRY}")
@@ -85,7 +86,8 @@ target_compile_definitions(slot_test_runtime PUBLIC
 target_link_libraries(slot_test_runtime PUBLIC
         d3dcompiler.lib
         dxcompiler.lib
-        dwrite.lib)
+        dwrite.lib
+        windowscodecs.lib)
 
 # 为一个测试目录创建独立可执行文件并注册其中的 GoogleTest 用例。叶子目录
 # 显式传入源文件，避免递归 glob 让新增目录意外混入其他测试目标。

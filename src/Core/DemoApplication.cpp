@@ -39,11 +39,13 @@ void DemoApplication::BindEditorLayout() {
   camera->SetEnabled(false);
   root->ContentHost()->AddChild(std::move(camera));
 
-  auto light = std::make_unique<TreeViewItemNode>();
-  light->Key = "__scene_light";
-  light->SetText("Directional Light");
-  light->SetEnabled(false);
-  root->ContentHost()->AddChild(std::move(light));
+  auto lights = std::make_unique<TreeViewItemNode>();
+  lights->Key = "__scene_lights";
+  // 层级面板只展示场景光源集合的摘要，避免把不可编辑的灯光伪装成单个主光源。
+  lights->SetText("Directional Lights (" +
+                  std::to_string(ActiveScene.Lights.size()) + ")");
+  lights->SetEnabled(false);
+  root->ContentHost()->AddChild(std::move(lights));
 
   auto actors = std::make_unique<TreeViewItemNode>();
   actors->Key = "__scene_actors";
@@ -94,9 +96,15 @@ std::string DemoApplication::DescribeObject(GameObject& object,
 
 void DemoApplication::Init() {
   ActiveScene.Camera.set<FirstPersonCamera>();
-  auto* light = ActiveScene.Light.set<ParallelLight>();
-  light->Transform.Position = { 0, 2, -5};
-  light->Direction = { 0.57735f, -0.57735f, 0.57735f };
+  ActiveScene.Lights.clear();
+  auto* keyLight = ActiveScene.Lights.add<ParallelLight>();
+  keyLight->Color = {0.9f, 0.85f, 0.72f};
+  keyLight->Direction = {0.57735f, -0.57735f, 0.57735f};
+  keyLight->Transform.Position = {0, 2, -5};
+  auto* fillLight = ActiveScene.Lights.add<ParallelLight>();
+  // 冷色补光从相反方向抬起暗部，示例场景由此直接验证多光源累加路径。
+  fillLight->Color = {0.18f, 0.24f, 0.35f};
+  fillLight->Direction = {-0.4f, -0.7f, -0.5f};
 
 
   PrepareScene();

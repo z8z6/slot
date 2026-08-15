@@ -7,6 +7,5 @@ using namespace z8;
 
 Scene::Scene() {
   Camera.set<BaseCamera>();
-  Light.set<ParallelLight>();
+  Lights.add<ParallelLight>();
 }
-

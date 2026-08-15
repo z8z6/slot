@@ -8,6 +8,8 @@
 #include "Material/Material.h"
 #include "Resource/ResourceHandle.h"
 #include <DirectXMath.h>
+#include <cstddef>
+#include <cstdint>
 #include <unordered_map>
 
 
@@ -18,9 +20,15 @@ struct DX12Material {
   DirectX::XMFLOAT4 Albedo;
   DirectX::XMFLOAT3 FresnelR0;
   float Rough = 0.25f;
+  uint32_t HasBaseColorTexture = 0;
+  DirectX::XMFLOAT3 Padding = {};
 
   explicit DX12Material(const Material* material);
 };
+static_assert(offsetof(DX12Material, HasBaseColorTexture) == 32,
+              "Material texture flag must match cbMaterial packing.");
+static_assert(sizeof(DX12Material) == 48,
+              "Material constants must match cbMaterial size.");
 
 class DX12MaterialManager : public DX12Common{
 public:

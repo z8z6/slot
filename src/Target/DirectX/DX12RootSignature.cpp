@@ -17,24 +17,29 @@ z8::DX12RootSignature::DX12RootSignature(DX12Render* R) : DX12Common(R)
 void DX12RootSignature::Init()
 {
   // 创建寄存器槽
-  CD3DX12_ROOT_PARAMETER slotRootParameter[3];
+  CD3DX12_ROOT_PARAMETER slotRootParameter[4];
 
-  // 常量寄存器 b0
-  CD3DX12_DESCRIPTOR_RANGE c0;
-  c0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-
-  // 常量寄存器 b2
-  CD3DX12_DESCRIPTOR_RANGE c2;
-  c2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
-
-  // 描述符表
-  slotRootParameter[0].InitAsDescriptorTable(1, &c0);
-  // 根描述符，对应一个 64 位 GPU 地址
+  // 三组常量直接使用根 CBV，避免与纹理 SRV 竞争唯一的 Shader-visible 堆。
+  slotRootParameter[0].InitAsConstantBufferView(0);
   slotRootParameter[1].InitAsConstantBufferView(1);
-  slotRootParameter[2].InitAsDescriptorTable(1, &c2);
+  slotRootParameter[2].InitAsConstantBufferView(2);
 
-  CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC RD(3, slotRootParameter, 0,
-    nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+  CD3DX12_DESCRIPTOR_RANGE textureRange;
+  textureRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+  slotRootParameter[3].InitAsDescriptorTable(
+      1, &textureRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+  // 像素风纹理使用 point 过滤保持方块边缘，wrap 允许普通网格 UV 平铺。
+  CD3DX12_STATIC_SAMPLER_DESC sampler(
+      0, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+      D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0.0f,
+      1, D3D12_COMPARISON_FUNC_ALWAYS,
+      D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE, 0.0f, D3D12_FLOAT32_MAX,
+      D3D12_SHADER_VISIBILITY_PIXEL);
+
+  CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC RD(
+      4, slotRootParameter, 1, &sampler,
+      D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
   ComPtr<ID3DBlob> RootSig = nullptr;
   ComPtr<ID3DBlob> err = nullptr;

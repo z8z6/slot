@@ -13,6 +13,14 @@ struct MetalMaterial : Material {
   }
 };
 
+/** 默认像素风草方块材质，通过纹理提供基础色并保留受光照的粗糙表面。 */
+struct GrassBlockMaterial : Material {
+  GrassBlockMaterial();
+  std::string GetName() const override {
+    return std::string(builtin::GrassBlockMaterial);
+  }
+};
+
 /** UI 材质独立成类型，避免注册处手工拼装名称和 Program 依赖。 */
 struct UIMaterial : Material {
   UIMaterial();
