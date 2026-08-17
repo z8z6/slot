@@ -9,6 +9,7 @@ using namespace DirectX;
 
 MountainMesh::MountainMesh()
 {
+  Id = builtin::mesh::MountainMesh;
   for (auto& v : V)
     v.Pos.y = GetHeight(v.Pos.x, v.Pos.z);
 }

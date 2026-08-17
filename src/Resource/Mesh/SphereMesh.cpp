@@ -62,7 +62,7 @@ void SplitTextureSeam(Mesh& mesh) {
 // Approximate a sphere by tessellating an icosahedron.
 z8::SphereMesh::SphereMesh(float radius, unsigned numSubdivisions) {
 
-  Name = "Sphere";
+  Id = builtin::mesh::SphereMesh;
   if (!std::isfinite(radius) || radius <= 0.0f) return;
 
   numSubdivisions = std::min<unsigned>(numSubdivisions, 6u);

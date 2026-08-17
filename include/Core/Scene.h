@@ -3,7 +3,6 @@
 #include "Object/GameObject/GameObject.h"
 #include "Util/Owner.h"
 
-
 namespace z8 {
 
 class BaseCamera;
@@ -15,7 +14,6 @@ class BaseLight;
 class Scene {
 public:
   Owner<BaseCamera> Camera;
-  /** 光源按稳定声明顺序上传；超过后端上限的尾部光源不会参与当前帧。 */
   OwnerArray<BaseLight> Lights;
   OwnerArray<GameObject> GOs;
 

@@ -25,9 +25,6 @@ class DemoApplication : public Application {
   void OnFrame() override;
   void OnLayoutReloaded() override;
   void OnSceneSelectionChanged(GameObject *object) override;
-  void PrepareScene() override;
-
-public:
-  void Init() override;
+  void BeforeInit() override;
 };
 } // namespace z8

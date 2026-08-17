@@ -1,5 +1,7 @@
 #include "Texture/Texture.h"
 
+#include "Resource/BuiltinResource.h"
+
 #include <Windows.h>
 #include <wincodec.h>
 #include <wrl/client.h>
@@ -8,6 +10,11 @@
 
 using Microsoft::WRL::ComPtr;
 using namespace z8;
+
+Texture::Texture() {
+  Type = ResourceTy::Texture;
+  Id = builtin::texture::TexturePrefix;
+}
 
 bool Texture::Load(const std::wstring& path, std::string* error) {
   const auto fail = [&](const char* message) {

@@ -45,13 +45,12 @@ Application::~Application() {
 
 void Application::Init() {
 
-  PrepareScene();
+  BeforeInit();
   Render = Render::CreateRender(this);
   Render->Init();
   Window.Open();
 }
 
-void Application::PrepareScene() {  }
 
 int z8::Application::Run() {
   MSG msg = {nullptr};

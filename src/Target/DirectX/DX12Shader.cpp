@@ -125,9 +125,9 @@ void DX12ShaderLibrary::CompileAll() {
     return;
   }
   LogShaderMessage("[Shader] Starting unified shader compilation. Count: " +
-                   std::to_string(Resources->GetShaders().Size()));
+                   std::to_string(Resources->Shaders.Size()));
   Binaries.clear();
-  Resources->GetShaders().Visit([this](ResourceHandle<Shader> handle,
+  Resources->Shaders.Visit([this](ResourceHandle<Shader> handle,
                                        const Shader& shader) {
     auto binary = std::make_unique<DX12Shader>(&shader);
     binary->Compile();

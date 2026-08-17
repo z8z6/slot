@@ -94,23 +94,29 @@ std::string DemoApplication::DescribeObject(GameObject& object,
   return "GameObject " + std::to_string(index + 1);
 }
 
-void DemoApplication::Init() {
+void DemoApplication::BeforeInit() {
   ActiveScene.Camera.set<FirstPersonCamera>();
-  ActiveScene.Lights.clear();
+
   auto* keyLight = ActiveScene.Lights.add<ParallelLight>();
   keyLight->Color = {0.9f, 0.85f, 0.72f};
   keyLight->Direction = {0.57735f, -0.57735f, 0.57735f};
   keyLight->Transform.Position = {0, 2, -5};
+
   auto* fillLight = ActiveScene.Lights.add<ParallelLight>();
-  // 冷色补光从相反方向抬起暗部，示例场景由此直接验证多光源累加路径。
   fillLight->Color = {0.18f, 0.24f, 0.35f};
   fillLight->Direction = {-0.4f, -0.7f, -0.5f};
 
+  for (int i = -2; i < 3; i++) {
+    if (i == 0) continue;
+    auto* c = ActiveScene.GOs.add<CubeObject>();
+    c->Transform.Position.x = 10.0f * i;
+    c->Transform.UniformScale(2);
+  }
+  auto* sphere = ActiveScene.GOs.add<SphereObject>();
+  sphere->Transform.UniformScale(0.5);
 
-  PrepareScene();
-  Render = Render::CreateRender(this);
-  Render->Init();
-  Window.Open();
+  if (!EnableXamlHotReload("asset/xml/Main.xaml"))
+    throw std::runtime_error("Unable to load asset/xml/Main.xaml.");
 }
 
 void DemoApplication::OnFrame() {
@@ -140,25 +146,4 @@ void DemoApplication::OnSceneSelectionChanged(GameObject* object) {
     else
       type->Text = "Type: GameObject";
   }
-}
-
-void DemoApplication::PrepareScene() {
-  for (int i = -2; i < 3; i++) {
-    if (i == 0) continue;
-    auto* c = ActiveScene.GOs.add<CubeObject>();
-    c->Transform.Position.x = 10.0f * i;
-    c->Transform.Scale.x *= 2;
-    c->Transform.Scale.y *= 5;
-    c->Transform.Scale.z *= 2;
-  }
-
-  // 硬边立方体的单个平面不会形成局部法线变化；中心球体用于直接观察逐像素
-  // Blinn-Phong 高光，并同时覆盖解析球面法线的渲染路径。
-  auto* sphere = ActiveScene.GOs.add<SphereObject>();
-  sphere->Transform.Scale = {0.5f, 0.5f, 0.5f};
-
-  // UI 声明完全位于 asset/xml；首次加载与后续热重载共享同一事务解析路径。
-  // 初始文件缺失无法构成可用 Demo，因此用英文异常明确终止初始化。
-  if (!EnableXamlHotReload("asset/xml/Main.xaml"))
-    throw std::runtime_error("Unable to load asset/xml/Main.xaml.");
 }

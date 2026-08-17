@@ -27,7 +27,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12TextureManager::GetGPUDescriptor(
 }
 
 void DX12TextureManager::Init() {
-  const auto& textures = Render->App->Resources.GetTextures();
+  const auto& textures = Render->App->Resources.Textures;
   DescriptorHeap.Reset();
   Indices.clear();
   Resources.clear();

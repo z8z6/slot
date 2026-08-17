@@ -17,17 +17,21 @@ namespace z8
 {
 struct Transform
 {
+  // 1. 位置
   // 直角坐标系描述
   DirectX::XMFLOAT3 Position;  // XYZ 世界位置
 
   // 球坐标系描述
-  // 只用来表示位置
   float Radius;       // 半径，到原点距离
   float Theta;        // 与x轴夹角，水平面
   float Phi;          // 与y轴夹角，竖直面
 
-  DirectX::XMFLOAT3 Rotation;  // 欧拉角（Pitch/Yaw/Roll）
-  DirectX::XMFLOAT3 Scale;     // 缩放
+  // 2. 旋转
+  // 欧拉角（Pitch/Yaw/Roll）
+  DirectX::XMFLOAT3 Rotation;
+
+  // 3. 大小
+  DirectX::XMFLOAT3 Scale;
 
   DirectX::XMFLOAT4X4 World;
 
@@ -35,11 +39,10 @@ struct Transform
 
   // 从球坐标更新直角坐标
   void UpdateCartesian();
-
   // 从直角坐标更新球坐标
   void UpdateSpherical();
   void UpdateWorld();
-
+  void UniformScale(float size);
 };
 std::ostream& operator<<(std::ostream& o, const DirectX::XMFLOAT3& F);
 std::ostream& operator<<(std::ostream& o, const Transform& transform);

@@ -17,11 +17,13 @@ enum class ResourceTy {
   Audio,
 };
 
-class ResourceId {
+class Resource {
 public:
-  std::string Id;     // 规范 URI
+  std::string Id;
+  ResourceTy Type = ResourceTy::None;
 
-  [[nodiscard]] ResourceTy GetType() const;
+  /** 资源池通过基类指针持有具体资源，析构必须保留派生类生命周期语义。 */
+  virtual ~Resource() = default;
   [[nodiscard]] bool IsValid() const { return !Id.empty(); }
 };
 
@@ -29,7 +31,8 @@ public:
  * @brief 资源在序列化数据中的强类型软引用。
  * 使用时必须先将其解析为 ResourceHandle
  */
-template <typename ResourceTy> class ResourceRef {
+template <typename ResourceTy>
+class ResourceRef {
   std::string Id;
 
 public:
@@ -45,7 +48,8 @@ public:
  * 利用模板标识不同资源类型的句柄不能互换，从而在编译期阻止把 Material 当作 Mesh
  * 使用。
  */
-template <typename ResourceTy> class ResourceHandle {
+template <typename ResourceTy>
+class ResourceHandle {
 public:
   uint32_t Index = Invalid;
   uint32_t Generation = 0;

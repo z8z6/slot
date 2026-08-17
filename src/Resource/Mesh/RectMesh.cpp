@@ -20,5 +20,5 @@ RectMesh::RectMesh() {
       Vertex({-0.5f, 0.5f, 0.0f}, {1.0f, 0.0f}),
   };
   I = {0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7};
-  Name = "Rect";
+  Id = builtin::mesh::RectMesh;
 }

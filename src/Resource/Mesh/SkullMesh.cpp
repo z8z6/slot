@@ -8,8 +8,8 @@
 using namespace z8;
 
 SkullMesh::SkullMesh() {
+  Id = builtin::mesh::SkullMesh;
   Mesh M = ObjMeshImporter::Parse("asset/mesh/Skull/Skull.obj");
   V = M.V;
   I = M.I;
-  Name = "Skull";
 }

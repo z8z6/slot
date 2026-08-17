@@ -1,6 +1,6 @@
 ---
 name: add-slot-resource
-description: Add or modify Slot project Mesh, Material, ShaderProgram, and UI Node types using the ResourceManager, generated Shader manifest registry, RenderableComponent bindings, native layout ownership, tests, and project documentation. Use for requests to create a new render resource, bind resources to scene objects, add HLSL programs, or extend declarative/immediate UI controls in Slot.
+description: Add or modify Slot project Mesh, Material, ShaderProgram, and UI Node types using the ResourceManager, builtin Shader registration, RenderableComponent bindings, native layout ownership, tests, and project documentation. Use for requests to create a new render resource, bind resources to scene objects, add HLSL programs, or extend declarative/immediate UI controls in Slot.
 ---
 
 # Add Slot Resource
@@ -11,7 +11,7 @@ Read the repository `AGENTS.md` and inspect `git status` before editing. Preserv
 
 - For geometry or imported vertex/index data, follow **Mesh**.
 - For shared surface parameters, follow **Material**.
-- For ordinary VS/PS programs, follow **ShaderProgram**. Do not add per-Shader C++ subclasses.
+- For ordinary VS/PS programs, follow **ShaderProgram**. Define stage descriptions and their Program directly in `ResourceManager::RegisterBuiltinResources`.
 - For native-layout controls, follow **UI Node**.
 - When a request crosses types, add dependencies first: ShaderProgram, Material, Mesh, then scene/UI binding.
 
@@ -38,13 +38,13 @@ Use canonical lowercase asset IDs such as `builtin://mesh/name`. Add the constan
 ## Add a ShaderProgram
 
 1. Add the HLSL file under `asset/shader/`. Keep shared constant ABI in `asset/shader/Core`.
-2. Add `asset/shader/<Name>.shader.json` with `assetId`, `name`, `source`, `vertex`, `pixel`, `enableDepth`, and `enableBlend`.
-3. Do not create Shader C++ header/source pairs. CMake runs `scripts/generate_shader_registry.py` and emits the explicit registration source.
-4. Add a `BuiltinResource.h` constant when C++ or scene defaults need to reference the Program.
+2. Add builtin constants for both stage IDs and the Program ID to `include/Resource/BuiltinResource.h`.
+3. Construct the VS and PS `Shader` descriptions in `ResourceManager::RegisterBuiltinResources`, then construct the `ShaderProgram` from their returned handles. Keep source, entry, target, and fixed state explicit at this registration boundary.
+4. Use the Program builtin constant from Material or scene defaults; do not repeat asset ID literals.
 5. Bind the Program through `Material::Program`; GameObject must not reference ShaderProgram directly.
 6. Run the DXC compilation tests. When changing cbuffers, input semantics, registers, or packing, update both C++ and HLSL ABI definitions in the same change.
 
-Reserve hand-written C++ classes for render-pass behavior such as shadow, post-process, or compute orchestration—not for files that only provide source, entry points, targets, and fixed state.
+Reserve Shader subclasses for render-pass behavior such as shadow, post-process, or compute orchestration. Ordinary source, entry points, targets, fixed state, and resource identity belong to direct builtin registration.
 
 ## Add a UI Node
 

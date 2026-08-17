@@ -19,37 +19,28 @@ template <typename T>
 using StoredResourceTy = std::conditional_t<
     std::is_base_of_v<Mesh, T>, Mesh,
     std::conditional_t<std::is_base_of_v<Material, T>, Material,
-                       std::conditional_t<std::is_same_v<Shader, T>, Shader,
+                       std::conditional_t<std::is_base_of_v<Shader, T>, Shader,
                                           std::conditional_t<
-                                              std::is_same_v<ShaderProgram, T>,
+                                              std::is_base_of_v<ShaderProgram, T>,
                                               ShaderProgram,
                                               std::conditional_t<
-                                                  std::is_same_v<Texture, T>,
+                                                  std::is_base_of_v<Texture, T>,
                                                   Texture, void>>>>>;
 
 /**
  * @brief 应用级资源所有者和类型安全查询入口。
- *
- * Manager 本身不是单例：Application 显式拥有它，DX12 等后端只缓存对应的 GPU
- * 表示。这样一个进程可安全创建多个测试上下文，并为未来的多 Device 留出边界。
+ * Manager 本身不是单例：Application 显式拥有它
  */
 class ResourceManager {
+public:
   ResourcePool<Mesh> Meshes;
   ResourcePool<Material> Materials;
   ResourcePool<Shader> Shaders;
   ResourcePool<ShaderProgram> ShaderPrograms;
   ResourcePool<Texture> Textures;
 
-public:
-  /** 创建应用级资源上下文，并按确定顺序注册全部内建资源。 */
   ResourceManager();
 
-  /**
-   * 根据资源类自动选择类型池，并使用对象的 GetName() 作为稳定资源 ID。
-   *
-   * 该入口服务于内建类型和 manifest 生成资源；文件导入等序列化边界使用带
-   * assetId 的 Add 重载。
-   */
   template <typename T>
   ResourceHandle<StoredResourceTy<T>> Add(std::unique_ptr<T> resource);
 
@@ -60,13 +51,6 @@ public:
   ResourceHandle<StoredResourceTy<T>>
   Add(std::string assetId, std::unique_ptr<T> resource);
 
-  const ResourcePool<Material>& GetMaterials() const { return Materials; }
-  const ResourcePool<Mesh>& GetMeshes() const { return Meshes; }
-  const ResourcePool<ShaderProgram>& GetShaderPrograms() const {
-    return ShaderPrograms;
-  }
-  const ResourcePool<Shader>& GetShaders() const { return Shaders; }
-  const ResourcePool<Texture>& GetTextures() const { return Textures; }
 
   /** 把持久化软引用解析为运行时句柄，不执行 I/O。 */
   template <typename ResourceTy>
@@ -104,10 +88,12 @@ ResourceManager::Add(std::unique_ptr<T> resource) {
   static_assert(!std::is_void_v<StoredTy>,
                 "ResourceManager::Add received an unsupported resource type.");
 
-  // 先读取名称再转移所有权；这样各资源类型只维护一份规范 ID，注册表不会再与类
-  // 声明发生大小写或拼写漂移。
-  const std::string assetId = resource ? resource->GetName() : std::string{};
-  const auto type = ResourceId{assetId}.GetType();
+  if (!resource) return {};
+
+  // 先读取名称再转移所有权；具体派生类是资源描述的唯一来源，
+  // 注册路径不再临时改写 ID 或类别。
+  const std::string assetId = resource->Id;
+  const auto type = resource->Type;
   if (!MatchesType<StoredTy>(type)) return {};
   return Add(std::move(assetId), std::move(resource));
 }

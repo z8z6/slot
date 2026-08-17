@@ -26,12 +26,12 @@ void DX12MaterialManager::Init() {
   constexpr uint64_t materialStride =
       (sizeof(DX12Material) + D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1) &
       ~(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1);
-  const size_t materialCount = Render->App->Resources.GetMaterials().Size();
+  const size_t materialCount = Render->App->Resources.Materials.Size();
   std::vector<std::byte> data(materialCount * materialStride);
   Offsets.clear();
 
   uint64_t offset = 0;
-  Render->App->Resources.GetMaterials().Visit(
+  Render->App->Resources.Materials.Visit(
       [&](ResourceHandle<Material> handle, const Material& material) {
         const DX12Material gpuMaterial(&material);
         std::memcpy(data.data() + offset, &gpuMaterial, sizeof(gpuMaterial));

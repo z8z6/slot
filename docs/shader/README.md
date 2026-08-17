@@ -1,6 +1,6 @@
 # 着色器与常量 ABI
 
-Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS、深度和混合状态组合成一个绘制管线资源。普通 Shader 不再创建 C++ 派生类：`asset/shader/*.shader.json` 是注册来源，CMake 生成带规范 `AssetId` 的显式注册代码，并通过 `ResourceManager::Add` 自动进入 Shader 或 ShaderProgram 资源池；`DX12Render::Init` 再统一编译 ResourceManager 中的全部 Shader。
+Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS、深度和混合状态组合成一个绘制管线资源。内建阶段和 Program 在 `ResourceManager::RegisterBuiltinResources` 中直接定义，ID 统一引用 `BuiltinResource.h` 的 `builtin::shader` 常量，不再生成 C++ 类。注册时先将 VS/PS 放入对应资源池，再以稳定句柄构造 Program；`DX12Render::Init` 随后统一编译全部 Shader。
 
 编译器按 Target 自动选择：Shader Model 6.x 使用 DXC，旧版 Target 使用 FXC。DXC 路径支持 include、HLSL 2021、Debug 的 `-Zi/-Od` 和 Release 的 `-O3`。每个 DX12Render 拥有自己的 `DX12ShaderLibrary`，CPU 描述仍由 Application 的 ResourceManager 统一拥有。
 
@@ -19,6 +19,6 @@ Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS�
 
 普通物体和 UI 对象共享 b0 的两个矩阵前缀；UI 外观字段从第 128 字节开始。`ObjectTransformConst`、`UIObjectConst` 与 `asset/shader/Core/Const.hlsl` 通过静态断言保持 ABI 一致。UI Shader 将世界矩阵结果视为像素坐标，再映射到 NDC 并翻转 Y；像素颜色来自每对象 `ObjectColor`，Panel 可区分背景和标题栏。
 
-GoogleTest 会真实编译生成注册表中的全部 SM 6.0 Shader。
+GoogleTest 会真实编译内建注册表中的全部 SM 6.0 Shader。
 
-关键源码：`scripts/generate_shader_registry.py`、`DX12Shader.cpp`、`DX12RootSignature.cpp`、`DX12GlobalConst.cpp`、`shader`、`tests/Shader/DX12ShaderTest.cpp`。
+关键源码：`ResourceManager.cpp`、`BuiltinResource.h`、`DX12Shader.cpp`、`DX12RootSignature.cpp`、`DX12GlobalConst.cpp`、`shader`、`tests/Shader/DX12ShaderTest.cpp`。

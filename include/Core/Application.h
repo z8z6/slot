@@ -68,7 +68,7 @@ private:
   EventReply OnMouseWheel(MouseWheelArgs args) override;
   void OnPointerCaptureLost() override;
   EventReply OnTextInput(wchar_t character) override;
-  virtual void PrepareScene();
   void ShowFrame() const;
+  virtual void BeforeInit() { }
 };
 } // namespace z8

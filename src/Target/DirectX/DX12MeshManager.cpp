@@ -20,7 +20,7 @@ void DX12MeshManager::UnifyMesh()
   SubMeshes.clear();
   // 将注册过的所有 Mesh 拼成一个 Mesh
   // 同一种 Mesh 只会出现一次
-  Render->App->Resources.GetMeshes().Visit(
+  Render->App->Resources.Meshes.Visit(
       [this](ResourceHandle<Mesh> handle, const Mesh& mesh) {
     DX12SubMesh SubMesh;
     SubMesh.IndexCount = mesh.I.size();

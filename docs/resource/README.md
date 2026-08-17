@@ -7,15 +7,16 @@
 运行时资源统一位于 `asset/`：网格、着色器、纹理和材质分别使用
 `asset/mesh`、`asset/shader`、`asset/texture` 与 `asset/material`。内建资源 ID
 位于 `include/Resource/BuiltinResource.h`。Mesh 和 Material 在
-`ResourceManager::RegisterBuiltinResources` 显式注册。内建资源通过自身的
-`GetName()` 提供规范 ID，`ResourceManager::Add` 根据 C++ 资源类自动选择类型池，
+`ResourceManager::RegisterBuiltinResources` 显式注册。具体资源派生类在构造时设置
+`Resource::Id` 和 `Resource::Type`，`ResourceManager::Add` 将 Mesh、Material、
+Texture、Shader 与 ShaderProgram 派生类归一到对应基类资源池，
 避免类型、ID 和注册函数在调用处重复声明；文件导入边界可通过
 `Add(explicitId, resource)` 显式指定外部 ID。Resolve、TryGet 和类型池选择也复用
 同一份类型映射，不再为每种资源维护函数特化。
-普通 ShaderProgram 由
-`asset/shader/*.shader.json` 描述，CMake 调用
-`scripts/generate_shader_registry.py` 生成显式注册代码。文件级静态 Registry
-已移除。
+普通 ShaderProgram 及其阶段在 `ResourceManager::RegisterBuiltinResources` 中直接
+构造，所有 ID 均复用 `BuiltinResource.h` 中的 builtin 字符串；注册顺序先于
+Program 固化阶段句柄，不再依赖构建期生成代码。内建纹理使用具体派生类，例如 `GrassBlockTexture`
+同时固化资源 ID 和文件来源。文件级静态 Registry 已移除。
 
 DX12 后端只拥有 GPU 表示：`DX12ShaderLibrary` 保存 DXIL，MeshManager 保存合并后的顶点/索引缓冲，MaterialManager 保存 256 字节对齐常量槽，TextureManager 保存纹理资源与 SRV。
 

@@ -29,6 +29,12 @@ void Transform::UpdateWorld() {
   XMStoreFloat4x4(&World, world);
 }
 
+void Transform::UniformScale(float size) {
+  Scale.x = size;
+  Scale.y = size;
+  Scale.z = size;
+}
+
 void Transform::UpdateCartesian() {
   // 球坐标系转直角坐标系公式（标准 3D 数学公式）
   // X = r * sin(phi) * cos(theta)

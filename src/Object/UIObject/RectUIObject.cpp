@@ -8,5 +8,5 @@
 using namespace z8;
 
 RectUIObject::RectUIObject() {
-  Renderable.Mesh = ResourceRef<Mesh>(builtin::RectMesh);
+  Renderable.Mesh = ResourceRef<Mesh>(builtin::mesh::RectMesh);
 }

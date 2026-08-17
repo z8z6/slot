@@ -29,5 +29,5 @@ CubeMesh::CubeMesh() {
   addFace({1, -1, -1}, {1, 1, -1}, {1, 1, 1}, {1, -1, 1});
   addFace({-1, 1, -1}, {-1, 1, 1}, {1, 1, 1}, {1, 1, -1});
   addFace({-1, -1, 1}, {-1, -1, -1}, {1, -1, -1}, {1, -1, 1});
-  Name = "Cube";
+  Id = builtin::mesh::CubeMesh;
 }

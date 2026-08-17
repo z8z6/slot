@@ -47,21 +47,21 @@ add_library(slot_test_runtime STATIC
         ../src/UI/Layout/ToolBarNode.cpp
         ../src/UI/Layout/TreeViewNode.cpp
         ../src/UI/Style/Theme.cpp
-        ../src/Material/Material.cpp
-        ../src/Material/BuiltinMaterial.cpp
-        ../src/Light/BaseLight.cpp
-        ../src/Light/ParallelLight.cpp
-        ../src/Mesh/CubeMesh.cpp
-        ../src/Mesh/FbxMeshImporter.cpp
-        ../src/Mesh/GridMesh.cpp
-        ../src/Mesh/Mesh.cpp
-        ../src/Mesh/MountainMesh.cpp
-        ../src/Mesh/ObjMeshImporter.cpp
-        ../src/Mesh/RectMesh.cpp
-        ../src/Mesh/SkullMesh.cpp
-        ../src/Mesh/SphereMesh.cpp
-        ../src/Mesh/TriangleMesh.cpp
-        ../src/Mesh/Vertex.cpp
+        ../src/Resource/Material/Material.cpp
+        ../src/Resource/Material/BuiltinMaterial.cpp
+        ../src/Object/Light/BaseLight.cpp
+        ../src/Object/Light/ParallelLight.cpp
+        ../src/Resource/Mesh/CubeMesh.cpp
+        ../src/Resource/Mesh/FbxMeshImporter.cpp
+        ../src/Resource/Mesh/GridMesh.cpp
+        ../src/Resource/Mesh/Mesh.cpp
+        ../src/Resource/Mesh/MountainMesh.cpp
+        ../src/Resource/Mesh/ObjMeshImporter.cpp
+        ../src/Resource/Mesh/RectMesh.cpp
+        ../src/Resource/Mesh/SkullMesh.cpp
+        ../src/Resource/Mesh/SphereMesh.cpp
+        ../src/Resource/Mesh/TriangleMesh.cpp
+        ../src/Resource/Mesh/Vertex.cpp
         ../src/Object/Camera/BaseCamera.cpp
         ../src/Object/Camera/FirstPersonCamera.cpp
         ../src/Object/GameObject/CubeObject.cpp
@@ -70,16 +70,19 @@ add_library(slot_test_runtime STATIC
         ../src/Object/Transform.cpp
         ../src/Object/UIObject/RectUIObject.cpp
         ../src/Object/UIObject/UIObject.cpp
-        ../src/Resource/ResourceHandle.cpp
         ../src/Resource/ResourceManager.cpp
+        ../src/Resource/Shader/Shader.cpp
+        ../src/Resource/Shader/ShaderProgram.cpp
         ../src/Core/Scene.cpp
         ../src/Target/DirectX/DX12Shader.cpp
-        ../src/Texture/Texture.cpp
+        ../src/Resource/Texture/BuiltinTexture.cpp
+        ../src/Resource/Texture/Texture.cpp
         ../src/Util/Color.cpp
-        ../src/Util/MeshGenerator.cpp
-        "${GENERATED_SHADER_REGISTRY}")
+        ../src/Util/MeshGenerator.cpp)
 target_include_directories(slot_test_runtime PUBLIC
         "${PROJECT_SOURCE_DIR}/include"
+        "${PROJECT_SOURCE_DIR}/include/Object"
+        "${PROJECT_SOURCE_DIR}/include/Resource"
         "${PROJECT_SOURCE_DIR}/third")
 target_compile_definitions(slot_test_runtime PUBLIC
         SLOT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

@@ -7,8 +7,8 @@
 
 using namespace z8;
 
-z8::Timer::Timer() : TimeCost(0), TimeTotal(0), TimePrev(0), TimeCur(0) {
-  __int64 countsPerSec;
+z8::Timer::Timer() : TimePrev(0), TimeCur(0), TimeCost(0), TimeTotal(0) {
+  int64_t countsPerSec;
   QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER *>(&countsPerSec));
   SecondsPerCount = 1.0 / static_cast<double>(countsPerSec);
 }

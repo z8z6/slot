@@ -10,5 +10,5 @@ using namespace z8;
 
 z8::CubeObject::CubeObject()
 {
-  Renderable.Mesh = ResourceRef<Mesh>(builtin::CubeMesh);
+  Renderable.Mesh = ResourceRef<Mesh>(builtin::mesh::CubeMesh);
 }

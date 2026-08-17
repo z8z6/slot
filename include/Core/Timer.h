@@ -3,13 +3,13 @@
 //
 
 #pragma once
+#include <cstdint>
 
 namespace z8 {
 class Timer {
-private:
   double SecondsPerCount;
-  __int64 TimePrev;
-  __int64 TimeCur;
+  int64_t TimePrev;
+  int64_t TimeCur;
 public:
   double TimeCost;
   double TimeTotal;

@@ -262,7 +262,9 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
             "ASCII FBX 7.x file or integrate ufbx/Autodesk FBX SDK."};
 
   auto mesh = std::make_unique<Mesh>();
-  mesh->Name = meshName.empty() ? "FBX" : std::string(meshName);
+  // 导入资源没有内建派生类，因此在加载边界把来源名写入
+  // Resource 描述；上层仍可在 Add(assetId, ...) 时使用序列化 ID。
+  mesh->Id = meshName.empty() ? "FBX" : std::string(meshName);
   bool hasAnyNormal = false;
   bool missingAnyNormal = false;
   size_t geometryOffset = 0;
@@ -433,9 +435,9 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
     if (!corners.empty())
       return {nullptr, "FBX polygon index array is missing an end marker."};
 
-    if (mesh->Name == "FBX") {
+    if (mesh->Id == "FBX") {
       const auto geometryName = ParseGeometryName(geometry->Header);
-      if (!geometryName.empty()) mesh->Name = geometryName;
+      if (!geometryName.empty()) mesh->Id = geometryName;
     }
   }
 

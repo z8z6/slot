@@ -10,6 +10,7 @@ using namespace z8;
 using namespace DirectX;
 
 z8::GridMesh::GridMesh() {
+  Id = builtin::mesh::GridMesh;
   float width = 100;
   float depth = 100;
   unsigned m = 101;

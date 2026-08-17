@@ -12,11 +12,11 @@ TEST(DX12ShaderTest, CompilesRegisteredShaders) {
   ResourceManager resources;
   DX12ShaderLibrary library(resources);
 
-  ASSERT_GT(resources.GetShaders().Size(), 0U);
+  ASSERT_GT(resources.Shaders.Size(), 0U);
   library.CompileAll();
 
-  EXPECT_EQ(library.Size(), resources.GetShaders().Size());
-  resources.GetShaders().Visit(
+  EXPECT_EQ(library.Size(), resources.Shaders.Size());
+  resources.Shaders.Visit(
       [&](ResourceHandle<Shader> handle, const Shader&) {
         const auto* binary = library.TryGet(handle);
         ASSERT_NE(binary, nullptr);

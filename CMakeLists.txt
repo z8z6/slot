@@ -6,34 +6,16 @@ add_compile_definitions(UNICODE _UNICODE)
 add_compile_options("/utf-8")
 add_definitions(-DNOMINMAX)
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-
-# 根据 Shader 描述文件生成相应的 C++ 注册代码
-file(GLOB SHADER_MANIFESTS CONFIGURE_DEPENDS asset/shader/*.shader.json)
-set(GENERATED_SHADER_REGISTRY
-        "${CMAKE_CURRENT_BINARY_DIR}/generated/ShaderRegistry.generated.cpp")
-add_custom_command(
-        OUTPUT "${GENERATED_SHADER_REGISTRY}"
-        COMMAND "${Python3_EXECUTABLE}"
-                "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_shader_registry.py"
-                --output "${GENERATED_SHADER_REGISTRY}"
-                ${SHADER_MANIFESTS}
-        DEPENDS ${SHADER_MANIFESTS}
-                "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_shader_registry.py"
-        COMMENT "Generating ShaderProgram registry"
-        VERBATIM)
-
 # CONFIGURE_DEPENDS 让新增控件/声明层源文件自动进入目标，避免只增文件后链接缺符号。
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS src/*.cpp include/*.h third/*.h)
 
 # 由清单在任何 HWND 创建前启用 Per-Monitor V2，避免 Windows 对交换链做低清
 # 位图拉伸；CMake 会在 MSVC 链接的 manifest 合并阶段嵌入该源文件。
-add_executable(slot ${SOURCE_FILES} "${GENERATED_SHADER_REGISTRY}"
-        "src/slot.manifest")
+add_executable(slot ${SOURCE_FILES} "src/slot.manifest")
 
 set_property(TARGET slot PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-target_include_directories(slot PUBLIC include third)
+target_include_directories(slot PUBLIC include include/Object include/Resource third)
 
 target_link_libraries(
         slot
