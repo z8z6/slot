@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/20.
 //
 
-#include "Mesh/ObjMeshImporter.h"
+#include "Mesh/ObjImporter.h"
 
 #include <DirectXColors.h>
 #include <DirectXMath.h>
@@ -13,10 +13,10 @@ using namespace z8;
 using namespace std;
 using namespace DirectX;
 
-Mesh z8::ObjMeshImporter::Parse(std::string FileName) {
+BaseMesh z8::ObjImporter::Parse(std::string FileName) {
   ifstream ifs(FileName);
   assert(ifs);
-  Mesh M;
+  BaseMesh M;
   std::string line;
   while (std::getline(ifs, line)) {
     std::istringstream iss(line);

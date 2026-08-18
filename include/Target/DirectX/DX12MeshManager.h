@@ -7,7 +7,7 @@
 
 #include "DX12Common.h"
 #include "DX12DefaultBuffer.h"
-#include "Mesh/Mesh.h"
+#include "Mesh/BaseMesh.h"
 #include "Resource/ResourceHandle.h"
 
 #include <unordered_map>
@@ -25,7 +25,7 @@ struct DX12SubMesh {
 
 class DX12MeshManager : public DX12Common{
 public:
-  Mesh MergeMesh;
+  BaseMesh MergeMesh;
 
   DX12DefaultBuffer VBuf;
   DX12DefaultBuffer IBuf;
@@ -34,14 +34,14 @@ public:
   D3D12_INDEX_BUFFER_VIEW Iv;
 
   DXGI_FORMAT FormatIBuf = DXGI_FORMAT_R16_UINT;
-  std::unordered_map<ResourceHandle<Mesh>, DX12SubMesh,
-                     ResourceHandleHash<Mesh>> SubMeshes;
+  std::unordered_map<ResourceHandle<BaseMesh>, DX12SubMesh,
+                     ResourceHandleHash<BaseMesh>> SubMeshes;
 
   DX12MeshManager(DX12Render* R);
   void UnifyMesh();
   void Init();
   void Bind() const;
-  DX12SubMesh* GetSubMesh(ResourceHandle<Mesh> mesh);
+  DX12SubMesh* GetSubMesh(ResourceHandle<BaseMesh> mesh);
 };
 }
 

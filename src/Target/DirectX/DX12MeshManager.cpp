@@ -4,10 +4,9 @@
 
 #include "Target/DirectX/DX12MeshManager.h"
 #include "Core/Application.h"
+#include "Mesh/BaseMesh.h"
 #include "Resource/ResourceManager.h"
 #include "Target/DirectX/DX12Render.h"
-#include "Mesh/Mesh.h"
-
 
 using namespace z8;
 
@@ -21,7 +20,7 @@ void DX12MeshManager::UnifyMesh()
   // 将注册过的所有 Mesh 拼成一个 Mesh
   // 同一种 Mesh 只会出现一次
   Render->App->Resources.Meshes.Visit(
-      [this](ResourceHandle<Mesh> handle, const Mesh& mesh) {
+      [this](ResourceHandle<BaseMesh> handle, const BaseMesh& mesh) {
     DX12SubMesh SubMesh;
     SubMesh.IndexCount = mesh.I.size();
     SubMesh.BaseVertexLocation = MergeMesh.V.size();
@@ -38,19 +37,19 @@ void DX12MeshManager::Init()
 {
   UnifyMesh();
 
-  VBuf.Init(MergeMesh.VSize());
+  VBuf.Init(MergeMesh.VertexByteSize());
   VBuf.Update(MergeMesh.V.data());
-  IBuf.Init(MergeMesh.ISize());
+  IBuf.Init(MergeMesh.IndexByteSize());
   IBuf.Update(MergeMesh.I.data());
 
 
   Vv.BufferLocation = VBuf.DefaultBuffer->GetGPUVirtualAddress();
-  Vv.StrideInBytes = MergeMesh.VElemSize();
-  Vv.SizeInBytes = MergeMesh.VSize();
+  Vv.StrideInBytes = MergeMesh.VertexElementSize();
+  Vv.SizeInBytes = MergeMesh.VertexByteSize();
 
   Iv.BufferLocation = IBuf.DefaultBuffer->GetGPUVirtualAddress();
   Iv.Format = FormatIBuf;
-  Iv.SizeInBytes = MergeMesh.ISize();
+  Iv.SizeInBytes = MergeMesh.IndexByteSize();
 }
 
 void DX12MeshManager::Bind() const
@@ -63,7 +62,7 @@ void DX12MeshManager::Bind() const
   Render->Cmd.List->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
-DX12SubMesh* DX12MeshManager::GetSubMesh(ResourceHandle<Mesh> mesh) {
+DX12SubMesh* DX12MeshManager::GetSubMesh(ResourceHandle<BaseMesh> mesh) {
   const auto iterator = SubMeshes.find(mesh);
   return iterator == SubMeshes.end() ? nullptr : &iterator->second;
 }

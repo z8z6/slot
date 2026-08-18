@@ -4,15 +4,13 @@
 
 #pragma once
 
+#include "ResourceHandle.h"
 #include <DirectXMath.h>
 
 namespace z8
 {
-class Collider {
-public:
-  Collider() = default;
-  virtual ~Collider() = default;
-
+struct BaseCollider : Resource{
+  BaseCollider() = default;
   virtual bool Contains(DirectX::XMFLOAT3) = 0;
 };
 }

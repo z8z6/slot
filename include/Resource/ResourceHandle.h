@@ -22,7 +22,6 @@ public:
   std::string Id;
   ResourceTy Type = ResourceTy::None;
 
-  /** 资源池通过基类指针持有具体资源，析构必须保留派生类生命周期语义。 */
   virtual ~Resource() = default;
   [[nodiscard]] bool IsValid() const { return !Id.empty(); }
 };
@@ -58,7 +57,14 @@ public:
   bool IsValid() const {
     return Index != Invalid;
   }
-  auto operator<=>(const ResourceHandle &) const = default;
+
+  bool operator==(const ResourceHandle &other) const {
+    return Index == other.Index && Generation == other.Generation;
+  }
+
+  bool operator!=(const ResourceHandle &other) const {
+    return !(*this == other);
+  }
 
 private:
   static constexpr uint32_t Invalid = std::numeric_limits<uint32_t>::max();

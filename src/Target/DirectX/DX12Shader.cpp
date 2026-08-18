@@ -30,7 +30,7 @@ std::string Narrow(const std::wstring& value) {
 }
 } // namespace
 
-DX12Shader::DX12Shader(const Shader* shader) : Description(shader) {}
+DX12Shader::DX12Shader(const BaseShader* shader) : Description(shader) {}
 
 void DX12Shader::Compile() {
   // Shader Model 6.x requires DXC; legacy targets remain available through FXC.
@@ -127,8 +127,8 @@ void DX12ShaderLibrary::CompileAll() {
   LogShaderMessage("[Shader] Starting unified shader compilation. Count: " +
                    std::to_string(Resources->Shaders.Size()));
   Binaries.clear();
-  Resources->Shaders.Visit([this](ResourceHandle<Shader> handle,
-                                       const Shader& shader) {
+  Resources->Shaders.Visit([this](ResourceHandle<BaseShader> handle,
+                                       const BaseShader& shader) {
     auto binary = std::make_unique<DX12Shader>(&shader);
     binary->Compile();
     Binaries.emplace(handle, std::move(binary));
@@ -137,7 +137,7 @@ void DX12ShaderLibrary::CompileAll() {
   LogShaderMessage("[Shader] Unified shader compilation completed.");
 }
 
-DX12Shader* DX12ShaderLibrary::TryGet(ResourceHandle<Shader> handle) const {
+DX12Shader* DX12ShaderLibrary::TryGet(ResourceHandle<BaseShader> handle) const {
   const auto it = Binaries.find(handle);
   return it == Binaries.end() ? nullptr : it->second.get();
 }

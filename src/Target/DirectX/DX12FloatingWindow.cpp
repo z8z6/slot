@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <cmath>
 #include <dwmapi.h>
-#include <ranges>
 #include <unordered_set>
 
 using namespace z8;
@@ -450,7 +449,7 @@ bool DX12FloatingWindowManager::Reconcile(bool topologyChanged) {
   bool closesTree = false;
   for (const auto &host : Hosts)
     if (auto *group = host->GetGroup(); host->IsClosePending() && group &&
-                                        alive.contains(group)) {
+                                        alive.find(group) != alive.end()) {
       group->CloseRequested = true;
       closesTree = true;
     }
@@ -459,12 +458,15 @@ bool DX12FloatingWindowManager::Reconcile(bool topologyChanged) {
     return Reconcile(true);
   }
 
-  std::erase_if(Hosts, [&alive](const auto &host) {
-    return !alive.contains(host->GetRoot());
-  });
+  Hosts.erase(std::remove_if(Hosts.begin(), Hosts.end(),
+                             [&alive](const auto &host) {
+                               return alive.find(host->GetRoot()) == alive.end();
+                             }),
+              Hosts.end());
   for (auto *root : alive) {
-    const bool exists = std::ranges::any_of(
-        Hosts, [root](const auto &host) { return host->GetRoot() == root; });
+    const bool exists = std::any_of(
+        Hosts.begin(), Hosts.end(),
+        [root](const auto &host) { return host->GetRoot() == root; });
     if (!exists)
       Hosts.push_back(std::make_unique<Host>(*Render, *root));
   }

@@ -5,6 +5,7 @@
 #include "Core/Application.h"
 #include "Target/Render.h"
 #include <WindowsX.h>
+#include <algorithm>
 #include <ostream>
 #include <utility>
 
@@ -15,7 +16,7 @@
 #include "Object/Camera/BaseCamera.h"
 #include "Object/GameObject/RotateCube.h"
 #include "Object/Object.h"
-#include "Phys/Collider.h"
+#include "Phys/BaseCollider.h"
 #include "UI/Declarative/XamlHotReload.h"
 #include "UI/Layout/SceneNode.h"
 
@@ -40,7 +41,7 @@ Application::~Application() {
     Render.reset();
   }
   // 从 Apps 中移除，防止退出消息循环后继续访问正在析构的实例。
-  std::erase(Apps, this);
+  Apps.erase(std::remove(Apps.begin(), Apps.end(), this), Apps.end());
 }
 
 void Application::Init() {

@@ -6,5 +6,5 @@
 #include "Resource/BuiltinResource.h"
 
 z8::SphereObject::SphereObject() {
-  Renderable.Mesh = ResourceRef<Mesh>(builtin::mesh::SphereMesh);
+  Renderable.Mesh = ResourceRef<BaseMesh>(builtin::mesh::SphereMesh);
 }

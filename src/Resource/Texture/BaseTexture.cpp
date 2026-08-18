@@ -1,7 +1,4 @@
-#include "Texture/Texture.h"
-
-#include "Resource/BuiltinResource.h"
-
+#include "Texture/BaseTexture.h"
 #include <Windows.h>
 #include <wincodec.h>
 #include <wrl/client.h>
@@ -11,12 +8,7 @@
 using Microsoft::WRL::ComPtr;
 using namespace z8;
 
-Texture::Texture() {
-  Type = ResourceTy::Texture;
-  Id = builtin::texture::TexturePrefix;
-}
-
-bool Texture::Load(const std::wstring& path, std::string* error) {
+bool BaseTexture::Load(const std::wstring& path, std::string* error) {
   const auto fail = [&](const char* message) {
     if (error) *error = message;
     Pixels.clear();
@@ -71,7 +63,7 @@ bool Texture::Load(const std::wstring& path, std::string* error) {
   return true;
 }
 
-bool Texture::Validate() const {
+bool BaseTexture::Validate() const {
   return Width > 0 && Height > 0 &&
          Pixels.size() == static_cast<size_t>(Width) * Height * 4;
 }

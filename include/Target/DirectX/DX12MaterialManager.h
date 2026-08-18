@@ -5,7 +5,7 @@
 #pragma once
 #include "DX12Common.h"
 #include "DX12DefaultBuffer.h"
-#include "Material/Material.h"
+#include "Material/BaseMaterial.h"
 #include "Resource/ResourceHandle.h"
 #include <DirectXMath.h>
 #include <cstddef>
@@ -14,7 +14,7 @@
 
 
 namespace z8 {
-class Material;
+class BaseMaterial;
 
 struct DX12Material {
   DirectX::XMFLOAT4 Albedo;
@@ -23,7 +23,7 @@ struct DX12Material {
   uint32_t HasBaseColorTexture = 0;
   DirectX::XMFLOAT3 Padding = {};
 
-  explicit DX12Material(const Material* material);
+  explicit DX12Material(const BaseMaterial* material);
 };
 static_assert(offsetof(DX12Material, HasBaseColorTexture) == 32,
               "Material texture flag must match cbMaterial packing.");
@@ -37,11 +37,11 @@ public:
   DX12MaterialManager(DX12Render* R);
   void Init();
   /** 返回材质对齐槽位的根 CBV 地址；未知句柄返回 0，调用方不得绑定该地址。 */
-  uint64_t GetGPUAddress(ResourceHandle<Material> material) const;
+  uint64_t GetGPUAddress(ResourceHandle<BaseMaterial> material) const;
 
 private:
-  std::unordered_map<ResourceHandle<Material>, uint64_t,
-                     ResourceHandleHash<Material>> Offsets;
+  std::unordered_map<ResourceHandle<BaseMaterial>, uint64_t,
+                     ResourceHandleHash<BaseMaterial>> Offsets;
 };
 }
 

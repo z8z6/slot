@@ -3,13 +3,13 @@
 //
 
 #include "Mesh/BuiltinMesh.h"
-#include "Mesh/ObjMeshImporter.h"
+#include "Mesh/ObjImporter.h"
 
 using namespace z8;
 
 SkullMesh::SkullMesh() {
   Id = builtin::mesh::SkullMesh;
-  Mesh M = ObjMeshImporter::Parse("asset/mesh/Skull/Skull.obj");
+  BaseMesh M = ObjImporter::Parse("asset/mesh/Skull/Skull.obj");
   V = M.V;
   I = M.I;
 }

@@ -22,7 +22,8 @@ public:
   /** 接管资源所有权并返回新句柄；空资源、空 ID 或重复 ID 返回无效句柄。 */
   ResourceHandle<ResourceTy> Add(std::string assetId,
                                  std::unique_ptr<ResourceTy> resource) {
-    if (!resource || assetId.empty() || AssetIndex.contains(assetId)) return {};
+    if (!resource || assetId.empty() || AssetIndex.find(assetId) != AssetIndex.end())
+      return {};
 
     const auto index = static_cast<uint32_t>(Slots.size());
     Slots.push_back({std::move(resource), 1});

@@ -1,4 +1,4 @@
-#include "Mesh/FbxMeshImporter.h"
+#include "Mesh/FbxImporter.h"
 
 #include <DirectXMath.h>
 
@@ -39,7 +39,11 @@ struct VertexKey {
   int64_t Normal = -1;
   int64_t TexCoord = -1;
 
-  auto operator<=>(const VertexKey&) const = default;
+  /** 顶点只有在控制点与属性索引均相同时才能在导入缓存中复用。 */
+  bool operator==(const VertexKey& other) const {
+    return ControlPoint == other.ControlPoint && Normal == other.Normal &&
+           TexCoord == other.TexCoord;
+  }
 };
 
 struct VertexKeyHash {
@@ -181,7 +185,7 @@ XMMATRIX ResolveModelTransform(
   auto result = MakeTransform(model->second.Translation, model->second.Rotation,
                               model->second.Scaling);
   if (const auto parent = parents.find(id);
-      parent != parents.end() && models.contains(parent->second))
+      parent != parents.end() && models.find(parent->second) != models.end())
     result *= ResolveModelTransform(parent->second, models, parents, visiting);
   visiting.erase(id);
   return result;
@@ -241,7 +245,7 @@ bool IsFinite(const XMFLOAT3& value) {
 
 } // namespace
 
-FbxMeshImportResult FbxMeshImporter::Parse(
+FbxMeshImportResult FbxImporter::Parse(
     const std::filesystem::path& fileName, const FbxImportOptions& options) {
   std::ifstream stream(fileName, std::ios::binary);
   if (!stream)
@@ -253,15 +257,17 @@ FbxMeshImportResult FbxMeshImporter::Parse(
   return ParseText(contents.str(), fileName.stem().string(), options);
 }
 
-FbxMeshImportResult FbxMeshImporter::ParseText(
+FbxMeshImportResult FbxImporter::ParseText(
     std::string_view source, std::string_view meshName,
     const FbxImportOptions& options) {
-  if (source.starts_with("Kaydara FBX Binary"))
+  constexpr std::string_view binaryHeader = "Kaydara FBX Binary";
+  if (source.size() >= binaryHeader.size() &&
+      source.compare(0, binaryHeader.size(), binaryHeader) == 0)
     return {nullptr,
             "Binary FBX is not supported by the built-in importer; use an "
             "ASCII FBX 7.x file or integrate ufbx/Autodesk FBX SDK."};
 
-  auto mesh = std::make_unique<Mesh>();
+  auto mesh = std::make_unique<BaseMesh>();
   // 导入资源没有内建派生类，因此在加载边界把来源名写入
   // Resource 描述；上层仍可在 Add(assetId, ...) 时使用序列化 ID。
   mesh->Id = meshName.empty() ? "FBX" : std::string(meshName);
@@ -325,7 +331,8 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
     XMMATRIX geometryTransform = XMMatrixIdentity();
     if (const auto geometryId = ParseObjectId(geometry->Header)) {
       if (const auto modelId = parents.find(*geometryId);
-          modelId != parents.end() && models.contains(modelId->second)) {
+          modelId != parents.end() &&
+          models.find(modelId->second) != models.end()) {
         const auto& model = models.at(modelId->second);
         geometryTransform = MakeTransform(
             model.GeometricTranslation, model.GeometricRotation,
@@ -338,7 +345,7 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
     XMVECTOR determinant;
     const XMMATRIX normalTransform =
         XMMatrixTranspose(XMMatrixInverse(&determinant, geometryTransform));
-    std::unordered_map<VertexKey, Mesh::IndexTy, VertexKeyHash> vertices;
+    std::unordered_map<VertexKey, BaseMesh::IndexTy, VertexKeyHash> vertices;
     int64_t polygon = 0;
     int64_t polygonVertex = 0;
     struct Corner {
@@ -348,7 +355,7 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
     std::vector<Corner> corners;
 
     const auto emitCorner = [&](const Corner& corner)
-        -> std::optional<Mesh::IndexTy> {
+        -> std::optional<BaseMesh::IndexTy> {
       const auto normalIndex = ResolveAttributeIndex(
           normals, corner.ControlPoint, polygon, corner.PolygonVertex);
       const auto texCoordIndex = ResolveAttributeIndex(
@@ -357,7 +364,7 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
                           texCoordIndex.value_or(-1)};
       if (const auto existing = vertices.find(key); existing != vertices.end())
         return existing->second;
-      if (mesh->V.size() > std::numeric_limits<Mesh::IndexTy>::max())
+      if (mesh->V.size() > std::numeric_limits<BaseMesh::IndexTy>::max())
         return std::nullopt;
 
       const size_t position = static_cast<size_t>(corner.ControlPoint) * 3;
@@ -394,7 +401,7 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
                     static_cast<float>(texCoords.Values[base + 1])};
         if (options.FlipTextureV) texCoord.y = 1.0f - texCoord.y;
       }
-      const auto index = static_cast<Mesh::IndexTy>(mesh->V.size());
+      const auto index = static_cast<BaseMesh::IndexTy>(mesh->V.size());
       mesh->V.emplace_back(point, normal, texCoord);
       vertices.emplace(key, index);
       return index;
@@ -448,11 +455,11 @@ FbxMeshImportResult FbxMeshImporter::ParseText(
 
   // 只有每个渲染顶点都有作者法线时才保留；混合数据改为统一重算，避免零法线。
   mesh->NormalMode = hasAnyNormal && !missingAnyNormal
-                         ? MeshNormalMode::PreserveAuthored
-                         : MeshNormalMode::GenerateSmooth;
+                         ? NormalTy::Preserve
+                         : NormalTy::Generate;
   std::string error;
   if (!mesh->Validate(&error)) return {nullptr, std::move(error)};
-  if (mesh->NormalMode == MeshNormalMode::GenerateSmooth) mesh->ComputeNormals();
+  if (mesh->NormalMode == NormalTy::Generate) mesh->ComputeNormals();
   return {std::move(mesh), {}};
 }
 

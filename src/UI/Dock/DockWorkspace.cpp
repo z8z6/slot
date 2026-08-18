@@ -105,7 +105,7 @@ void DockWorkspace::Reconcile(const std::vector<BaseNode *> &nodes) {
     }
   }
   for (auto iterator = States.begin(); iterator != States.end();) {
-    if (!alive.contains(iterator->first)) {
+    if (alive.find(iterator->first) == alive.end()) {
       Tree.RemovePanel(iterator->first);
       iterator->first->LayoutManaged = false;
       iterator = States.erase(iterator);
@@ -118,7 +118,7 @@ void DockWorkspace::Reconcile(const std::vector<BaseNode *> &nodes) {
     return;
   }
   for (auto *panel : panels) {
-    if (States.contains(panel))
+    if (States.find(panel) != States.end())
       continue;
     DockNode *target = Tree.Root.get();
     while (target && target->Type == DockNodeType::Split)
@@ -410,7 +410,7 @@ void DockWorkspace::CancelDrag() { Drag = {}; }
 
 bool DockWorkspace::PlaceNew(BaseNode &group, DockNodeID target, DockSide side,
                              const DockRect &floatingRect) {
-  if (States.contains(&group))
+  if (States.find(&group) != States.end())
     return false;
   const bool floating = target == 0 || side == DockSide::Center;
   if (floating) {

@@ -6,11 +6,11 @@
 #include "DX12Common.h"
 #include "DX12ConstBuffer.h"
 #include "DX12PipelineState.h"
-#include "Material/Material.h"
-#include "Mesh/Mesh.h"
+#include "Material/BaseMaterial.h"
+#include "Mesh/BaseMesh.h"
 #include "Resource/ResourceHandle.h"
-#include "Shader/ShaderProgram.h"
-#include "Texture/Texture.h"
+#include "Shader/BaseShaderProgram.h"
+#include "Texture/BaseTexture.h"
 
 #include <memory>
 #include <unordered_map>
@@ -30,10 +30,10 @@ class DX12RenderObject {
 public:
   GameObject* Object;
   DX12SubMesh* SubMesh;
-  ResourceHandle<Mesh> Mesh;
-  ResourceHandle<Material> Material;
-  ResourceHandle<ShaderProgram> Program;
-  ResourceHandle<Texture> Texture;
+  ResourceHandle<BaseMesh> Mesh;
+  ResourceHandle<BaseMaterial> Material;
+  ResourceHandle<BaseShaderProgram> Program;
+  ResourceHandle<BaseTexture> Texture;
   DX12PipelineState* Pipeline;
   unsigned ConstBufIndex;
 
@@ -52,9 +52,9 @@ public:
   void Draw();
 
 private:
-  std::unordered_map<ResourceHandle<ShaderProgram>,
+  std::unordered_map<ResourceHandle<BaseShaderProgram>,
                      std::unique_ptr<DX12PipelineState>,
-                     ResourceHandleHash<ShaderProgram>> Pipelines;
+                     ResourceHandleHash<BaseShaderProgram>> Pipelines;
   // 透明 UI 必须维持画家顺序；不透明 3D 才能按状态排序减少切换。
   bool PreserveOrder;
 };

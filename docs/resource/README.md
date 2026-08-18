@@ -13,9 +13,9 @@ Texture、Shader 与 ShaderProgram 派生类归一到对应基类资源池，
 避免类型、ID 和注册函数在调用处重复声明；文件导入边界可通过
 `Add(explicitId, resource)` 显式指定外部 ID。Resolve、TryGet 和类型池选择也复用
 同一份类型映射，不再为每种资源维护函数特化。
-普通 ShaderProgram 及其阶段在 `ResourceManager::RegisterBuiltinResources` 中直接
-构造，所有 ID 均复用 `BuiltinResource.h` 中的 builtin 字符串；注册顺序先于
-Program 固化阶段句柄，不再依赖构建期生成代码。内建纹理使用具体派生类，例如 `GrassBlockTexture`
+普通 ShaderProgram 及其阶段由 `BuiltinShader` 中的具体派生类构造，
+所有 ID 均复用 `BuiltinResource.h` 中的 builtin 字符串；注册顺序先于
+Program 固化阶段句柄，资源身份与管线状态不再散落在 Manager 中。内建纹理使用具体派生类，例如 `GrassBlockTexture`
 同时固化资源 ID 和文件来源。文件级静态 Registry 已移除。
 
 DX12 后端只拥有 GPU 表示：`DX12ShaderLibrary` 保存 DXIL，MeshManager 保存合并后的顶点/索引缓冲，MaterialManager 保存 256 字节对齐常量槽，TextureManager 保存纹理资源与 SRV。

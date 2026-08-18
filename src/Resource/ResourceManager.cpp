@@ -2,11 +2,10 @@
 #include "Material/BuiltinMaterial.h"
 #include "Mesh/BuiltinMesh.h"
 #include "Resource/BuiltinResource.h"
+#include "Shader/BuiltinShader.h"
 #include "Texture/BuiltinTexture.h"
 
 using namespace z8;
-
-ResourceManager::ResourceManager() { RegisterBuiltinResources(); }
 
 void ResourceManager::RegisterBuiltinResources() {
   // 显式启动注册替代跨翻译单元静态构造，注册顺序和所有权因此完全可观察。
@@ -21,44 +20,23 @@ void ResourceManager::RegisterBuiltinResources() {
   Add(std::make_unique<MetalMaterial>());
   Add(std::make_unique<UIMaterial>());
 
-  // 阶段描述在代码中显式建立；先注册 Shader 再构造 Program，保证句柄在进入
-  // 渲染批缓存前已经稳定，并避免构建期生成类成为资源身份的隐藏来源。
-  const auto gameObjectVertex = Add(std::make_unique<Shader>(
-      builtin::shader::GameObjectVertex, L"asset/shader/GameObject.hlsl",
-      "GameObject_V", "vs_6_0", "VS"));
-  const auto gameObjectPixel = Add(std::make_unique<Shader>(
-      builtin::shader::GameObjectPixel, L"asset/shader/GameObject.hlsl",
-      "GameObject_P", "ps_6_0", "PS"));
-  Add(std::make_unique<ShaderProgram>(
-      builtin::shader::program::GameObjectProgram, gameObjectVertex,
-      gameObjectPixel, true, false));
+  // 先注册阶段再构造 Program：Program 保存的是类型化运行时句柄，
+  // 这个顺序保证它们在进入 PSO 缓存前已经稳定。内建类则是
+  // ID、编译入口和固定管线状态的唯一来源。
+  const auto gameObjectVertex = Add(std::make_unique<GameObjectVertexShader>());
+  const auto gameObjectPixel = Add(std::make_unique<GameObjectPixelShader>());
+  Add(std::make_unique<GameObjectShaderProgram>(gameObjectVertex,
+                                                gameObjectPixel));
 
-  const auto missingVertex = Add(std::make_unique<Shader>(
-      builtin::shader::MissingVertex, L"asset/shader/Missing.hlsl", "Missing_V",
-      "vs_6_0", "VS"));
-  const auto missingPixel = Add(std::make_unique<Shader>(
-      builtin::shader::MissingPixel, L"asset/shader/Missing.hlsl", "Missing_P",
-      "ps_6_0", "PS"));
-  Add(std::make_unique<ShaderProgram>(builtin::shader::program::MissingProgram,
-                                      missingVertex, missingPixel, true,
-                                      false));
+  const auto missingVertex = Add(std::make_unique<MissingVertexShader>());
+  const auto missingPixel = Add(std::make_unique<MissingPixelShader>());
+  Add(std::make_unique<MissingShaderProgram>(missingVertex, missingPixel));
 
-  const auto timeVertex = Add(std::make_unique<Shader>(
-      builtin::shader::TimeVertex, L"asset/shader/Time.hlsl", "Time_V",
-      "vs_6_0", "VS"));
-  const auto timePixel = Add(std::make_unique<Shader>(
-      builtin::shader::TimePixel, L"asset/shader/Time.hlsl", "Time_P", "ps_6_0",
-      "PS"));
-  Add(std::make_unique<ShaderProgram>(builtin::shader::program::TimeProgram,
-                                      timeVertex, timePixel, true, false));
+  const auto timeVertex = Add(std::make_unique<TimeVertexShader>());
+  const auto timePixel = Add(std::make_unique<TimePixelShader>());
+  Add(std::make_unique<TimeShaderProgram>(timeVertex, timePixel));
 
-  const auto uiObjectVertex = Add(std::make_unique<Shader>(
-      builtin::shader::UIObjectVertex, L"asset/shader/UIObject.hlsl",
-      "UIObject_V", "vs_6_0", "VS"));
-  const auto uiObjectPixel = Add(std::make_unique<Shader>(
-      builtin::shader::UIObjectPixel, L"asset/shader/UIObject.hlsl",
-      "UIObject_P", "ps_6_0", "PS"));
-  Add(std::make_unique<ShaderProgram>(builtin::shader::program::UIObjectProgram,
-                                      uiObjectVertex, uiObjectPixel, false,
-                                      true));
+  const auto uiObjectVertex = Add(std::make_unique<UIObjectVertexShader>());
+  const auto uiObjectPixel = Add(std::make_unique<UIObjectPixelShader>());
+  Add(std::make_unique<UIObjectShaderProgram>(uiObjectVertex, uiObjectPixel));
 }

@@ -1,7 +1,7 @@
 #include "Core/SceneObjectDetailsBinding.h"
 
-#include "Material/Material.h"
-#include "Mesh/Mesh.h"
+#include "Material/BaseMaterial.h"
+#include "Mesh/BaseMesh.h"
 #include "Object/GameObject/GameObject.h"
 #include "Resource/ResourceManager.h"
 #include "UI/Layout/Layout.h"
@@ -60,7 +60,7 @@ void SceneObjectDetailsBinding::Bind(GameObject *object,
       [object] { return object->Renderable.Mesh.GetId(); },
       [resources = &Resources, resourcesChanged = ResourcesChanged,
        object](const std::string &value) {
-        ResourceRef<Mesh> reference(value);
+        ResourceRef<BaseMesh> reference(value);
         if (!resources->Resolve(reference).IsValid())
           return false;
         if (object->Renderable.Mesh.GetId() == value)
@@ -75,7 +75,7 @@ void SceneObjectDetailsBinding::Bind(GameObject *object,
       [object] { return object->Renderable.Material.GetId(); },
       [resources = &Resources, resourcesChanged = ResourcesChanged,
        object](const std::string &value) {
-        ResourceRef<Material> reference(value);
+        ResourceRef<BaseMaterial> reference(value);
         if (!resources->Resolve(reference).IsValid())
           return false;
         if (object->Renderable.Material.GetId() == value)

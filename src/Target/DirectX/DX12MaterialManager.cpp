@@ -3,21 +3,21 @@
 //
 
 #include "Target/DirectX/DX12MaterialManager.h"
-#include "Target/DirectX/DX12Render.h"
 #include "Core/Application.h"
-#include "d3d12.h"
-#include "Material/Material.h"
+#include "Material/BaseMaterial.h"
 #include "Resource/ResourceManager.h"
+#include "Target/DirectX/DX12Render.h"
+#include "d3d12.h"
 
 #include <cstring>
 #include <vector>
 
 using namespace z8;
 
-DX12Material::DX12Material(const Material* material)
+DX12Material::DX12Material(const BaseMaterial* material)
   : Albedo(material->Albedo), FresnelR0(material->FresnelR0),
     Rough(material->Rough),
-    HasBaseColorTexture(material->BaseColorTexture.GetId().empty() ? 0U : 1U)
+    HasBaseColorTexture(material->Texture.GetId().empty() ? 0U : 1U)
 {}
 
 z8::DX12MaterialManager::DX12MaterialManager(DX12Render *R) : DX12Common(R), Buffer(R){}
@@ -32,7 +32,7 @@ void DX12MaterialManager::Init() {
 
   uint64_t offset = 0;
   Render->App->Resources.Materials.Visit(
-      [&](ResourceHandle<Material> handle, const Material& material) {
+      [&](ResourceHandle<BaseMaterial> handle, const BaseMaterial& material) {
         const DX12Material gpuMaterial(&material);
         std::memcpy(data.data() + offset, &gpuMaterial, sizeof(gpuMaterial));
         Offsets.emplace(handle, offset);
@@ -45,7 +45,7 @@ void DX12MaterialManager::Init() {
 }
 
 uint64_t DX12MaterialManager::GetGPUAddress(
-    ResourceHandle<Material> material) const {
+    ResourceHandle<BaseMaterial> material) const {
   const auto iterator = Offsets.find(material);
   if (iterator == Offsets.end() || !Buffer.DefaultBuffer) return 0;
   return Buffer.DefaultBuffer->GetGPUVirtualAddress() + iterator->second;

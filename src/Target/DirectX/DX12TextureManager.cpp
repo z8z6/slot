@@ -18,7 +18,7 @@ void DX12TextureManager::Bind() const {
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DX12TextureManager::GetGPUDescriptor(
-    ResourceHandle<Texture> texture) const {
+    ResourceHandle<BaseTexture> texture) const {
   const auto iterator = Indices.find(texture);
   if (iterator == Indices.end() || !DescriptorHeap) return {};
   auto handle = DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
@@ -44,7 +44,7 @@ void DX12TextureManager::Init() {
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
   uint32_t index = 0;
-  textures.Visit([&](ResourceHandle<Texture> handle, const Texture& texture) {
+  textures.Visit([&](ResourceHandle<BaseTexture> handle, const BaseTexture& texture) {
     auto description = CD3DX12_RESOURCE_DESC::Tex2D(
         DXGI_FORMAT_R8G8B8A8_UNORM, texture.Width, texture.Height);
     auto defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -67,12 +67,13 @@ void DX12TextureManager::Init() {
     source.pData = texture.Pixels.data();
     source.RowPitch = static_cast<LONG_PTR>(texture.Width) * 4;
     source.SlicePitch = source.RowPitch * texture.Height;
-    UpdateSubresources(Render->Cmd.List.Get(), resource.Get(), upload.Get(), 0,
-                       0, 1, &source);
+    // lambda 内显式经 this 解析同名 Render 成员，保持 C++17 兼容。
+    UpdateSubresources(this->Render->Cmd.List.Get(), resource.Get(), upload.Get(),
+                       0, 0, 1, &source);
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    Render->Cmd.List->ResourceBarrier(1, &barrier);
+    this->Render->Cmd.List->ResourceBarrier(1, &barrier);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC view{};
     view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

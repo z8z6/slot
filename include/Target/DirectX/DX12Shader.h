@@ -5,22 +5,21 @@
 #pragma once
 #include "DX12Common.h"
 #include "Resource/ResourceHandle.h"
-#include "Shader/Shader.h"
+#include "Shader/BaseShader.h"
 
 #include <d3d12.h>
 #include <d3dcommon.h>
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
-
 
 namespace z8 {
 class ResourceManager;
 class DX12Shader {
-  const Shader* Description;
+  const BaseShader* Description;
 public:
   ComPtr<ID3DBlob> ByteCode;
-  explicit DX12Shader(const Shader* shader);
+  explicit DX12Shader(const BaseShader* shader);
   void Compile();
   void CompileByFxc();
   void CompileByDxc();
@@ -42,13 +41,13 @@ public:
   /** 编译当前 ResourceManager 中的所有 Shader；同一 Library 内重复调用直接复用。 */
   void CompileAll();
   /** 查询设备相关字节码，不拥有传入的 CPU Shader 句柄。 */
-  DX12Shader* TryGet(ResourceHandle<Shader> handle) const;
+  DX12Shader* TryGet(ResourceHandle<BaseShader> handle) const;
   size_t Size() const { return Binaries.size(); }
 
 private:
   ResourceManager* Resources;
-  std::unordered_map<ResourceHandle<Shader>, std::unique_ptr<DX12Shader>,
-                     ResourceHandleHash<Shader>> Binaries;
+  std::unordered_map<ResourceHandle<BaseShader>, std::unique_ptr<DX12Shader>,
+                     ResourceHandleHash<BaseShader>> Binaries;
 };
 
 }

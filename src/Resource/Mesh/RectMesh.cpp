@@ -8,7 +8,7 @@ using namespace DirectX;
 using namespace z8;
 
 RectMesh::RectMesh() {
-  // 正反面不能共享顶点，否则面积加权时方向相反的法线会彼此抵消。
+  // 正反面不能共享顶点，否则面积加权时方向相反的法线会彼此抵消
   V = {
       Vertex({-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f}),
       Vertex({-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f}),

@@ -1,7 +1,7 @@
 #include "Core/ScenePicker.h"
 
 #include "Core/Scene.h"
-#include "Mesh/Mesh.h"
+#include "Mesh/BaseMesh.h"
 #include "Object/Camera/BaseCamera.h"
 #include "Object/GameObject/GameObject.h"
 #include "Resource/ResourceManager.h"

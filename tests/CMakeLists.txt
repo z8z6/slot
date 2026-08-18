@@ -8,77 +8,24 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 # 各测试分类共享同一份无窗口运行时，避免每个可执行文件重复编译 UI、资源与场景
-# 实现。该库刻意不包含 Application/Window 和完整 DX12 后端，保证单元测试不会
-# 创建 HWND 或图形设备。
+# 实现。CONFIGURE_DEPENDS 使新增模块实现自动进入测试运行时，避免文件改名后
+# CMake 仍指向旧路径。Core 仅收集事件和场景职责，DirectX 仅收集 Shader
+# 实现，因为单元测试不应将窗口、Application 或完整渲染后端带入进程。
+file(GLOB_RECURSE SLOT_TEST_RUNTIME_SOURCES CONFIGURE_DEPENDS
+        "${PROJECT_SOURCE_DIR}/src/Object/*.cpp"
+        "${PROJECT_SOURCE_DIR}/src/Resource/*.cpp"
+        "${PROJECT_SOURCE_DIR}/src/UI/*.cpp"
+        "${PROJECT_SOURCE_DIR}/src/Util/*.cpp")
+file(GLOB SLOT_TEST_CORE_SOURCES CONFIGURE_DEPENDS
+        "${PROJECT_SOURCE_DIR}/src/Core/*Event.cpp"
+        "${PROJECT_SOURCE_DIR}/src/Core/*Scene*.cpp")
+file(GLOB SLOT_TEST_SHADER_SOURCES CONFIGURE_DEPENDS
+        "${PROJECT_SOURCE_DIR}/src/Target/DirectX/*Shader.cpp")
+
 add_library(slot_test_runtime STATIC
-        ../src/Core/Event.cpp
-        ../src/Core/SceneObjectDetailsBinding.cpp
-        ../src/Core/ScenePicker.cpp
-        ../src/UI/Dock/DockTree.cpp
-        ../src/UI/Dock/DockWorkspace.cpp
-        ../src/UI/Behavior/DockBehavior.cpp
-        ../src/UI/Behavior/DragBehavior.cpp
-        ../src/UI/Behavior/ResizeBehavior.cpp
-        ../src/UI/Behavior/ScrollBehavior.cpp
-        ../src/UI/Declarative/ControlFactory.cpp
-        ../src/UI/Declarative/ImmediateUI.cpp
-        ../src/UI/Declarative/XamlHotReload.cpp
-        ../src/UI/Declarative/XamlLoader.cpp
-        ../src/UI/Layout/BaseNode.cpp
-        ../src/UI/Layout/BehaviorNode.cpp
-        ../src/UI/Layout/ButtonNode.cpp
-        ../src/UI/Layout/DrawNode.cpp
-        ../src/UI/Layout/FileExplorerNode.cpp
-        ../src/UI/Layout/Layout.cpp
-        ../src/UI/Layout/LayoutEngine.cpp
-        ../src/UI/Layout/ImageNode.cpp
-        ../src/UI/Layout/MenuNode.cpp
-        ../src/UI/Layout/PanelGroupNode.cpp
-        ../src/UI/Layout/PanelNode.cpp
-        ../src/UI/Layout/RectNode.cpp
-        ../src/UI/Layout/SceneNode.cpp
-        ../src/UI/Layout/SliderNode.cpp
-        ../src/UI/Layout/ScrollBarNode.cpp
-        ../src/UI/Layout/ScrollNode.cpp
-        ../src/UI/Layout/TerminalNode.cpp
-        ../src/UI/Layout/TextNode.cpp
-        ../src/UI/Layout/TextInputNode.cpp
-        ../src/UI/Layout/ToggleNode.cpp
-        ../src/UI/Layout/ToolBarNode.cpp
-        ../src/UI/Layout/TreeViewNode.cpp
-        ../src/UI/Style/Theme.cpp
-        ../src/Resource/Material/Material.cpp
-        ../src/Resource/Material/BuiltinMaterial.cpp
-        ../src/Object/Light/BaseLight.cpp
-        ../src/Object/Light/ParallelLight.cpp
-        ../src/Resource/Mesh/CubeMesh.cpp
-        ../src/Resource/Mesh/FbxMeshImporter.cpp
-        ../src/Resource/Mesh/GridMesh.cpp
-        ../src/Resource/Mesh/Mesh.cpp
-        ../src/Resource/Mesh/MountainMesh.cpp
-        ../src/Resource/Mesh/ObjMeshImporter.cpp
-        ../src/Resource/Mesh/RectMesh.cpp
-        ../src/Resource/Mesh/SkullMesh.cpp
-        ../src/Resource/Mesh/SphereMesh.cpp
-        ../src/Resource/Mesh/TriangleMesh.cpp
-        ../src/Resource/Mesh/Vertex.cpp
-        ../src/Object/Camera/BaseCamera.cpp
-        ../src/Object/Camera/FirstPersonCamera.cpp
-        ../src/Object/GameObject/CubeObject.cpp
-        ../src/Object/GameObject/GameObject.cpp
-        ../src/Object/GameObject/SimpleGameObject.cpp
-        ../src/Object/Transform.cpp
-        ../src/Object/UIObject/RectUIObject.cpp
-        ../src/Object/UIObject/UIObject.cpp
-        ../src/Resource/ResourceManager.cpp
-        ../src/Resource/Shader/Shader.cpp
-        ../src/Resource/Shader/ShaderProgram.cpp
-        ../src/Core/Scene.cpp
-        ../src/Target/DirectX/DX12Shader.cpp
-        ../src/Resource/Texture/BuiltinTexture.cpp
-        ../src/Resource/Texture/Texture.cpp
-        ../src/Util/Color.cpp
-        ../src/Util/MeshGenerator.cpp)
+        ${SLOT_TEST_RUNTIME_SOURCES}
+        ${SLOT_TEST_CORE_SOURCES}
+        ${SLOT_TEST_SHADER_SOURCES})
 target_include_directories(slot_test_runtime PUBLIC
         "${PROJECT_SOURCE_DIR}/include"
         "${PROJECT_SOURCE_DIR}/include/Object"
@@ -92,10 +39,16 @@ target_link_libraries(slot_test_runtime PUBLIC
         dwrite.lib
         windowscodecs.lib)
 
-# 为一个测试目录创建独立可执行文件并注册其中的 GoogleTest 用例。叶子目录
-# 显式传入源文件，避免递归 glob 让新增目录意外混入其他测试目标。
+# 为一个测试目录创建独立可执行文件并注册其中的 GoogleTest 用例。只收集
+# 当前叶子目录的 cpp，因此新增测试无需修改 CMake，同时不会跨目录混入其他目标。
 function(slot_add_test_target target)
-    add_executable(${target} ${ARGN})
+    file(GLOB test_sources CONFIGURE_DEPENDS
+            "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+    if(NOT test_sources)
+        message(FATAL_ERROR "Test target ${target} has no source files")
+    endif()
+
+    add_executable(${target} ${test_sources})
     target_link_libraries(${target} PRIVATE slot_test_runtime GTest::gtest_main)
     # CMake 4.3 的 GoogleTest 发现阶段会在工作目录保留 JSON 元数据，因此放在
     # 构建树而不是污染源码根。需要 asset/* 的测试使用 SLOT_SOURCE_DIR 显式

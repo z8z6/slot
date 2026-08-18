@@ -21,7 +21,8 @@ public:
 
   /** 默认清零所有属性，避免导入器只写位置时把未初始化数据上传到 GPU。 */
   Vertex() : Pos{}, Normal{}, TexCoord{} {}
-  Vertex(DirectX::XMFLOAT3 position) : Pos(position), Normal{}, TexCoord{} {}
+  Vertex(DirectX::XMFLOAT3 position)
+      : Pos(position), Normal{}, TexCoord{} {}
   Vertex(DirectX::XMFLOAT3 position, DirectX::XMFLOAT2 texCoord)
       : Pos(position), Normal{}, TexCoord(texCoord) {}
   Vertex(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 normal,

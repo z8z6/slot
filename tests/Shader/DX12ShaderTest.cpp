@@ -17,7 +17,7 @@ TEST(DX12ShaderTest, CompilesRegisteredShaders) {
 
   EXPECT_EQ(library.Size(), resources.Shaders.Size());
   resources.Shaders.Visit(
-      [&](ResourceHandle<Shader> handle, const Shader&) {
+      [&](ResourceHandle<BaseShader> handle, const BaseShader&) {
         const auto* binary = library.TryGet(handle);
         ASSERT_NE(binary, nullptr);
         EXPECT_NE(binary->ByteCode, nullptr);

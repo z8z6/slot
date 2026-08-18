@@ -10,5 +10,5 @@ using namespace DirectX;
 
 RectObject::RectObject()
 {
-  Renderable.Mesh = ResourceRef<Mesh>(builtin::mesh::RectMesh);
+  Renderable.Mesh = ResourceRef<BaseMesh>(builtin::mesh::RectMesh);
 }

@@ -3,13 +3,13 @@
 //
 
 #pragma once
-#include "Mesh.h"
+#include "BaseMesh.h"
 #include <string>
 
 namespace z8 {
-class ObjMeshImporter {
+class ObjImporter : MeshImporter {
 public:
-  static Mesh Parse(std::string FileName);
+  static BaseMesh Parse(std::string FileName);
 };
 }
 

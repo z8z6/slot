@@ -1,4 +1,4 @@
-#include "Mesh/FbxMeshImporter.h"
+#include "Mesh/FbxImporter.h"
 
 #include <gtest/gtest.h>
 
@@ -6,7 +6,7 @@
 
 namespace z8 {
 
-TEST(FbxMeshImporterTest, ImportsRenderableAsciiMesh) {
+TEST(FbxImporterTest, ImportsRenderableAsciiMesh) {
   constexpr std::string_view source = R"fbx(
 Objects: {
   Geometry: 1, "Geometry::Quad", "Mesh" {
@@ -21,7 +21,8 @@ Objects: {
 }
 )fbx";
 
-  auto result = FbxMeshImporter::ParseText(source);
+  // 通过当前统一导入器入口验证内存文本路径，避免测试依赖临时文件。
+  auto result = FbxImporter::ParseText(source);
 
   ASSERT_TRUE(result) << result.Error;
   ASSERT_NE(result.Value, nullptr);

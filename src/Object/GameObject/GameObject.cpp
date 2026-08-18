@@ -13,7 +13,7 @@ z8::GameObject::GameObject()
     : Collider(nullptr) {
   // 普通场景对象共享默认材质和 Program；派生对象只需要选择几何资源。
   Renderable.Material =
-      ResourceRef<Material>(builtin::material::GrassBlockMaterial);
+      ResourceRef<BaseMaterial>(builtin::material::GrassBlockMaterial);
 }
 
 z8::GameObject::~GameObject() = default;

@@ -12,9 +12,9 @@
 
 namespace z8
 {
-class Material;
-class Mesh;
-class Collider;
+class BaseMaterial;
+class BaseMesh;
+class BaseCollider;
 
 /**
  * @brief 普通和 UI 顶点着色器共享的对象变换 ABI。
@@ -39,8 +39,8 @@ static_assert(sizeof(ObjectTransformConst) == 128,
  * Handle，之后的帧循环不再进行字符串查询。
  */
 struct RenderableComponent {
-  ResourceRef<Mesh> Mesh;
-  ResourceRef<Material> Material;
+  ResourceRef<BaseMesh> Mesh;
+  ResourceRef<BaseMaterial> Material;
 };
 
 /**
@@ -57,7 +57,7 @@ public:
   /** 编辑器显示名称属于场景数据，不能只保存在 TreeView 或 Details 控件中。 */
   std::string Name;
   RenderableComponent Renderable;
-  Collider* Collider;
+  BaseCollider* Collider;
 
   GameObject();
   ~GameObject() override;

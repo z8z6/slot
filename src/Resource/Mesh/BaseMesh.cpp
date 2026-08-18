@@ -1,7 +1,7 @@
 //
 // Created by zhou_zhengming on 2026/5/22.
 //
-#include "Mesh/Mesh.h"
+#include "Mesh/BaseMesh.h"
 #include "Resource/BuiltinResource.h"
 
 #include <cmath>
@@ -10,17 +10,10 @@
 using namespace z8;
 using namespace DirectX;
 
-Mesh::Mesh() {
-  Type = ResourceTy::Mesh;
-  Id = builtin::mesh::MeshPrefix;
-}
-
-void Mesh::ComputeNormals() {
+void BaseMesh::ComputeNormals() {
   // 1. 将所有顶点法线清零
   for (auto& v : V)
-  {
     v.Normal = XMFLOAT3(0.0f, 0.0f, 0.0f);
-  }
 
   // 2. 遍历每个三角形，计算未归一化的面法线并累加到顶点
   const size_t triangleCount = I.size() / 3;
@@ -68,19 +61,15 @@ void Mesh::ComputeNormals() {
     // 避免零向量（如孤立顶点）导致的除零
     XMVECTOR lengthSq = XMVector3LengthSq(n);
     if (XMVector3LessOrEqual(lengthSq, g_XMEpsilon))
-    {
       // 退化成默认向上
       n = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-    }
     else
-    {
       n = XMVector3Normalize(n);
-    }
     XMStoreFloat3(&v.Normal, n);
   }
 }
 
-bool Mesh::Validate(std::string* error) const {
+bool BaseMesh::Validate(std::string* error) const {
   const auto fail = [&](const char* message) {
     if (error) *error = message;
     return false;

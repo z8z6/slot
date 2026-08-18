@@ -14,7 +14,7 @@ TEST(MeshTest, BuiltinMeshesHaveValidRenderableTopology) {
   EXPECT_TRUE(grid.Validate());
   EXPECT_TRUE(rect.Validate());
   EXPECT_TRUE(sphere.Validate());
-  EXPECT_EQ(sphere.NormalMode, MeshNormalMode::PreserveAuthored);
+  EXPECT_EQ(sphere.NormalMode, NormalTy::Preserve);
 }
 
 } // namespace z8

@@ -32,7 +32,7 @@ FileExplorerNode::BuildItem(const std::filesystem::path& path, bool isRoot) {
   for (std::filesystem::directory_iterator iterator(path, error), end;
        !error && iterator != end; iterator.increment(error)) {
     const auto name = ToUtf8(iterator->path().filename());
-    if (!ShowHidden && name.starts_with('.'))
+    if (!ShowHidden && !name.empty() && name.front() == '.')
       continue;
     entries.push_back(*iterator);
   }

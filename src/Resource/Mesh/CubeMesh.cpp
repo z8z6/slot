@@ -8,6 +8,8 @@ using namespace DirectX;
 using namespace z8;
 
 CubeMesh::CubeMesh() {
+  Id = builtin::mesh::CubeMesh;
+
   const auto addFace = [&](XMFLOAT3 bottomLeft, XMFLOAT3 topLeft,
                            XMFLOAT3 topRight, XMFLOAT3 bottomRight) {
     const auto base = static_cast<IndexTy>(V.size());
@@ -29,5 +31,4 @@ CubeMesh::CubeMesh() {
   addFace({1, -1, -1}, {1, 1, -1}, {1, 1, 1}, {1, -1, 1});
   addFace({-1, 1, -1}, {-1, 1, 1}, {1, 1, 1}, {1, 1, -1});
   addFace({-1, -1, 1}, {-1, -1, -1}, {1, -1, -1}, {1, -1, 1});
-  Id = builtin::mesh::CubeMesh;
 }

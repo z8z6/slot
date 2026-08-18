@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Mesh.h"
+#include "BaseMesh.h"
 
 #include <filesystem>
 #include <memory>
@@ -18,7 +18,7 @@ struct FbxImportOptions {
 
 /** 返回网格或可直接展示给工具层的英文错误，避免文件错误触发断言。 */
 struct FbxMeshImportResult {
-  std::unique_ptr<Mesh> Value;
+  std::unique_ptr<BaseMesh> Value;
   std::string Error;
 
   explicit operator bool() const { return Value != nullptr; }
@@ -31,7 +31,7 @@ struct FbxMeshImportResult {
  * Direct/IndexToDirect 引用。二进制 FBX 需要完整 SDK/ufbx，当前会明确拒绝，
  * 而不是把二进制内容误当文本并生成损坏网格。
  */
-class FbxMeshImporter {
+class FbxImporter : MeshImporter{
 public:
   /** 从磁盘读取并解析 FBX。 */
   static FbxMeshImportResult Parse(

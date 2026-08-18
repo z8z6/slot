@@ -77,11 +77,14 @@ void DemoApplication::BindEditorLayout() {
   Layout.RebuildIndex();
   // XAML 热重载会整体替换控件树，因此绑定对象也随新 Layout 重建，绝不缓存
   // 上一棵树中的 TextInput 指针。资源修改只发出后端失效通知。
+  const std::function<void()> resourcesChanged = [this]() {
+    // Render 同时是类型名和成员名；显式经 this 访问可避免
+    // C++17 名字查找歧义，并表明失效通知依赖当前 Application 生命周期。
+    if (this->Render)
+      this->Render->InvalidateSceneResources();
+  };
   DetailsBinding = std::make_unique<SceneObjectDetailsBinding>(
-      Layout, Resources, [this] {
-        if (Render)
-          Render->InvalidateSceneResources();
-      });
+      Layout, Resources, resourcesChanged);
   OnSceneSelectionChanged(SelectedSceneObject);
 }
 

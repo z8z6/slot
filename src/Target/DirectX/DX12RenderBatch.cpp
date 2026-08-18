@@ -13,9 +13,8 @@
 using namespace z8;
 
 DX12RenderObject::DX12RenderObject(GameObject *O)
-: Object(O), SubMesh(nullptr), Pipeline(nullptr), ConstBufIndex(0) {
-
-}
+    : Object(O), SubMesh(nullptr), Mesh(), Material(), Program(), Texture(),
+      Pipeline(nullptr), ConstBufIndex(0) {}
 
 DX12RenderBatch::DX12RenderBatch(DX12Render* render, bool preserveOrder)
     : DX12Common(render), Buffer(this), PreserveOrder(preserveOrder) {}
@@ -34,8 +33,8 @@ void DX12RenderBatch::Init(const std::vector<GameObject *> &Os) {
     if (material) {
       RO.Program = Render->App->Resources.Resolve(material->Program);
       RO.Texture =
-          Render->App->Resources.Resolve(material->BaseColorTexture);
-      if (!material->BaseColorTexture.GetId().empty() && !RO.Texture.IsValid())
+          Render->App->Resources.Resolve(material->Texture);
+      if (!material->Texture.GetId().empty() && !RO.Texture.IsValid())
         throw std::runtime_error("Material references an unknown texture.");
     }
     if (!RO.Mesh.IsValid() || !RO.Material.IsValid() || !RO.Program.IsValid())
