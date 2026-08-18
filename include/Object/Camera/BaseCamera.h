@@ -17,7 +17,9 @@ private:
 
   inline static float Near = 1.0f;
   inline static float Far = 1000.0f;
-  inline static float Fov = 120.0f;
+  // 编辑器相机采用中等垂直视场角；超广角会夸大观察方向上的近远透视差，
+  // 使比例正确的物体看起来沿 Z 轴被拉长。
+  inline static float Fov = 60.0f;
 public:
   BaseCamera();
   DirectX::XMFLOAT4X4& GetView() { return View; }

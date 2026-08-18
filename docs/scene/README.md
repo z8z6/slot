@@ -29,7 +29,7 @@ Transform 还支持直角坐标与球坐标转换。
 
 ## 相机、灯光和碰撞
 
-Camera 使用 `XMMatrixLookAtLH` 和 `XMMatrixPerspectiveFovLH`，默认 near/far 为 1/1000、FOV 120°。FirstPersonCamera 根据 yaw/pitch 更新目标方向，并将 pitch 限制在 ±89°。
+Camera 使用 `XMMatrixLookAtLH` 和 `XMMatrixPerspectiveFovLH`，默认 near/far 为 1/1000、垂直 FOV 为 60°；中等视场角可避免编辑器视口过度夸大观察方向上的透视深度。FirstPersonCamera 根据 yaw/pitch 更新目标方向，并将 pitch 限制在 ±89°。
 
 Scene 按声明顺序上传最多 8 个 ParallelLight；Shader 对每盏方向光独立计算 BRDF 并线性累加。Demo 默认放置暖色主光与冷色补光。Collider 只有接口，BoxCollider 尚未实现，物理模块仍是骨架。
 
