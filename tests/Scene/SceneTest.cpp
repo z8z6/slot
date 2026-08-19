@@ -3,7 +3,7 @@
 #include "Light/BaseLight.h"
 #include "Light/ParallelLight.h"
 #include "Object/Camera/BaseCamera.h"
-#include "Object/GameObject/CubeObject.h"
+#include "Object/BuiltinObject.h"
 
 #include <gtest/gtest.h>
 

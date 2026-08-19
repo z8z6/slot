@@ -1,4 +1,4 @@
-#include "Object/GameObject/SimpleGameObject.h"
+#include "Object/BuiltinObject.h"
 
 #include <DirectXMath.h>
 #include <gtest/gtest.h>

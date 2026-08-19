@@ -88,7 +88,6 @@ TEST(ResourceManagerTest, AddsDerivedResourceUsingItsOwnDescription) {
   struct TestShader final : BaseShaderComponent {
     TestShader() {
       Id = "builtin://shader/test/vertex";
-      Name = "Test_V";
     }
   };
   const auto reference = resources.Add(std::make_unique<TestShader>());
@@ -113,10 +112,6 @@ TEST(ResourceManagerTest, RegistersConcreteBuiltinShadersAndPrograms) {
       resources, builtin::shader::MissingVertex)));
   EXPECT_TRUE((IsBuiltinType<MissingPixelShader, BaseShaderComponent>(
       resources, builtin::shader::MissingPixel)));
-  EXPECT_TRUE((IsBuiltinType<TimeVertexShader, BaseShaderComponent>(
-      resources, builtin::shader::TimeVertex)));
-  EXPECT_TRUE((IsBuiltinType<TimePixelShader, BaseShaderComponent>(
-      resources, builtin::shader::TimePixel)));
   EXPECT_TRUE((IsBuiltinType<UIObjectVertexShader, BaseShaderComponent>(
       resources, builtin::shader::UIObjectVertex)));
   EXPECT_TRUE((IsBuiltinType<UIObjectPixelShader, BaseShaderComponent>(
@@ -126,8 +121,6 @@ TEST(ResourceManagerTest, RegistersConcreteBuiltinShadersAndPrograms) {
       resources, builtin::shader::program::GameObjectProgram)));
   EXPECT_TRUE((IsBuiltinType<MissingShader, BaseShader>(
       resources, builtin::shader::program::MissingProgram)));
-  EXPECT_TRUE((IsBuiltinType<TimeShaderProgram, BaseShader>(
-      resources, builtin::shader::program::TimeProgram)));
   EXPECT_TRUE((IsBuiltinType<UIObjectShader, BaseShader>(
       resources, builtin::shader::program::UIObjectProgram)));
 }
