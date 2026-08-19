@@ -4,14 +4,14 @@
 #pragma once
 #include "Resource/BuiltinResource.h"
 
-#include "Resource/ResourceHandle.h"
+#include "Resource/ResourceRef.h"
 #include <DirectXColors.h>
 #include <DirectXMath.h>
 #include <string>
 
 namespace z8
 {
-struct BaseShaderProgram;
+struct BaseShader;
 class BaseTexture;
 /**
  * @brief 材质
@@ -22,7 +22,7 @@ struct BaseMaterial : Resource{
   DirectX::XMFLOAT3 FresnelR0{};    // 菲涅尔反射率
   float Rough;                      // 粗糙度，决定镜面高光
   ResourceRef<BaseTexture> Texture;
-  ResourceRef<BaseShaderProgram> Program;
+  ResourceRef<BaseShader> Program;
 
   BaseMaterial() {
     Albedo = DirectX::XMFLOAT4(DirectX::Colors::ForestGreen);
@@ -30,7 +30,7 @@ struct BaseMaterial : Resource{
     Rough = 0.25f;
     Type = ResourceTy::Material;
     Id = builtin::material::MaterialPrefix;
-    Program = ResourceRef<BaseShaderProgram>(builtin::shader::program::GameObjectProgram);
+    Program = ResourceRef<BaseShader>(builtin::shader::program::GameObjectProgram);
   }
 };
 }

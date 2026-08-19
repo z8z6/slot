@@ -30,7 +30,7 @@ std::string Narrow(const std::wstring& value) {
 }
 } // namespace
 
-DX12Shader::DX12Shader(const BaseShader* shader) : Description(shader) {}
+DX12Shader::DX12Shader(const BaseShaderComponent* shader) : Description(shader) {}
 
 void DX12Shader::Compile() {
   // Shader Model 6.x requires DXC; legacy targets remain available through FXC.
@@ -41,7 +41,7 @@ void DX12Shader::Compile() {
 }
 
 void DX12Shader::CompileByFxc() {
-  LogShaderMessage("[Shader][FXC] Compiling " + Description->Name + " (" +
+  LogShaderMessage("[Shader][FXC] Compiling (" +
                    Description->Target + ") from " + Narrow(Description->FileName));
 
   unsigned compileFlags = 0;
@@ -61,11 +61,10 @@ void DX12Shader::CompileByFxc() {
     LogShaderMessage("[Shader][FXC] " + diagnostic);
   }
   Ok(result);
-  LogShaderMessage("[Shader][FXC] Compiled " + Description->Name + " successfully.");
 }
 
 void DX12Shader::CompileByDxc() {
-  LogShaderMessage("[Shader][DXC] Compiling " + Description->Name + " (" +
+  LogShaderMessage("[Shader][DXC] Compiling (" +
                    Description->Target + ") from " + Narrow(Description->FileName));
 
   ComPtr<IDxcUtils> utils;
@@ -109,7 +108,6 @@ void DX12Shader::CompileByDxc() {
   ComPtr<IDxcBlob> object;
   Ok(compileResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&object), nullptr));
   Ok(object.As(&ByteCode));
-  LogShaderMessage("[Shader][DXC] Compiled " + Description->Name + " successfully.");
 }
 
 D3D12_SHADER_BYTECODE DX12Shader::GetByteCode() const {
@@ -127,17 +125,17 @@ void DX12ShaderLibrary::CompileAll() {
   LogShaderMessage("[Shader] Starting unified shader compilation. Count: " +
                    std::to_string(Resources->Shaders.Size()));
   Binaries.clear();
-  Resources->Shaders.Visit([this](ResourceHandle<BaseShader> handle,
-                                       const BaseShader& shader) {
+  Resources->Shaders.Visit([this](ResourceRef<BaseShaderComponent> shaderRef,
+                                       const BaseShaderComponent& shader) {
     auto binary = std::make_unique<DX12Shader>(&shader);
     binary->Compile();
-    Binaries.emplace(handle, std::move(binary));
+    Binaries.emplace(shaderRef, std::move(binary));
   });
   IsCompiled = true;
   LogShaderMessage("[Shader] Unified shader compilation completed.");
 }
 
-DX12Shader* DX12ShaderLibrary::TryGet(ResourceHandle<BaseShader> handle) const {
-  const auto it = Binaries.find(handle);
+DX12Shader* DX12ShaderLibrary::TryGet(ResourceRef<BaseShaderComponent> shader) const {
+  const auto it = Binaries.find(shader);
   return it == Binaries.end() ? nullptr : it->second.get();
 }

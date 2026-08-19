@@ -6,7 +6,7 @@
 #include "DX12Common.h"
 #include "DX12DefaultBuffer.h"
 #include "Material/BaseMaterial.h"
-#include "Resource/ResourceHandle.h"
+#include "Resource/ResourceRef.h"
 #include <DirectXMath.h>
 #include <cstddef>
 #include <cstdint>
@@ -36,12 +36,12 @@ public:
 
   DX12MaterialManager(DX12Render* R);
   void Init();
-  /** 返回材质对齐槽位的根 CBV 地址；未知句柄返回 0，调用方不得绑定该地址。 */
-  uint64_t GetGPUAddress(ResourceHandle<BaseMaterial> material) const;
+  /** 返回材质对齐槽位的根 CBV 地址；未知引用返回 0，调用方不得绑定该地址。 */
+  uint64_t GetGPUAddress(ResourceRef<BaseMaterial> material) const;
 
 private:
-  std::unordered_map<ResourceHandle<BaseMaterial>, uint64_t,
-                     ResourceHandleHash<BaseMaterial>> Offsets;
+  std::unordered_map<ResourceRef<BaseMaterial>, uint64_t,
+                     ResourceRefHash<BaseMaterial>> Offsets;
 };
 }
 

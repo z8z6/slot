@@ -7,7 +7,7 @@
 1. [总体架构](architecture/README.md)：模块边界、依赖关系与数据流。
 2. [应用核心](core/README.md)：启动、窗口、主循环与输入。
 3. [场景对象](scene/README.md)：Object、Transform、相机和灯光。
-4. [资源管理](resource/README.md)：Asset ID、强类型 Handle、所有权和后端缓存。
+4. [资源管理](resource/README.md)：Asset ID、强类型 ResourceRef、所有权和后端缓存。
 5. [模型与网格](model/README.md)：顶点、网格注册、合并上传和 OBJ。
 6. [材质](material/README.md)：材质数据与绑定方式。
 7. [着色器](shader/README.md)：ShaderProgram 生成、根签名和常量 ABI。

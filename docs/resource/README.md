@@ -2,7 +2,11 @@
 
 `Application::Resources` 是 CPU 资源的唯一所有者。`ResourceManager` 分别保存 Mesh、Material、Texture、Shader 和 ShaderProgram 的类型化 `ResourcePool<T>`。
 
-场景数据使用 `ResourceRef<T>` 保存规范 Asset ID；GameObject 绑定 Mesh 和 Material，Material 再引用 ShaderProgram 与 Texture。`DX12RenderBatch::Init` 将依赖链解析为带 Index/Generation 的 `ResourceHandle<T>`，渲染热路径不做字符串查询。
+`ResourceRef<T>` 统一表示资源引用：场景数据以规范 Asset ID 保存待解析引用；
+GameObject 绑定 Mesh 和 Material，Material 再引用 ShaderProgram 与 Texture。
+`DX12RenderBatch::Init` 将依赖链解析为只携带稳定 Index 的 `ResourceRef<T>`，
+渲染热路径和 GPU 缓存不做字符串查询。资源池在 Manager 生命周期内只追加且不
+复用槽位，因此无需额外的版本字段。
 
 运行时资源统一位于 `asset/`：网格、着色器、纹理和材质分别使用
 `asset/mesh`、`asset/shader`、`asset/texture` 与 `asset/material`。内建资源 ID
@@ -15,7 +19,7 @@ Texture、Shader 与 ShaderProgram 派生类归一到对应基类资源池，
 同一份类型映射，不再为每种资源维护函数特化。
 普通 ShaderProgram 及其阶段由 `BuiltinShader` 中的具体派生类构造，
 所有 ID 均复用 `BuiltinResource.h` 中的 builtin 字符串；注册顺序先于
-Program 固化阶段句柄，资源身份与管线状态不再散落在 Manager 中。内建纹理使用具体派生类，例如 `GrassBlockTexture`
+Program 固化阶段索引引用，资源身份与管线状态不再散落在 Manager 中。内建纹理使用具体派生类，例如 `GrassBlockTexture`
 同时固化资源 ID 和文件来源。文件级静态 Registry 已移除。
 
 DX12 后端只拥有 GPU 表示：`DX12ShaderLibrary` 保存 DXIL，MeshManager 保存合并后的顶点/索引缓冲，MaterialManager 保存 256 字节对齐常量槽，TextureManager 保存纹理资源与 SRV。

@@ -39,7 +39,7 @@ if (!imported) {
   // imported.Error 是可供编辑器展示的英文诊断。
   return;
 }
-auto handle = resources.Add("model://scene", std::move(imported.Value));
+auto reference = resources.Add("model://scene", std::move(imported.Value));
 ```
 
 内置解析器当前支持 ASCII FBX 7.x 的以下网格数据：

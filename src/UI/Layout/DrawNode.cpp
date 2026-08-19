@@ -1,6 +1,6 @@
 #include "UI/Layout/DrawNode.h"
 
-#include "Object/UIObject/UIObject.h"
+#include "../../../include/Object/UIObject.h"
 #include "UI/Property/PropertyParser.h"
 #include "UI/Style/Theme.h"
 #include "Util/Color.h"

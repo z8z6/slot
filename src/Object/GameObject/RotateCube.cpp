@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/13.
 //
 
-#include "Object/GameObject/RotateCube.h"
+#include "Object/BuiltinObject.h"
 #include "Util/Math.h"
 #include <iostream>
 

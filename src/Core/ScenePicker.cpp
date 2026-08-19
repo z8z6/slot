@@ -1,9 +1,9 @@
 #include "Core/ScenePicker.h"
 
+#include "../../include/Object/GameObject.h"
 #include "Core/Scene.h"
 #include "Mesh/BaseMesh.h"
 #include "Object/Camera/BaseCamera.h"
-#include "Object/GameObject/GameObject.h"
 #include "Resource/ResourceManager.h"
 
 #include <DirectXMath.h>
@@ -74,8 +74,8 @@ GameObject* ScenePicker::Pick(Scene& scene, const ResourceManager& resources,
   GameObject* closestObject = nullptr;
   float closestDistanceSquared = (std::numeric_limits<float>::max)();
   for (auto* object : scene.GOs.get()) {
-    const auto meshHandle = resources.Resolve(object->Renderable.Mesh);
-    const auto* mesh = resources.TryGet(meshHandle);
+    const auto meshRef = resources.Resolve(object->Renderable.Mesh);
+    const auto* mesh = resources.TryGet(meshRef);
     if (!mesh)
       continue;
 

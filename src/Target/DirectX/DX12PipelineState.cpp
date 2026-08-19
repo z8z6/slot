@@ -3,8 +3,8 @@
 //
 
 #include "Target/DirectX/DX12PipelineState.h"
-#include "Object/GameObject/GameObject.h"
-#include "Shader/BaseShader.h"
+#include "../../../include/Object/GameObject.h"
+#include "Shader/BaseShaderComponent.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Render.h"
 #include "Target/DirectX/DX12Shader.h"
@@ -18,7 +18,7 @@ z8::DX12PipelineState::DX12PipelineState(DX12Render* R) : DX12Common(R)
 {
 }
 
-void DX12PipelineState::Init(const BaseShaderProgram& program)
+void DX12PipelineState::Init(const BaseShader& program)
 {
   InputLayout =
   {

@@ -8,7 +8,7 @@
 #include "DX12Common.h"
 #include "DX12DefaultBuffer.h"
 #include "Mesh/BaseMesh.h"
-#include "Resource/ResourceHandle.h"
+#include "Resource/ResourceRef.h"
 
 #include <unordered_map>
 
@@ -34,14 +34,14 @@ public:
   D3D12_INDEX_BUFFER_VIEW Iv;
 
   DXGI_FORMAT FormatIBuf = DXGI_FORMAT_R16_UINT;
-  std::unordered_map<ResourceHandle<BaseMesh>, DX12SubMesh,
-                     ResourceHandleHash<BaseMesh>> SubMeshes;
+  std::unordered_map<ResourceRef<BaseMesh>, DX12SubMesh,
+                     ResourceRefHash<BaseMesh>> SubMeshes;
 
   DX12MeshManager(DX12Render* R);
   void UnifyMesh();
   void Init();
   void Bind() const;
-  DX12SubMesh* GetSubMesh(ResourceHandle<BaseMesh> mesh);
+  DX12SubMesh* GetSubMesh(ResourceRef<BaseMesh> mesh);
 };
 }
 

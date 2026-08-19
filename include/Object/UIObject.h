@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "Object/GameObject/GameObject.h"
+#include "GameObject.h"
 
 #include <cstddef>
 

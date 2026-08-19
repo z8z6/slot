@@ -32,10 +32,10 @@ void DX12MaterialManager::Init() {
 
   uint64_t offset = 0;
   Render->App->Resources.Materials.Visit(
-      [&](ResourceHandle<BaseMaterial> handle, const BaseMaterial& material) {
+      [&](ResourceRef<BaseMaterial> materialRef, const BaseMaterial& material) {
         const DX12Material gpuMaterial(&material);
         std::memcpy(data.data() + offset, &gpuMaterial, sizeof(gpuMaterial));
-        Offsets.emplace(handle, offset);
+        Offsets.emplace(materialRef, offset);
         offset += materialStride;
       });
 
@@ -45,7 +45,7 @@ void DX12MaterialManager::Init() {
 }
 
 uint64_t DX12MaterialManager::GetGPUAddress(
-    ResourceHandle<BaseMaterial> material) const {
+    ResourceRef<BaseMaterial> material) const {
   const auto iterator = Offsets.find(material);
   if (iterator == Offsets.end() || !Buffer.DefaultBuffer) return 0;
   return Buffer.DefaultBuffer->GetGPUVirtualAddress() + iterator->second;

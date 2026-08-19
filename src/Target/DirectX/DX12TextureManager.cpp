@@ -18,7 +18,7 @@ void DX12TextureManager::Bind() const {
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DX12TextureManager::GetGPUDescriptor(
-    ResourceHandle<BaseTexture> texture) const {
+    ResourceRef<BaseTexture> texture) const {
   const auto iterator = Indices.find(texture);
   if (iterator == Indices.end() || !DescriptorHeap) return {};
   auto handle = DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
@@ -44,7 +44,7 @@ void DX12TextureManager::Init() {
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
   uint32_t index = 0;
-  textures.Visit([&](ResourceHandle<BaseTexture> handle, const BaseTexture& texture) {
+  textures.Visit([&](ResourceRef<BaseTexture> textureRef, const BaseTexture& texture) {
     auto description = CD3DX12_RESOURCE_DESC::Tex2D(
         DXGI_FORMAT_R8G8B8A8_UNORM, texture.Width, texture.Height);
     auto defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -84,7 +84,7 @@ void DX12TextureManager::Init() {
     cpu.ptr += static_cast<uint64_t>(index) * DescriptorSize;
     Ctx->Device->CreateShaderResourceView(resource.Get(), &view, cpu);
 
-    Indices.emplace(handle, index++);
+    Indices.emplace(textureRef, index++);
     Resources.push_back(std::move(resource));
     Uploads.push_back(std::move(upload));
   });

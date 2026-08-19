@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object/GameObject/GameObject.h"
+#include "../Object/GameObject.h"
 #include "Util/Owner.h"
 
 namespace z8 {

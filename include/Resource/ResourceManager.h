@@ -4,7 +4,7 @@
 #include "Mesh/BaseMesh.h"
 #include "ResourcePool.h"
 #include "Shader/BaseShader.h"
-#include "Shader/BaseShaderProgram.h"
+#include "Shader/BaseShaderComponent.h"
 #include "Texture/BaseTexture.h"
 
 #include <memory>
@@ -21,9 +21,9 @@ using StoredResourceTy = std::conditional_t<
     std::conditional_t<
         std::is_base_of_v<BaseMaterial, T>, BaseMaterial,
         std::conditional_t<
-            std::is_base_of_v<BaseShader, T>, BaseShader,
+            std::is_base_of_v<BaseShaderComponent, T>, BaseShaderComponent,
             std::conditional_t<
-                std::is_base_of_v<BaseShaderProgram, T>, BaseShaderProgram,
+                std::is_base_of_v<BaseShader, T>, BaseShader,
                 std::conditional_t<std::is_base_of_v<BaseTexture, T>,
                                    BaseTexture, void>>>>>;
 
@@ -35,35 +35,35 @@ class ResourceManager {
 public:
   ResourcePool<BaseMesh> Meshes;
   ResourcePool<BaseMaterial> Materials;
-  ResourcePool<BaseShader> Shaders;
-  ResourcePool<BaseShaderProgram> ShaderPrograms;
+  ResourcePool<BaseShaderComponent> Shaders;
+  ResourcePool<BaseShader> ShaderPrograms;
   ResourcePool<BaseTexture> Textures;
 
   ResourceManager() { RegisterBuiltinResources(); }
 
   template <typename T>
-  ResourceHandle<StoredResourceTy<T>> Add(std::unique_ptr<T> resource);
+  ResourceRef<StoredResourceTy<T>> Add(std::unique_ptr<T> resource);
 
   /**
    * 使用加载边界提供的 ID 接管资源；适用于 FBX 等名称不属于 builtin URI
    * 的资源。
    */
   template <typename T>
-  ResourceHandle<StoredResourceTy<T>> Add(std::string assetId,
-                                          std::unique_ptr<T> resource);
+  ResourceRef<StoredResourceTy<T>> Add(std::string assetId,
+                                       std::unique_ptr<T> resource);
 
-  /** 把持久化软引用解析为运行时句柄，不执行 I/O。 */
+  /** 把携带 Asset ID 的引用解析为携带稳定 Index 的运行时引用，不执行 I/O。 */
   template <typename ResourceTy>
-  ResourceHandle<ResourceTy>
+  ResourceRef<ResourceTy>
   Resolve(const ResourceRef<ResourceTy> &reference) const;
 
-  /** 仅在句柄仍属于当前槽位 Generation 时返回资源观察指针。 */
+  /** 仅在引用携带当前资源池的有效索引时返回资源观察指针。 */
   template <typename ResourceTy>
-  ResourceTy *TryGet(ResourceHandle<ResourceTy> handle);
+  ResourceTy *TryGet(ResourceRef<ResourceTy> reference);
 
   /** const 版本用于后端只读缓存构建。 */
   template <typename ResourceTy>
-  const ResourceTy *TryGet(ResourceHandle<ResourceTy> handle) const;
+  const ResourceTy *TryGet(ResourceRef<ResourceTy> reference) const;
 
 private:
   /** 根据规范名称类别校验自动注册的 C++ 资源类型。 */
@@ -79,7 +79,7 @@ private:
 };
 
 template <typename T>
-ResourceHandle<StoredResourceTy<T>>
+ResourceRef<StoredResourceTy<T>>
 ResourceManager::Add(std::unique_ptr<T> resource) {
   using StoredTy = StoredResourceTy<T>;
   static_assert(!std::is_void_v<StoredTy>,
@@ -98,7 +98,7 @@ ResourceManager::Add(std::unique_ptr<T> resource) {
 }
 
 template <typename T>
-ResourceHandle<StoredResourceTy<T>>
+ResourceRef<StoredResourceTy<T>>
 ResourceManager::Add(std::string assetId, std::unique_ptr<T> resource) {
   using StoredTy = StoredResourceTy<T>;
   static_assert(!std::is_void_v<StoredTy>,
@@ -123,10 +123,10 @@ template <typename T> bool ResourceManager::MatchesType(ResourceTy type) {
     return type == ResourceTy::Mesh;
   if constexpr (std::is_same_v<T, BaseMaterial>)
     return type == ResourceTy::Material;
+  if constexpr (std::is_same_v<T, BaseShaderComponent>)
+    return type == ResourceTy::ShaderComponent;
   if constexpr (std::is_same_v<T, BaseShader>)
     return type == ResourceTy::Shader;
-  if constexpr (std::is_same_v<T, BaseShaderProgram>)
-    return type == ResourceTy::ShaderProgram;
   if constexpr (std::is_same_v<T, BaseTexture>)
     return type == ResourceTy::Texture;
   return false;
@@ -143,9 +143,9 @@ template <typename T> const ResourcePool<T> &ResourceManager::Pool() const {
     return Meshes;
   } else if constexpr (std::is_same_v<T, BaseMaterial>) {
     return Materials;
-  } else if constexpr (std::is_same_v<T, BaseShader>) {
+  } else if constexpr (std::is_same_v<T, BaseShaderComponent>) {
     return Shaders;
-  } else if constexpr (std::is_same_v<T, BaseShaderProgram>) {
+  } else if constexpr (std::is_same_v<T, BaseShader>) {
     return ShaderPrograms;
   } else if constexpr (std::is_same_v<T, BaseTexture>) {
     return Textures;
@@ -157,20 +157,23 @@ template <typename T> const ResourcePool<T> &ResourceManager::Pool() const {
 }
 
 template <typename ResourceTy>
-ResourceHandle<ResourceTy>
+ResourceRef<ResourceTy>
 ResourceManager::Resolve(const ResourceRef<ResourceTy> &reference) const {
+  // 合并后的引用允许调用方安全地重复解析；热路径已持有 Index 时不再查询字符串表。
+  if (reference.IsResolved())
+    return reference;
   return Pool<ResourceTy>().Find(reference.GetId());
 }
 
 template <typename ResourceTy>
-ResourceTy *ResourceManager::TryGet(ResourceHandle<ResourceTy> handle) {
-  return Pool<ResourceTy>().TryGet(handle);
+ResourceTy *ResourceManager::TryGet(ResourceRef<ResourceTy> reference) {
+  return Pool<ResourceTy>().TryGet(reference);
 }
 
 template <typename ResourceTy>
 const ResourceTy *
-ResourceManager::TryGet(ResourceHandle<ResourceTy> handle) const {
-  return Pool<ResourceTy>().TryGet(handle);
+ResourceManager::TryGet(ResourceRef<ResourceTy> reference) const {
+  return Pool<ResourceTy>().TryGet(reference);
 }
 
 } // namespace z8

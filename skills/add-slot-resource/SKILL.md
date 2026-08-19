@@ -15,7 +15,7 @@ Read the repository `AGENTS.md` and inspect `git status` before editing. Preserv
 - For native-layout controls, follow **UI Node**.
 - When a request crosses types, add dependencies first: ShaderProgram, Material, Mesh, then scene/UI binding.
 
-Use canonical lowercase asset IDs such as `builtin://mesh/name`. Add the constant to `include/Resource/BuiltinResource.h`. Keep asset IDs at serialization/loading boundaries; store `ResourceHandle<T>` in render caches rather than querying strings per frame.
+Use canonical lowercase asset IDs such as `builtin://mesh/name`. Add the constant to `include/Resource/BuiltinResource.h`. Keep asset IDs at serialization/loading boundaries; resolve them to indexed `ResourceRef<T>` values for render caches rather than querying strings per frame.
 
 ## Add a Mesh
 
@@ -39,7 +39,7 @@ Use canonical lowercase asset IDs such as `builtin://mesh/name`. Add the constan
 
 1. Add the HLSL file under `asset/shader/`. Keep shared constant ABI in `asset/shader/Core`.
 2. Add builtin constants for both stage IDs and the Program ID to `include/Resource/BuiltinResource.h`.
-3. Construct the VS and PS `Shader` descriptions in `ResourceManager::RegisterBuiltinResources`, then construct the `ShaderProgram` from their returned handles. Keep source, entry, target, and fixed state explicit at this registration boundary.
+3. Construct the VS and PS `Shader` descriptions in `ResourceManager::RegisterBuiltinResources`, then construct the `ShaderProgram` from the returned indexed references. Keep source, entry, target, and fixed state explicit at this registration boundary.
 4. Use the Program builtin constant from Material or scene defaults; do not repeat asset ID literals.
 5. Bind the Program through `Material::Program`; GameObject must not reference ShaderProgram directly.
 6. Run the DXC compilation tests. When changing cbuffers, input semantics, registers, or packing, update both C++ and HLSL ABI definitions in the same change.

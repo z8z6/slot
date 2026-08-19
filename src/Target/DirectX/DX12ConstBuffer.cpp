@@ -6,12 +6,11 @@
 
 #include <DirectXMath.h>
 
+#include "../../../include/Object/GameObject.h"
 #include "Core/Application.h"
 #include "Target/DirectX/DX12Device.h"
 #include "Target/DirectX/DX12Render.h"
-#include "Object/GameObject/GameObject.h"
 #include <algorithm>
-
 
 z8::DX12ConstBuffer::DX12ConstBuffer(DX12RenderBatch *B)
 : DX12Common(B->Render), Batch(B), Buffer(B->Render){}

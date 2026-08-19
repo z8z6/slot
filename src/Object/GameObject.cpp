@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/17.
 //
 
-#include "Object/GameObject/GameObject.h"
+#include "../../include/Object/GameObject.h"
 #include "Resource/BuiltinResource.h"
 
 #include <cmath>

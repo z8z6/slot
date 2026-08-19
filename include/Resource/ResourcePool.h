@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ResourceHandle.h"
+#include "ResourceRef.h"
 
 #include <memory>
 #include <string>
@@ -13,66 +13,60 @@ namespace z8 {
 /**
  * @brief ResourceManager 内部使用的分类型所有权容器。
  *
- * 每个槽位独占一个资源对象；外部只保存 Handle。当前阶段资源在应用退出前常驻，
- * 但 Generation 已为后续热重载和卸载保留安全边界。
+ * 每个槽位独占一个资源对象；外部只保存已解析的 ResourceRef。资源在应用退出前
+ * 常驻且槽位不复用，因此 Index 在 ResourceManager 生命周期内保持稳定。
  */
 template <typename ResourceTy>
 class ResourcePool {
+private:
+  std::vector<std::unique_ptr<ResourceTy>> Slots;
+  std::unordered_map<std::string, ResourceRef<ResourceTy>> AssetIndex;
+
 public:
-  /** 接管资源所有权并返回新句柄；空资源、空 ID 或重复 ID 返回无效句柄。 */
-  ResourceHandle<ResourceTy> Add(std::string assetId,
-                                 std::unique_ptr<ResourceTy> resource) {
-    if (!resource || assetId.empty() || AssetIndex.find(assetId) != AssetIndex.end())
+  /** 接管资源所有权并返回已解析引用；空资源、空 ID 或重复 ID 返回空引用。 */
+  ResourceRef<ResourceTy> Add(std::string assetId,
+                              std::unique_ptr<ResourceTy> resource) {
+    if (!resource || assetId.empty() ||
+        AssetIndex.find(assetId) != AssetIndex.end())
       return {};
 
     const auto index = static_cast<uint32_t>(Slots.size());
-    Slots.push_back({std::move(resource), 1});
-    const ResourceHandle<ResourceTy> handle{index, Slots.back().Generation};
-    AssetIndex.emplace(std::move(assetId), handle);
-    return handle;
+    Slots.push_back(std::move(resource));
+    const ResourceRef<ResourceTy> reference(index);
+    AssetIndex.emplace(std::move(assetId), reference);
+    return reference;
   }
 
-  /** 只解析已驻留资源，不触发加载；未知 ID 返回无效句柄。 */
-  ResourceHandle<ResourceTy> Find(const std::string& assetId) const {
+  /** 只解析已驻留资源，不触发加载；未知 ID 返回空引用。 */
+  ResourceRef<ResourceTy> Find(const std::string &assetId) const {
     const auto iterator = AssetIndex.find(assetId);
-    return iterator == AssetIndex.end() ? ResourceHandle<ResourceTy>{}
+    return iterator == AssetIndex.end() ? ResourceRef<ResourceTy>{}
                                         : iterator->second;
-  }
-
-  /** 校验 Index/Generation 后返回观察指针，旧句柄或越界句柄返回空。 */
-  ResourceTy* TryGet(ResourceHandle<ResourceTy> handle) {
-    return const_cast<ResourceTy*>(std::as_const(*this).TryGet(handle));
-  }
-
-  /** const 查询与可写查询保持相同的 Generation 有效性规则。 */
-  const ResourceTy* TryGet(ResourceHandle<ResourceTy> handle) const {
-    if (!handle.IsValid() || handle.Index >= Slots.size()) return nullptr;
-    const auto& slot = Slots[handle.Index];
-    if (slot.Generation != handle.Generation) return nullptr;
-    return slot.Resource.get();
   }
 
   size_t Size() const { return AssetIndex.size(); }
 
-  /** 按稳定槽位顺序访问驻留资源，供 GPU 缓存确定性构建。 */
-  template <typename VisitorTy>
-  void Visit(VisitorTy&& visitor) const {
-    for (uint32_t index = 0; index < Slots.size(); ++index) {
-      const auto& slot = Slots[index];
-      if (slot.Resource)
-        visitor(ResourceHandle<ResourceTy>{index, slot.Generation},
-                *slot.Resource);
-    }
+  /** 校验已解析 Index 后返回观察指针，待解析或越界引用返回空。 */
+  ResourceTy *TryGet(ResourceRef<ResourceTy> reference) {
+    return const_cast<ResourceTy *>(std::as_const(*this).TryGet(reference));
   }
 
-private:
-  struct Slot {
-    std::unique_ptr<ResourceTy> Resource;
-    uint32_t Generation;
-  };
+  /** const 查询与可写查询保持相同的索引有效性规则。 */
+  const ResourceTy *TryGet(ResourceRef<ResourceTy> reference) const {
+    if (!reference.IsResolved() || reference.Index >= Slots.size())
+      return nullptr;
+    return Slots[reference.Index].get();
+  }
 
-  std::vector<Slot> Slots;
-  std::unordered_map<std::string, ResourceHandle<ResourceTy>> AssetIndex;
+  /** 按稳定槽位顺序访问驻留资源，供 GPU 缓存确定性构建。 */
+  template <typename VisitorTy>
+  void Visit(VisitorTy &&visitor) const {
+    for (uint32_t index = 0; index < Slots.size(); ++index) {
+      const auto &resource = Slots[index];
+      if (resource)
+        visitor(ResourceRef<ResourceTy>(index), *resource);
+    }
+  }
 };
 
 } // namespace z8

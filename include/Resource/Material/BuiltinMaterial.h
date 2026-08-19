@@ -25,7 +25,7 @@ struct GrassBlockMaterial : BaseMaterial {
 struct UIMaterial : BaseMaterial {
   UIMaterial() {
     Id = builtin::material::UIMaterial;
-    Program = ResourceRef<BaseShaderProgram>(builtin::shader::program::UIObjectProgram);
+    Program = ResourceRef<BaseShader>(builtin::shader::program::UIObjectProgram);
   }
 };
 

@@ -20,7 +20,7 @@ Update 依次更新 Camera、GlobalConst 和两个批次的对象常量。Draw �
 
 ## Batch 与 PSO
 
-RenderBatch 在初始化时解析 Mesh、Material、ShaderProgram 与 Texture Handle。绘制时绑定 PSO、b0 对象、b1 材质、b2 全局常量以及可选 t0 基础色纹理。
+RenderBatch 在初始化时将 Mesh、Material、ShaderProgram 与 Texture 解析为索引引用。绘制时绑定 PSO、b0 对象、b1 材质、b2 全局常量以及可选 t0 基础色纹理。
 
 批次按 ShaderProgram 缓存 PSO，Program 描述 VS/PS、深度和混合状态，不再根据首对象或 RTTI 推断管线。3D 批次按 Program、Material、Mesh 稳定排序以减少状态切换；透明 UI 批次保持声明顺序，确保画家算法的叠放语义。空批次现已支持。
 

@@ -20,23 +20,19 @@ void ResourceManager::RegisterBuiltinResources() {
   Add(std::make_unique<MetalMaterial>());
   Add(std::make_unique<UIMaterial>());
 
-  // 先注册阶段再构造 Program：Program 保存的是类型化运行时句柄，
+  // 先注册阶段再构造 Program：Program 保存的是类型化运行时索引引用，
   // 这个顺序保证它们在进入 PSO 缓存前已经稳定。内建类则是
   // ID、编译入口和固定管线状态的唯一来源。
   const auto gameObjectVertex = Add(std::make_unique<GameObjectVertexShader>());
   const auto gameObjectPixel = Add(std::make_unique<GameObjectPixelShader>());
-  Add(std::make_unique<GameObjectShaderProgram>(gameObjectVertex,
-                                                gameObjectPixel));
+  Add(std::make_unique<GameObjectShader>(gameObjectVertex, gameObjectPixel));
 
   const auto missingVertex = Add(std::make_unique<MissingVertexShader>());
   const auto missingPixel = Add(std::make_unique<MissingPixelShader>());
-  Add(std::make_unique<MissingShaderProgram>(missingVertex, missingPixel));
+  Add(std::make_unique<MissingShader>(missingVertex, missingPixel));
 
-  const auto timeVertex = Add(std::make_unique<TimeVertexShader>());
-  const auto timePixel = Add(std::make_unique<TimePixelShader>());
-  Add(std::make_unique<TimeShaderProgram>(timeVertex, timePixel));
 
   const auto uiObjectVertex = Add(std::make_unique<UIObjectVertexShader>());
   const auto uiObjectPixel = Add(std::make_unique<UIObjectPixelShader>());
-  Add(std::make_unique<UIObjectShaderProgram>(uiObjectVertex, uiObjectPixel));
+  Add(std::make_unique<UIObjectShader>(uiObjectVertex, uiObjectPixel));
 }

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ResourceHandle.h"
+#include "ResourceRef.h"
 #include <DirectXMath.h>
 
 namespace z8

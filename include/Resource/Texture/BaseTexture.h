@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BuiltinResource.h"
-#include "Resource/ResourceHandle.h"
+#include "Resource/ResourceRef.h"
 
 #include <cstddef>
 #include <cstdint>

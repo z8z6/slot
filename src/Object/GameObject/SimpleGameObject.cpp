@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/20.
 //
 
-#include "Object/GameObject/SimpleGameObject.h"
+#include "Object/BuiltinObject.h"
 #include "Object/Camera/BaseCamera.h"
 
 using namespace z8;

@@ -1,5 +1,5 @@
-#include "Object/UIObject/UIObject.h"
 #include "UI/Layout/BaseNode.h"
+#include "../../../include/Object/UIObject.h"
 #include "UI/Layout/DrawNode.h"
 
 #include <gtest/gtest.h>

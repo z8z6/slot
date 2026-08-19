@@ -47,7 +47,6 @@ public:
   DX12TextureManager TextureManager;
   DX12GlobalConst GlobalConst;
   DX12RootSignature RootSignature;
-  // ShaderLibrary 是每个渲染器的设备相关缓存，CPU 描述仍由 Application::Resources 拥有。
   DX12ShaderLibrary ShaderLibrary;
 
   DX12RenderBatch GOBatch;

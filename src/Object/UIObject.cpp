@@ -2,7 +2,7 @@
 // Created by zhou_zhengming on 2026/5/17.
 //
 
-#include "Object/UIObject/UIObject.h"
+#include "../../include/Object/UIObject.h"
 
 #include "Object/Camera/BaseCamera.h"
 #include "Resource/BuiltinResource.h"

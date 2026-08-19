@@ -5,7 +5,7 @@
 #pragma once
 
 #include "BuiltinResource.h"
-#include "Resource/ResourceHandle.h"
+#include "Resource/ResourceRef.h"
 #include "Vertex.h"
 #include <string>
 #include <vector>

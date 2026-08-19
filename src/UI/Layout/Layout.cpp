@@ -4,7 +4,7 @@
 
 #include "UI/Layout/Layout.h"
 
-#include "Object/UIObject/UIObject.h"
+#include "../../../include/Object/UIObject.h"
 #include "UI/Behavior/DockBehavior.h"
 #include "UI/Behavior/DragBehavior.h"
 #include "UI/Behavior/ResizeBehavior.h"

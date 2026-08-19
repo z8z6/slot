@@ -1,6 +1,6 @@
 # 着色器与常量 ABI
 
-Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS、深度和混合状态组合成一个绘制管线资源。内建阶段和 Program 由 `BuiltinShader` 中的具体 C++ 类固化资源 ID、编译入口与固定管线状态；`ResourceManager::RegisterBuiltinResources` 只负责所有权和依赖顺序。注册时先将 VS/PS 放入对应资源池，再以稳定句柄构造 Program；`DX12Render::Init` 随后统一编译全部 Shader。
+Shader 描述文件、注册名、入口与 Target；ShaderProgram 将 VS、PS、深度和混合状态组合成一个绘制管线资源。内建阶段和 Program 由 `BuiltinShader` 中的具体 C++ 类固化资源 ID、编译入口与固定管线状态；`ResourceManager::RegisterBuiltinResources` 只负责所有权和依赖顺序。注册时先将 VS/PS 放入对应资源池，再以稳定的索引引用构造 Program；`DX12Render::Init` 随后统一编译全部 Shader。
 
 编译器按 Target 自动选择：Shader Model 6.x 使用 DXC，旧版 Target 使用 FXC。DXC 路径支持 include、HLSL 2021、Debug 的 `-Zi/-Od` 和 Release 的 `-O3`。每个 DX12Render 拥有自己的 `DX12ShaderLibrary`，CPU 描述仍由 Application 的 ResourceManager 统一拥有。
 

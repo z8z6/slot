@@ -4,7 +4,7 @@
 
 #include "UI/Layout/RectNode.h"
 
-#include "Object/UIObject/RectUIObject.h"
+#include "Object/BuiltinObject.h"
 #include "UI/Style/Theme.h"
 
 using namespace z8::ui;

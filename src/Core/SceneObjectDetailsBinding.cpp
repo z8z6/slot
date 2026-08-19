@@ -1,8 +1,8 @@
 #include "Core/SceneObjectDetailsBinding.h"
 
+#include "../../include/Object/GameObject.h"
 #include "Material/BaseMaterial.h"
 #include "Mesh/BaseMesh.h"
-#include "Object/GameObject/GameObject.h"
 #include "Resource/ResourceManager.h"
 #include "UI/Layout/Layout.h"
 #include "UI/Layout/TextInputNode.h"

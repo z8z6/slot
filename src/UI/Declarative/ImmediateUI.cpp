@@ -1,6 +1,6 @@
 #include "UI/Declarative/ImmediateUI.h"
 
-#include "Object/UIObject/UIObject.h"
+#include "../../../include/Object/UIObject.h"
 #include "UI/Declarative/ControlFactory.h"
 #include "UI/Layout/BaseNode.h"
 #include "UI/Layout/ButtonNode.h"

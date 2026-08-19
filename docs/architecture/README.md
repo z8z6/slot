@@ -23,7 +23,7 @@ flowchart TD
 | --- | --- | --- |
 | 应用平台 | 窗口、消息、计时、应用编排 | `Core` |
 | 场景表示 | Scene、对象、变换、相机、灯光 | `Scene`、`Object`、`Light` |
-| 资源表示 | 强类型句柄、Mesh、Material、ShaderProgram | `Resource`、`Mesh`、`Material`、`Shader` |
+| 资源表示 | 强类型引用、Mesh、Material、ShaderProgram | `Resource`、`Mesh`、`Material`、`Shader` |
 | UI | 原生布局节点、求解器与 UI 渲染对象 | `UI/Layout` |
 | 后端抽象 | `Init/Update/Draw/Resize` | `Target/Render.*` |
 | D3D12 | GPU 资源、PSO、批次和提交 | `Target/DirectX` |
@@ -32,6 +32,8 @@ flowchart TD
 
 `Application` 显式拥有 `ResourceManager` 和活动 `Scene`。ResourceManager 独占 CPU 资源，Scene 独占相机、光源集合和 GameObject；Renderer 与输入系统只保存生命周期受限的观察指针。UI Layout 是窗口级覆盖层，不因 3D Scene 切换而自动销毁。
 
-场景使用类型化软引用表达资源依赖，批次初始化时解析为运行时 Handle。DX12 缓存只拥有设备相关数据，避免资源表示层依赖具体后端。
+场景使用携带 Asset ID 的类型化 `ResourceRef` 表达资源依赖，批次初始化时将同一
+类型解析为携带稳定 Index 的运行时引用。DX12 缓存只拥有设备相关数据，避免资源
+表示层依赖具体后端。
 
 每帧先由 `LayoutEngine` 写入 UI 像素位置，再更新相机、全局常量和对象矩阵；3D/UI 数据分别进入两个批次，最后由 D3D12 提交并 Present。

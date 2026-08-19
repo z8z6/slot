@@ -20,7 +20,7 @@ void DX12MeshManager::UnifyMesh()
   // 将注册过的所有 Mesh 拼成一个 Mesh
   // 同一种 Mesh 只会出现一次
   Render->App->Resources.Meshes.Visit(
-      [this](ResourceHandle<BaseMesh> handle, const BaseMesh& mesh) {
+      [this](ResourceRef<BaseMesh> meshRef, const BaseMesh& mesh) {
     DX12SubMesh SubMesh;
     SubMesh.IndexCount = mesh.I.size();
     SubMesh.BaseVertexLocation = MergeMesh.V.size();
@@ -29,7 +29,7 @@ void DX12MeshManager::UnifyMesh()
     MergeMesh.V.insert(MergeMesh.V.end(), mesh.V.begin(), mesh.V.end());
     MergeMesh.I.insert(MergeMesh.I.end(), mesh.I.begin(), mesh.I.end());
 
-    SubMeshes[handle] = SubMesh;
+    SubMeshes[meshRef] = SubMesh;
   });
 }
 
@@ -62,7 +62,7 @@ void DX12MeshManager::Bind() const
   Render->Cmd.List->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
-DX12SubMesh* DX12MeshManager::GetSubMesh(ResourceHandle<BaseMesh> mesh) {
+DX12SubMesh* DX12MeshManager::GetSubMesh(ResourceRef<BaseMesh> mesh) {
   const auto iterator = SubMeshes.find(mesh);
   return iterator == SubMeshes.end() ? nullptr : &iterator->second;
 }

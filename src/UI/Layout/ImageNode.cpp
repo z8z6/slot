@@ -1,6 +1,6 @@
 #include "UI/Layout/ImageNode.h"
 
-#include "Object/UIObject/RectUIObject.h"
+#include "Object/BuiltinObject.h"
 #include "UI/Style/Theme.h"
 
 #include <array>
